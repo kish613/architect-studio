@@ -46,16 +46,27 @@ export async function generateIsometricFloorplan(
           const base64Image = imageBuffer.toString("base64");
           const mimeType = originalImagePath.endsWith(".png") ? "image/png" : "image/jpeg";
 
-          const defaultPrompt = `Transform this 2D floorplan into a beautiful isometric 3D architectural visualization. 
-The view should be from an elevated angle showing depth and dimension.
-Use a modern, clean aesthetic with:
-- Soft shadows and ambient lighting
-- Neutral color palette with warm wood tones
-- Visible furniture and fixtures in each room
-- Clear room boundaries and walls with realistic thickness
-Make it look like a professional architectural rendering.`;
+          const basePrompt = `Transform this 2D floorplan into a 3D interior cutaway isometric visualization.
 
-          const prompt = stylePrompt || defaultPrompt;
+CRITICAL REQUIREMENTS:
+- View angle: Top-down isometric view (35-45 degrees from above), looking directly into the interior
+- NO roof - the ceiling is removed to show the interior layout
+- NO exterior facades, outdoor scenery, landscaping, or sky
+- Show the interior rooms, walls with realistic thickness, doors, and windows
+- Include furniture and fixtures appropriate for each room type
+- Walls should be visible from above like an architectural section/cutaway
+- Style: Clean exploded axonometric floorplan render, like professional interior design presentations
+
+Visual style:
+- Soft ambient lighting from above
+- Neutral color palette with warm wood floors
+- White or light-colored walls
+- Modern, clean aesthetic
+- Professional architectural rendering quality`;
+
+          const prompt = stylePrompt 
+            ? `${basePrompt}\n\nAdditional style preferences: ${stylePrompt}`
+            : basePrompt;
 
           const response = await ai.models.generateContent({
             model: "gemini-2.5-flash-image",

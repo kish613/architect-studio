@@ -1,13 +1,17 @@
-import { useRef } from "react";
 import { ArrowRight } from "lucide-react";
 import { Link } from "wouter";
 import { ProjectCard } from "@/components/projects/ProjectCard";
-import { useFloorplanStore } from "@/lib/store";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { fetchProjects } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function DesignGallery() {
-  const projects = useFloorplanStore((state) => state.projects);
+  const { data: projects, isLoading } = useQuery({
+    queryKey: ['projects'],
+    queryFn: fetchProjects,
+  });
 
   return (
     <section className="py-24 border-t border-border/40 bg-black/20">
@@ -26,19 +30,35 @@ export function DesignGallery() {
           </Link>
         </div>
 
-        <ScrollArea className="w-full whitespace-nowrap pb-4">
-          <div className="flex w-max space-x-6 pb-4">
-            {projects.map((project, index) => (
-              <div key={project.id} className="w-[350px] whitespace-normal">
-                <ProjectCard project={project} index={index} />
-              </div>
-            ))}
-            {projects.length === 0 && (
-              <div className="text-muted-foreground">No projects yet. Start creating!</div>
-            )}
-          </div>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+        {isLoading ? (
+          <ScrollArea className="w-full whitespace-nowrap pb-4">
+            <div className="flex w-max space-x-6 pb-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="w-[350px] whitespace-normal space-y-4">
+                  <Skeleton className="aspect-[4/3] rounded-xl" />
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+              ))}
+            </div>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+        ) : (
+          <ScrollArea className="w-full whitespace-nowrap pb-4">
+            <div className="flex w-max space-x-6 pb-4">
+              {projects && projects.length > 0 ? (
+                projects.map((project, index) => (
+                  <div key={project.id} className="w-[350px] whitespace-normal">
+                    <ProjectCard project={project} index={index} />
+                  </div>
+                ))
+              ) : (
+                <div className="text-muted-foreground">No projects yet. Start creating!</div>
+              )}
+            </div>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+        )}
         
         <div className="md:hidden mt-8 text-center">
           <Link href="/projects">

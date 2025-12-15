@@ -1,17 +1,15 @@
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { ArrowRight, Clock } from "lucide-react";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Project } from "@/lib/store";
 import { Badge } from "@/components/ui/badge";
+import type { ProjectWithModels } from "@/lib/api";
 
 interface ProjectCardProps {
-  project: Project;
+  project: ProjectWithModels;
   index: number;
 }
 
 export function ProjectCard({ project, index }: ProjectCardProps) {
-  // Use the first model for thumbnail, or a placeholder
   const thumbnail = project.models[0]?.thumbnailUrl;
   const date = new Date(project.lastModified).toLocaleDateString();
 
@@ -22,7 +20,7 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: index * 0.1 }}
       >
-        <div className="group cursor-pointer">
+        <div className="group cursor-pointer" data-testid={`card-project-${project.id}`}>
           <div className="relative overflow-hidden rounded-xl aspect-[4/3] bg-muted mb-4 border border-border/50 shadow-sm transition-all duration-300 group-hover:shadow-xl group-hover:shadow-primary/10 group-hover:scale-[1.02] ring-offset-background group-hover:ring-2 ring-primary/50">
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60 z-10 transition-opacity group-hover:opacity-40" />
             
@@ -31,6 +29,7 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
                 src={thumbnail} 
                 alt={project.name} 
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                data-testid={`img-thumbnail-${project.id}`}
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-muted-foreground">
@@ -47,7 +46,7 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
 
           <div className="space-y-1">
             <div className="flex justify-between items-start">
-              <h3 className="font-display font-semibold text-lg text-foreground group-hover:text-primary transition-colors">
+              <h3 className="font-display font-semibold text-lg text-foreground group-hover:text-primary transition-colors" data-testid={`text-project-name-${project.id}`}>
                 {project.name}
               </h3>
               <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0" />

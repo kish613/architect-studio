@@ -9,26 +9,25 @@ export function Header() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur-md shadow-lg">
-      <div className="container mx-auto px-4 h-24 flex items-center justify-between">
+      <div className="container mx-auto px-6 h-24 flex items-center justify-between">
         <Link href="/">
-          <a className="flex items-center gap-2 group">
-            <img 
-              src={logoImage} 
-              alt="Architect Studio" 
-              className="h-16 w-auto object-contain transition-transform group-hover:scale-105" 
-            />
-          </a>
+          <img 
+            src={logoImage} 
+            alt="Architect Studio" 
+            className="h-16 w-auto object-contain transition-transform hover:scale-105 cursor-pointer"
+            data-testid="img-logo"
+          />
         </Link>
 
         <nav className="flex items-center gap-4">
           <Link href="/projects">
-            <a className={cn(
-              "text-sm font-medium transition-colors hover:text-primary flex items-center gap-2",
+            <span className={cn(
+              "text-sm font-medium transition-colors hover:text-primary flex items-center gap-2 cursor-pointer",
               location === "/projects" ? "text-foreground" : "text-muted-foreground"
             )}>
               <Grid className="w-4 h-4" />
               <span className="hidden sm:inline">My Projects</span>
-            </a>
+            </span>
           </Link>
           
           <Link href="/upload">

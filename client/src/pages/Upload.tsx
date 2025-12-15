@@ -6,17 +6,47 @@ import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useFloorplanStore } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { createProject, uploadFloorplan } from "@/lib/api";
 
 export function Upload() {
   const [name, setName] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
   const [, setLocation] = useLocation();
-  const { createMockProject } = useFloorplanStore();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const createProjectMutation = useMutation({
+    mutationFn: async () => {
+      if (!file) throw new Error('No file selected');
+      
+      // Create project first
+      const project = await createProject(name || "Untitled Project");
+      
+      // Then upload the floorplan
+      await uploadFloorplan(project.id, file);
+      
+      return project;
+    },
+    onSuccess: (project) => {
+      toast({
+        title: "Project Created",
+        description: "Your floorplan is being processed into 3D.",
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      setLocation(`/projects/${project.id}`);
+    },
+    onError: (error) => {
+      toast({
+        title: "Upload Failed",
+        description: error instanceof Error ? error.message : "Something went wrong.",
+        variant: "destructive"
+      });
+    }
+  });
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles?.[0]) {
@@ -32,30 +62,8 @@ export function Upload() {
     maxFiles: 1
   });
 
-  const handleUpload = async () => {
-    if (!file) return;
-
-    try {
-      setIsUploading(true);
-      // Simulate processing time
-      const projectId = await createMockProject(name || "Untitled Project", file);
-      
-      toast({
-        title: "Project Created",
-        description: "Your floorplan is being processed into 3D.",
-      });
-
-      // Navigate to the new project
-      setLocation(`/projects/${projectId}`);
-    } catch (error) {
-      toast({
-        title: "Upload Failed",
-        description: "Something went wrong. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsUploading(false);
-    }
+  const handleUpload = () => {
+    createProjectMutation.mutate();
   };
 
   return (
@@ -77,12 +85,13 @@ export function Upload() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="bg-card border-white/10 h-12"
+              data-testid="input-project-name"
             />
           </div>
 
           <Card className={`border-2 border-dashed transition-colors cursor-pointer bg-card/30 ${isDragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}>
             <CardContent className="p-0">
-              <div {...getRootProps()} className="flex flex-col items-center justify-center py-20 px-4 text-center">
+              <div {...getRootProps()} className="flex flex-col items-center justify-center py-20 px-4 text-center" data-testid="dropzone-upload">
                 <input {...getInputProps()} />
                 
                 {file ? (
@@ -91,6 +100,7 @@ export function Upload() {
                       src={URL.createObjectURL(file)} 
                       alt="Preview" 
                       className="w-full h-full object-cover"
+                      data-testid="img-preview"
                     />
                     <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 hover:opacity-100 transition-opacity">
                       <p className="text-white font-medium">Click to change</p>
@@ -120,10 +130,11 @@ export function Upload() {
 
           <Button 
             onClick={handleUpload} 
-            disabled={!file || isUploading}
+            disabled={!file || createProjectMutation.isPending}
             className="w-full h-14 text-lg bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20"
+            data-testid="button-upload"
           >
-            {isUploading ? (
+            {createProjectMutation.isPending ? (
               <>
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                 Processing AI Model...

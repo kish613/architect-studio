@@ -1,12 +1,17 @@
 import { Layout } from "@/components/layout/Layout";
 import { ProjectCard } from "@/components/projects/ProjectCard";
-import { useFloorplanStore } from "@/lib/store";
 import { Plus } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { fetchProjects } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function Projects() {
-  const projects = useFloorplanStore((state) => state.projects);
+  const { data: projects, isLoading } = useQuery({
+    queryKey: ['projects'],
+    queryFn: fetchProjects,
+  });
 
   return (
     <Layout>
@@ -24,13 +29,23 @@ export function Projects() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {projects.map((project, index) => (
-            <ProjectCard key={project.id} project={project} index={index} />
-          ))}
-        </div>
-
-        {projects.length === 0 && (
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="space-y-4">
+                <Skeleton className="aspect-[4/3] rounded-xl" />
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
+            ))}
+          </div>
+        ) : projects && projects.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {projects.map((project, index) => (
+              <ProjectCard key={project.id} project={project} index={index} />
+            ))}
+          </div>
+        ) : (
           <div className="text-center py-24 border border-dashed border-border rounded-2xl bg-card/30">
             <h3 className="text-xl font-medium mb-2">No projects yet</h3>
             <p className="text-muted-foreground mb-6">Upload your first floorplan to get started.</p>

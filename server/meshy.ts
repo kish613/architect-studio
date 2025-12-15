@@ -61,12 +61,25 @@ export async function createImageTo3DTask(imageUrl: string): Promise<MeshyTaskRe
       },
       body: JSON.stringify({
         image_url: imageUrl,
+        ai_model: "latest",
         enable_pbr: true,
         should_remesh: true,
         topology: "quad",
         target_polycount: 300000,
         texture_richness: "high",
         art_style: "realistic",
+        texture_prompt: `High-quality architectural interior materials with photorealistic detail:
+- Hardwood flooring with visible grain patterns, warm oak or walnut tones, subtle reflections
+- Smooth matte white or light gray painted walls with slight texture variation
+- Fabric upholstery with visible weave patterns on sofas and chairs
+- Brushed metal fixtures and hardware with accurate metallic reflectivity
+- Natural stone or marble countertops with realistic veining
+- Glass surfaces with proper transparency and subtle reflections
+- Carpets and rugs with fiber texture detail
+- Wood furniture with visible grain and finish quality
+- Ceramic tiles in bathrooms with grout lines
+- Leather surfaces with subtle pores and stitching detail
+All materials should have realistic PBR properties with accurate roughness, metallic, and normal mapping.`,
       }),
     });
 

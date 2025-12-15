@@ -1,14 +1,23 @@
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Hero3D } from "./Hero3D";
+import heroVideo from "@assets/kish613_A_floorplan_being_drawn_by_a_pencil._the_whole_pictur__1765809578123.mp4";
 
 export function Hero() {
   return (
     <section className="relative h-[600px] w-full flex items-center overflow-hidden border-b border-border/40">
-      {/* 3D Background */}
-      <div className="absolute inset-0 z-0 opacity-80">
-        <Hero3D />
+      {/* Video Background */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 bg-black/60 z-10" /> {/* Overlay for readability */}
+        <video 
+          autoPlay 
+          loop 
+          muted 
+          playsInline
+          className="w-full h-full object-cover"
+        >
+          <source src={heroVideo} type="video/mp4" />
+        </video>
       </div>
 
       {/* Content */}

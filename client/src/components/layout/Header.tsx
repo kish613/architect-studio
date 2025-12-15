@@ -1,7 +1,8 @@
 import { Link, useLocation } from "wouter";
-import { Box, Plus, Grid } from "lucide-react";
+import { Plus, Grid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import logoImage from "@assets/Gemini_Generated_Image_j56wq4j56wq4j56w_(1)_1765822812911.png";
 
 export function Header() {
   const [location] = useLocation();
@@ -11,10 +12,11 @@ export function Header() {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/">
           <a className="flex items-center gap-2 group">
-            <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 transition-all group-hover:bg-primary/20 group-hover:border-primary/50">
-              <Box className="w-5 h-5 text-primary transition-transform group-hover:scale-110" />
-            </div>
-            <span className="font-display font-bold text-lg tracking-tight">Architect Studio</span>
+            <img 
+              src={logoImage} 
+              alt="Architect Studio" 
+              className="h-12 w-auto object-contain rounded-md" 
+            />
           </a>
         </Link>
 

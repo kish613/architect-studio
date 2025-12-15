@@ -1,0 +1,39 @@
+Transform this 2D floorplan into a photorealistic 3D architectural visualization.
+
+CRITICAL: You MUST follow the EXACT layout shown in the reference floorplan image:
+- Match the EXACT room positions, shapes, and proportions from the floorplan
+- Preserve ALL wall positions and angles exactly as shown
+- Keep room sizes PROPORTIONAL to what is shown in the floorplan
+- The rooms are: [dynamic room list]
+
+Create an isometric cutaway view of this SINGLE FLOOR layout with walls cut at eye level to reveal the interior.
+
+LAYOUT ACCURACY (MOST IMPORTANT):
+- [wallLayout from analysis]
+- [description from analysis]
+- Each room must be enclosed with walls matching the floorplan boundaries
+- Bathrooms must be their own separate enclosed rooms (not open areas)
+- Room dimensions: [roomDimensions from analysis]
+
+USER STYLE PREFERENCES:
+[userStyle or default: "modern minimalist interior, neutral colors, clean aesthetic"]
+
+Style rendering:
+- Apply the user's style preferences to all furniture, decor, and finishes
+- Natural lighting from windows (place windows where shown in floorplan)
+- Furniture SCALED appropriately for each room size
+- Unreal Engine 5 quality, professional architectural rendering
+- Soft global illumination and realistic shadows
+
+CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
+- SOLID PURE WHITE BACKGROUND (#FFFFFF) - no gradients, no shadows on background
+- Single clear architectural subject with sharply defined edges and corners
+- ZERO text, watermarks, labels, or annotations anywhere
+- HIGH CONTRAST: Dark shadows, bright highlights, clear material boundaries
+- CLEAN TEXTURES: Smooth surfaces, no noise, no film grain, no post-processing effects
+- SHARP FOCUS: Crystal clear details on all furniture, walls, and architectural elements
+- NO atmospheric effects: No fog, haze, dust particles, lens flare, or bloom
+- SOLID COLORS: Use distinct solid colors for different surfaces (walls, floors, furniture)
+- DEFINED EDGES: Every object should have clear, sharp boundaries
+- CONSISTENT LIGHTING: Even, studio-style lighting without harsh shadows on the model
+- 4K QUALITY, photorealistic materials, ultra-high resolution textures

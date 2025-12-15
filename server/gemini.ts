@@ -46,27 +46,46 @@ export async function generateIsometricFloorplan(
           const base64Image = imageBuffer.toString("base64");
           const mimeType = originalImagePath.endsWith(".png") ? "image/png" : "image/jpeg";
 
-          const basePrompt = `Transform this 2D floorplan into a 3D interior cutaway isometric visualization.
+          const userStyle = stylePrompt || "modern minimalist interior, neutral colors, clean aesthetic";
+          
+          const prompt = `Transform this 2D floorplan into a photorealistic 3D architectural visualization.
 
-CRITICAL REQUIREMENTS:
-- View angle: Top-down isometric view (35-45 degrees from above), looking directly into the interior
-- NO roof - the ceiling is removed to show the interior layout
-- NO exterior facades, outdoor scenery, landscaping, or sky
-- Show the interior rooms, walls with realistic thickness, doors, and windows
-- Include furniture and fixtures appropriate for each room type
-- Walls should be visible from above like an architectural section/cutaway
-- Style: Clean exploded axonometric floorplan render, like professional interior design presentations
+CRITICAL: You MUST follow the EXACT layout shown in the reference floorplan image:
+- Match the EXACT room positions, shapes, and proportions from the floorplan
+- Preserve ALL wall positions and angles exactly as shown
+- Keep room sizes PROPORTIONAL to what is shown in the floorplan
+- Identify and render all rooms visible in the floorplan
 
-Visual style:
-- Soft ambient lighting from above
-- Neutral color palette with warm wood floors
-- White or light-colored walls
-- Modern, clean aesthetic
-- Professional architectural rendering quality`;
+Create an isometric cutaway view of this SINGLE FLOOR layout with walls cut at eye level to reveal the interior.
 
-          const prompt = stylePrompt 
-            ? `${basePrompt}\n\nAdditional style preferences: ${stylePrompt}`
-            : basePrompt;
+LAYOUT ACCURACY (MOST IMPORTANT):
+- Follow the exact wall layout from the floorplan image
+- Each room must be enclosed with walls matching the floorplan boundaries
+- Bathrooms must be their own separate enclosed rooms (not open areas)
+- Match all room dimensions proportionally to the source floorplan
+
+USER STYLE PREFERENCES:
+${userStyle}
+
+Style rendering:
+- Apply the user's style preferences to all furniture, decor, and finishes
+- Natural lighting from windows (place windows where shown in floorplan)
+- Furniture SCALED appropriately for each room size
+- Unreal Engine 5 quality, professional architectural rendering
+- Soft global illumination and realistic shadows
+
+CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
+- SOLID PURE WHITE BACKGROUND (#FFFFFF) - no gradients, no shadows on background
+- Single clear architectural subject with sharply defined edges and corners
+- ZERO text, watermarks, labels, or annotations anywhere
+- HIGH CONTRAST: Dark shadows, bright highlights, clear material boundaries
+- CLEAN TEXTURES: Smooth surfaces, no noise, no film grain, no post-processing effects
+- SHARP FOCUS: Crystal clear details on all furniture, walls, and architectural elements
+- NO atmospheric effects: No fog, haze, dust particles, lens flare, or bloom
+- SOLID COLORS: Use distinct solid colors for different surfaces (walls, floors, furniture)
+- DEFINED EDGES: Every object should have clear, sharp boundaries
+- CONSISTENT LIGHTING: Even, studio-style lighting without harsh shadows on the model
+- 4K QUALITY, photorealistic materials, ultra-high resolution textures`;
 
           const response = await ai.models.generateContent({
             model: "gemini-2.5-flash-image",

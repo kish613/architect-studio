@@ -2,20 +2,20 @@ import { Link, useLocation } from "wouter";
 import { Plus, Grid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import logoImage from "@assets/Gemini_Generated_Image_j56wq4j56wq4j56w_(1)_1765822812911.png";
+import logoImage from "@assets/archudio_1765823035835.png";
 
 export function Header() {
   const [location] = useLocation();
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-black/5 bg-white backdrop-blur-md">
+    <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/">
           <a className="flex items-center gap-2 group">
             <img 
               src={logoImage} 
               alt="Architect Studio" 
-              className="h-12 w-auto object-contain rounded-md" 
+              className="h-12 w-auto object-contain" 
             />
           </a>
         </Link>
@@ -24,7 +24,7 @@ export function Header() {
           <Link href="/projects">
             <a className={cn(
               "text-sm font-medium transition-colors hover:text-primary flex items-center gap-2",
-              location === "/projects" ? "text-black" : "text-gray-500"
+              location === "/projects" ? "text-foreground" : "text-muted-foreground"
             )}>
               <Grid className="w-4 h-4" />
               <span className="hidden sm:inline">My Projects</span>

@@ -18,6 +18,39 @@ function getMeshyApiKey(): string {
   return key;
 }
 
+const MESHY_3D_PROMPT = `CRITICAL 3D MODEL REQUIREMENTS:
+4K ultra high resolution textures with maximum detail and clarity.
+Photorealistic PBR materials with accurate roughness, metallic, and normal maps.
+Professional architectural interior visualization quality.
+
+GEOMETRY AND STRUCTURE:
+- Accurate room proportions matching the source floorplan layout
+- Clean architectural geometry with proper wall thickness and depth
+- Distinct separation between rooms with visible wall boundaries
+- Proper ceiling height proportions for residential interior
+- Sharp 90-degree corners on walls and architectural elements
+- Recessed doorways and window frames with proper depth
+
+MATERIAL QUALITY:
+- High-fidelity surface materials with realistic texture detail
+- Clear material boundaries between different surfaces (walls, floors, furniture)
+- Proper UV mapping without stretching or distortion
+- Consistent material scale across the entire model
+- Realistic material reflectivity and surface properties
+
+LIGHTING AND SHADOWS:
+- Soft ambient occlusion in corners and edges
+- Proper shadow casting from furniture and architectural elements
+- Natural light simulation from window positions
+- Even illumination without harsh shadows or dark spots
+
+FURNITURE AND DECOR:
+- Properly scaled furniture appropriate for room dimensions
+- Detailed furniture geometry with realistic proportions
+- Fabric textures with visible weave patterns on upholstery
+- Wood grain direction consistent on wooden surfaces
+- Metal fixtures with appropriate reflectivity`;
+
 export async function createImageTo3DTask(imageUrl: string): Promise<MeshyTaskResult> {
   try {
     const response = await fetch(`${MESHY_API_URL}/openapi/v1/image-to-3d`, {
@@ -31,7 +64,9 @@ export async function createImageTo3DTask(imageUrl: string): Promise<MeshyTaskRe
         enable_pbr: true,
         should_remesh: true,
         topology: "quad",
-        target_polycount: 100000,
+        target_polycount: 300000,
+        texture_richness: "high",
+        art_style: "realistic",
       }),
     });
 

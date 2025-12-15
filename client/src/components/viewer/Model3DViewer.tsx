@@ -1,7 +1,7 @@
-import { Suspense, useRef } from "react";
+import { Suspense, useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, useGLTF, Environment, Center, ContactShadows, Html, useProgress } from "@react-three/drei";
-import { Box, Download } from "lucide-react";
+import { Box, Download, ExternalLink, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import * as THREE from "three";
 
@@ -19,9 +19,10 @@ function Loader() {
 
 interface ModelProps {
   url: string;
+  onError?: () => void;
 }
 
-function Model({ url }: ModelProps) {
+function Model({ url, onError }: ModelProps) {
   const { scene } = useGLTF(url);
   const modelRef = useRef<THREE.Group>(null!);
 
@@ -45,8 +46,48 @@ interface Model3DViewerProps {
   className?: string;
 }
 
+function ModelErrorFallback({ modelUrl }: { modelUrl: string }) {
+  return (
+    <div className="w-full h-full flex items-center justify-center bg-gradient-to-b from-zinc-900 to-black">
+      <div className="text-center p-8 max-w-md">
+        <AlertCircle className="w-16 h-16 mx-auto mb-4 text-yellow-500" />
+        <h3 className="text-xl font-medium text-white mb-2">3D Viewer Loading</h3>
+        <p className="text-sm text-white/60 mb-6">
+          Your 3D model is ready! Download it to view in your favorite 3D software.
+        </p>
+        <div className="flex flex-col gap-3">
+          <a href={modelUrl} download target="_blank" rel="noopener noreferrer">
+            <Button className="w-full bg-primary hover:bg-primary/90">
+              <Download className="w-4 h-4 mr-2" />
+              Download GLB Model
+            </Button>
+          </a>
+          <a href={modelUrl} target="_blank" rel="noopener noreferrer">
+            <Button variant="outline" className="w-full">
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Open in New Tab
+            </Button>
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function getProxiedUrl(url: string): string {
+  if (url.includes('meshy.ai')) {
+    return `/api/proxy-model?url=${encodeURIComponent(url)}`;
+  }
+  return url;
+}
+
 export function Model3DViewer({ modelUrl, className = "" }: Model3DViewerProps) {
-  const isExternalUrl = modelUrl.startsWith("http");
+  const [hasError, setHasError] = useState(false);
+  const proxiedUrl = getProxiedUrl(modelUrl);
+
+  if (hasError) {
+    return <ModelErrorFallback modelUrl={modelUrl} />;
+  }
 
   return (
     <div className={`relative w-full h-full ${className}`}>
@@ -54,13 +95,14 @@ export function Model3DViewer({ modelUrl, className = "" }: Model3DViewerProps) 
         camera={{ position: [5, 5, 5], fov: 50 }}
         gl={{ preserveDrawingBuffer: true }}
         data-testid="canvas-3d-viewer"
+        onError={() => setHasError(true)}
       >
         <ambientLight intensity={0.5} />
         <directionalLight position={[10, 10, 5]} intensity={1} castShadow />
         <pointLight position={[-10, -10, -5]} intensity={0.5} />
         
         <Suspense fallback={<Loader />}>
-          <Model url={modelUrl} />
+          <Model url={proxiedUrl} onError={() => setHasError(true)} />
           <Environment preset="city" />
         </Suspense>
         

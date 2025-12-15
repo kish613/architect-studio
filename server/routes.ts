@@ -256,6 +256,38 @@ export async function registerRoutes(
     }
   });
 
+  // Proxy external model files to avoid CORS issues
+  app.get("/api/proxy-model", async (req, res) => {
+    try {
+      const { url } = req.query;
+      
+      if (!url || typeof url !== 'string') {
+        return res.status(400).json({ error: 'URL parameter required' });
+      }
+
+      // Only allow Meshy URLs
+      if (!url.includes('meshy.ai')) {
+        return res.status(403).json({ error: 'Only Meshy URLs are allowed' });
+      }
+
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        return res.status(response.status).json({ error: 'Failed to fetch model' });
+      }
+
+      const contentType = response.headers.get('content-type') || 'model/gltf-binary';
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      
+      const buffer = await response.arrayBuffer();
+      res.send(Buffer.from(buffer));
+    } catch (error) {
+      console.error('Error proxying model:', error);
+      res.status(500).json({ error: 'Failed to proxy model' });
+    }
+  });
+
   // Delete a project
   app.delete("/api/projects/:id", async (req, res) => {
     try {

@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
+import { Model3DViewer, Model3DPlaceholder } from "@/components/viewer/Model3DViewer";
 
 type ViewMode = 'original' | 'isometric' | '3d' | 'split';
 
@@ -340,26 +341,19 @@ export function Viewer() {
               </motion.div>
             )}
 
-            {viewMode === '3d' && has3D && (
+            {viewMode === '3d' && (
               <motion.div 
                 key="3d"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="w-full h-full flex items-center justify-center"
+                className="w-full h-full"
               >
-                <div className="text-center">
-                  <Box className="w-16 h-16 mx-auto mb-4 text-primary" />
-                  <p className="text-lg font-medium mb-2">3D Model Ready</p>
-                  <a 
-                    href={model.model3dUrl!} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  >
-                    Download GLB File
-                  </a>
-                </div>
+                {has3D ? (
+                  <Model3DViewer modelUrl={model.model3dUrl!} />
+                ) : (
+                  <Model3DPlaceholder />
+                )}
               </motion.div>
             )}
 

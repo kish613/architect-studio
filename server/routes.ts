@@ -9,6 +9,7 @@ import { fileURLToPath } from "url";
 import fs from "fs/promises";
 import { generateIsometricFloorplan } from "./gemini";
 import { createImageTo3DTask, checkMeshyTaskStatus, pollMeshyTask } from "./meshy";
+import { convertPdfToImage, isPdf } from "./pdf-utils";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = path.join(__dirname, "../uploads");
@@ -43,6 +44,9 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  
+  // Ensure uploads directory exists
+  await fs.mkdir(uploadsDir, { recursive: true });
   
   // Serve uploaded files
   const express = await import('express');
@@ -114,7 +118,19 @@ export async function registerRoutes(
         return res.status(404).json({ error: 'Project not found' });
       }
 
-      const originalUrl = `/uploads/${req.file.filename}`;
+      let originalUrl = `/uploads/${req.file.filename}`;
+      const filePath = path.join(uploadsDir, req.file.filename);
+      
+      // Convert PDF to image if needed
+      if (isPdf(req.file.filename)) {
+        try {
+          const imagePath = await convertPdfToImage(filePath, uploadsDir);
+          originalUrl = `/uploads/${path.basename(imagePath)}`;
+        } catch (error) {
+          console.error('PDF conversion failed:', error);
+          return res.status(500).json({ error: 'Failed to process PDF file' });
+        }
+      }
       
       const model = await storage.createModel({
         projectId,

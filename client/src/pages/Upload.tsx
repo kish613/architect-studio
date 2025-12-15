@@ -57,7 +57,8 @@ export function Upload() {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': ['.png', '.jpg', '.jpeg', '.webp']
+      'image/*': ['.png', '.jpg', '.jpeg', '.webp'],
+      'application/pdf': ['.pdf']
     },
     maxFiles: 1
   });
@@ -96,12 +97,18 @@ export function Upload() {
                 
                 {file ? (
                   <div className="relative w-full max-w-xs aspect-video bg-black/50 rounded-lg overflow-hidden mb-4 border border-border">
-                    <img 
-                      src={URL.createObjectURL(file)} 
-                      alt="Preview" 
-                      className="w-full h-full object-cover"
-                      data-testid="img-preview"
-                    />
+                    {file.type === 'application/pdf' ? (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <FileUp className="w-12 h-12 text-primary" />
+                      </div>
+                    ) : (
+                      <img 
+                        src={URL.createObjectURL(file)} 
+                        alt="Preview" 
+                        className="w-full h-full object-cover"
+                        data-testid="img-preview"
+                      />
+                    )}
                     <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 hover:opacity-100 transition-opacity">
                       <p className="text-white font-medium">Click to change</p>
                     </div>
@@ -116,7 +123,7 @@ export function Upload() {
                   {file ? file.name : "Drag & drop your floorplan"}
                 </h3>
                 <p className="text-muted-foreground mb-6 max-w-sm">
-                  {file ? "Ready to upload" : "Supports JPG, PNG, WEBP up to 10MB"}
+                  {file ? "Ready to upload" : "Supports JPG, PNG, WEBP, PDF up to 20MB"}
                 </p>
 
                 {!file && (

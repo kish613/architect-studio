@@ -39,6 +39,38 @@ export async function uploadFloorplan(projectId: number, file: File): Promise<Fl
   return response.json();
 }
 
+export async function generateIsometric(modelId: number, prompt?: string): Promise<FloorplanModel> {
+  const response = await fetch(`/api/models/${modelId}/generate-isometric`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt }),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to generate isometric view');
+  }
+  return response.json();
+}
+
+export async function generate3D(modelId: number): Promise<FloorplanModel> {
+  const response = await fetch(`/api/models/${modelId}/generate-3d`, {
+    method: 'POST',
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to start 3D generation');
+  }
+  return response.json();
+}
+
+export async function checkModelStatus(modelId: number): Promise<FloorplanModel> {
+  const response = await fetch(`/api/models/${modelId}/status`);
+  if (!response.ok) throw new Error('Failed to check status');
+  return response.json();
+}
+
 export async function deleteProject(id: number): Promise<void> {
   const response = await fetch(`/api/projects/${id}`, {
     method: 'DELETE',

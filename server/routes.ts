@@ -7,11 +7,13 @@ import multer from "multer";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs/promises";
+import { generateIsometricFloorplan } from "./gemini";
+import { createImageTo3DTask, checkMeshyTaskStatus, pollMeshyTask } from "./meshy";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = path.join(__dirname, "../uploads");
 
-// Configure multer for file uploads
+// Configure multer for file uploads (images + PDFs)
 const upload = multer({
   storage: multer.diskStorage({
     destination: async (req, file, cb) => {
@@ -23,16 +25,16 @@ const upload = multer({
       cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
     }
   }),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB limit for PDFs
   fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|webp/;
+    const allowedTypes = /jpeg|jpg|png|webp|pdf/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
+    const mimetype = /jpeg|jpg|png|webp|pdf/.test(file.mimetype);
     
-    if (mimetype && extname) {
+    if (mimetype || extname) {
       return cb(null, true);
     } else {
-      cb(new Error('Only image files are allowed!'));
+      cb(new Error('Only image and PDF files are allowed!'));
     }
   }
 });
@@ -51,7 +53,6 @@ export async function registerRoutes(
     try {
       const allProjects = await storage.getAllProjects();
       
-      // Fetch models for each project
       const projectsWithModels = await Promise.all(
         allProjects.map(async (project) => {
           const models = await storage.getModelsByProject(project.id);
@@ -108,7 +109,6 @@ export async function registerRoutes(
         return res.status(400).json({ error: 'No file uploaded' });
       }
 
-      // Verify project exists
       const project = await storage.getProject(projectId);
       if (!project) {
         return res.status(404).json({ error: 'Project not found' });
@@ -116,33 +116,127 @@ export async function registerRoutes(
 
       const originalUrl = `/uploads/${req.file.filename}`;
       
-      // Create model with processing status
       const model = await storage.createModel({
         projectId,
         originalUrl,
-        status: 'processing',
-        thumbnailUrl: null,
-        renderUrl: null,
+        status: 'uploaded',
       });
-
-      // Simulate AI processing (in real app, this would call Meshy API)
-      // For now, we'll just mark it as completed after a delay
-      setTimeout(async () => {
-        try {
-          await storage.updateModel(model.id, {
-            status: 'completed',
-            thumbnailUrl: originalUrl, // Using original as thumbnail for mock
-            renderUrl: originalUrl, // Using original as render for mock
-          });
-        } catch (error) {
-          console.error('Error updating model status:', error);
-        }
-      }, 2000);
 
       res.status(201).json(model);
     } catch (error) {
       console.error('Error uploading file:', error);
       res.status(500).json({ error: 'Failed to upload file' });
+    }
+  });
+
+  // Generate isometric view using Gemini
+  app.post("/api/models/:id/generate-isometric", async (req, res) => {
+    try {
+      const modelId = parseInt(req.params.id);
+      const { prompt } = req.body;
+
+      const model = await storage.getModel(modelId);
+      if (!model) {
+        return res.status(404).json({ error: 'Model not found' });
+      }
+
+      // Update status to generating
+      await storage.updateModel(modelId, { 
+        status: 'generating_isometric',
+        isometricPrompt: prompt || null
+      });
+
+      // Get the file path from the URL
+      const filePath = path.join(uploadsDir, path.basename(model.originalUrl));
+
+      // Generate isometric view
+      const result = await generateIsometricFloorplan(filePath, prompt);
+
+      if (result.success && result.imageUrl) {
+        const updatedModel = await storage.updateModel(modelId, {
+          status: 'isometric_ready',
+          isometricUrl: result.imageUrl,
+        });
+        res.json(updatedModel);
+      } else {
+        await storage.updateModel(modelId, { status: 'failed' });
+        res.status(500).json({ error: result.error || 'Failed to generate isometric view' });
+      }
+    } catch (error) {
+      console.error('Error generating isometric:', error);
+      res.status(500).json({ error: 'Failed to generate isometric view' });
+    }
+  });
+
+  // Start 3D generation using Meshy
+  app.post("/api/models/:id/generate-3d", async (req, res) => {
+    try {
+      const modelId = parseInt(req.params.id);
+
+      const model = await storage.getModel(modelId);
+      if (!model) {
+        return res.status(404).json({ error: 'Model not found' });
+      }
+
+      if (!model.isometricUrl) {
+        return res.status(400).json({ error: 'Isometric image not yet generated' });
+      }
+
+      // Update status
+      await storage.updateModel(modelId, { status: 'generating_3d' });
+
+      // Get public URL for the isometric image
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const imageUrl = `${baseUrl}${model.isometricUrl}`;
+
+      // Create Meshy task
+      const result = await createImageTo3DTask(imageUrl);
+
+      if (result.success && result.taskId) {
+        const updatedModel = await storage.updateModel(modelId, {
+          meshyTaskId: result.taskId,
+        });
+        res.json(updatedModel);
+      } else {
+        await storage.updateModel(modelId, { status: 'failed' });
+        res.status(500).json({ error: result.error || 'Failed to start 3D generation' });
+      }
+    } catch (error) {
+      console.error('Error starting 3D generation:', error);
+      res.status(500).json({ error: 'Failed to start 3D generation' });
+    }
+  });
+
+  // Check 3D generation status
+  app.get("/api/models/:id/status", async (req, res) => {
+    try {
+      const modelId = parseInt(req.params.id);
+
+      const model = await storage.getModel(modelId);
+      if (!model) {
+        return res.status(404).json({ error: 'Model not found' });
+      }
+
+      // If there's a Meshy task, check its status
+      if (model.meshyTaskId && model.status === 'generating_3d') {
+        const taskResult = await checkMeshyTaskStatus(model.meshyTaskId);
+        
+        if (taskResult.status === 'completed' && taskResult.modelUrl) {
+          const updatedModel = await storage.updateModel(modelId, {
+            status: 'completed',
+            model3dUrl: taskResult.modelUrl,
+          });
+          return res.json(updatedModel);
+        } else if (taskResult.status === 'failed') {
+          await storage.updateModel(modelId, { status: 'failed' });
+          return res.json({ ...model, status: 'failed' });
+        }
+      }
+
+      res.json(model);
+    } catch (error) {
+      console.error('Error checking status:', error);
+      res.status(500).json({ error: 'Failed to check status' });
     }
   });
 

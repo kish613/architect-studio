@@ -10,8 +10,22 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project, index }: ProjectCardProps) {
-  const thumbnail = project.models[0]?.thumbnailUrl;
+  const model = project.models[0];
+  const thumbnail = model?.isometricUrl || model?.originalUrl;
   const date = new Date(project.lastModified).toLocaleDateString();
+
+  const getStatusLabel = () => {
+    if (!model) return 'Empty';
+    switch (model.status) {
+      case 'uploaded': return 'Uploaded';
+      case 'generating_isometric': return 'Processing...';
+      case 'isometric_ready': return 'Isometric Ready';
+      case 'generating_3d': return 'Creating 3D...';
+      case 'completed': return '3D Complete';
+      case 'failed': return 'Failed';
+      default: return model.status;
+    }
+  };
 
   return (
     <Link href={`/projects/${project.id}`}>
@@ -39,7 +53,7 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
             
             <div className="absolute top-3 right-3 z-20">
               <Badge variant="secondary" className="backdrop-blur-md bg-black/40 border-white/10 text-white">
-                {project.models.length} Renders
+                {getStatusLabel()}
               </Badge>
             </div>
           </div>

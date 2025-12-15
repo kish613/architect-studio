@@ -18,10 +18,12 @@ export const projects = pgTable("projects", {
 export const floorplanModels = pgTable("floorplan_models", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
-  thumbnailUrl: text("thumbnail_url"),
-  renderUrl: text("render_url"),
   originalUrl: text("original_url").notNull(),
-  status: text("status").notNull().default("processing"),
+  isometricUrl: text("isometric_url"),
+  isometricPrompt: text("isometric_prompt"),
+  model3dUrl: text("model_3d_url"),
+  meshyTaskId: text("meshy_task_id"),
+  status: text("status").notNull().default("uploaded"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -46,3 +48,5 @@ export type InsertProject = z.infer<typeof insertProjectSchema>;
 export type Project = typeof projects.$inferSelect;
 export type InsertFloorplanModel = z.infer<typeof insertFloorplanModelSchema>;
 export type FloorplanModel = typeof floorplanModels.$inferSelect;
+
+export type ModelStatus = 'uploaded' | 'generating_isometric' | 'isometric_ready' | 'generating_3d' | 'completed' | 'failed';

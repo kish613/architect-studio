@@ -28,7 +28,7 @@ export function Viewer() {
 
   return (
     <Layout>
-      <div className="flex-1 flex flex-col h-[calc(100vh-64px)] overflow-hidden">
+      <div className="flex-1 flex flex-col h-[calc(100vh-96px)] overflow-hidden">
         {/* Toolbar */}
         <div className="h-16 border-b border-border/40 flex items-center justify-between px-6 bg-card/50 backdrop-blur-sm z-10">
           <div className="flex items-center gap-4">

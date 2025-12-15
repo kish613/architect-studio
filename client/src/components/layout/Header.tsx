@@ -8,14 +8,14 @@ export function Header() {
   const [location] = useLocation();
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+    <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur-md shadow-lg">
+      <div className="container mx-auto px-4 h-24 flex items-center justify-between">
         <Link href="/">
           <a className="flex items-center gap-2 group">
             <img 
               src={logoImage} 
               alt="Architect Studio" 
-              className="h-12 w-auto object-contain" 
+              className="h-16 w-auto object-contain transition-transform group-hover:scale-105" 
             />
           </a>
         </Link>

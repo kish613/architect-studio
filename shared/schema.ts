@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, serial, timestamp, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -9,10 +9,40 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
 });
 
+export const projects = pgTable("projects", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  lastModified: timestamp("last_modified").notNull().defaultNow(),
+});
+
+export const floorplanModels = pgTable("floorplan_models", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  thumbnailUrl: text("thumbnail_url"),
+  renderUrl: text("render_url"),
+  originalUrl: text("original_url").notNull(),
+  status: text("status").notNull().default("processing"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
 });
 
+export const insertProjectSchema = createInsertSchema(projects).omit({
+  id: true,
+  lastModified: true,
+});
+
+export const insertFloorplanModelSchema = createInsertSchema(floorplanModels).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+export type InsertProject = z.infer<typeof insertProjectSchema>;
+export type Project = typeof projects.$inferSelect;
+export type InsertFloorplanModel = z.infer<typeof insertFloorplanModelSchema>;
+export type FloorplanModel = typeof floorplanModels.$inferSelect;

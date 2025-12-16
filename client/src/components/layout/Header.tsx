@@ -8,7 +8,7 @@ export function Header() {
   const [location] = useLocation();
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur-md shadow-lg">
+    <header className="fixed top-0 left-0 right-0 z-50 border-b border-orange-900/30 bg-orange-950/95 backdrop-blur-md shadow-lg">
       <div className="container mx-auto px-6 h-32 flex items-center justify-between">
         <Link href="/">
           <img 

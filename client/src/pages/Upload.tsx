@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createProject, uploadFloorplan } from "@/lib/api";
+import uploadBgVideo from "@assets/kish613_a_floorplan_morphing_from_a_regular_2d_drawing_and_gr__1765912738462.mp4";
 
 export function Upload() {
   const [name, setName] = useState("");
@@ -69,7 +70,21 @@ export function Upload() {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-12 max-w-2xl">
+      {/* Video Background */}
+      <div className="fixed inset-0 z-0">
+        <div className="absolute inset-0 bg-black/70 z-10" />
+        <video 
+          autoPlay 
+          loop 
+          muted 
+          playsInline
+          className="w-full h-full object-cover"
+        >
+          <source src={uploadBgVideo} type="video/mp4" />
+        </video>
+      </div>
+      
+      <div className="container relative z-10 mx-auto px-4 py-12 max-w-2xl pt-32">
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-display font-bold mb-4">Upload Floorplan</h1>
           <p className="text-muted-foreground text-lg">

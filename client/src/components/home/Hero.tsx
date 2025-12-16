@@ -1,4 +1,4 @@
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import heroVideo from "@assets/kish613_A_floorplan_being_drawn_by_a_pencil._the_whole_pictur__1765809578123.mp4";
@@ -23,11 +23,6 @@ export function Hero() {
       {/* Content */}
       <div className="container relative z-10 mx-auto px-4 pointer-events-none">
         <div className="max-w-2xl pointer-events-auto">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>AI-Powered Architecture</span>
-          </div>
-          
           <h1 className="text-5xl md:text-7xl font-display font-bold tracking-tight mb-6 leading-[1.1] animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100">
             Transform Your Designs into <br/>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/50">3D Worlds</span>

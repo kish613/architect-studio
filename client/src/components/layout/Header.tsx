@@ -9,12 +9,12 @@ export function Header() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur-md shadow-lg">
-      <div className="container mx-auto px-6 h-24 flex items-center justify-between">
+      <div className="container mx-auto px-6 h-32 flex items-center justify-between">
         <Link href="/">
           <img 
             src={logoImage} 
             alt="Architect Studio" 
-            className="h-20 w-auto object-contain transition-transform hover:scale-105 cursor-pointer"
+            className="h-28 w-auto object-contain transition-transform hover:scale-105 cursor-pointer"
             data-testid="img-logo"
           />
         </Link>

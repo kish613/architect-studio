@@ -8,7 +8,7 @@ export function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30">
       <Header />
-      <main className="pt-24 min-h-screen flex flex-col">
+      <main className="min-h-screen flex flex-col">
         {children}
       </main>
     </div>

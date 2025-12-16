@@ -5,7 +5,7 @@ import heroVideo from "@assets/kish613_A_floorplan_being_drawn_by_a_pencil._the_
 
 export function Hero() {
   return (
-    <section className="relative h-[600px] w-full flex items-center overflow-hidden border-b border-border/40">
+    <section className="relative h-screen w-full flex items-center overflow-hidden border-b border-border/40">
       {/* Video Background */}
       <div className="absolute inset-0 z-0">
         <div className="absolute inset-0 bg-black/60 z-10" /> {/* Overlay for readability */}

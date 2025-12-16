@@ -10,6 +10,7 @@ import fs from "fs/promises";
 import { generateIsometricFloorplan } from "./gemini";
 import { createImageTo3DTask, checkMeshyTaskStatus, pollMeshyTask, createRetextureTask, checkRetextureTaskStatus } from "./meshy";
 import { convertPdfToImage, isPdf } from "./pdf-utils";
+import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = path.join(__dirname, "../uploads");
@@ -44,6 +45,10 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  
+  // Setup authentication (must be before other routes)
+  await setupAuth(app);
+  registerAuthRoutes(app);
   
   // Ensure uploads directory exists
   await fs.mkdir(uploadsDir, { recursive: true });
@@ -409,6 +414,62 @@ export async function registerRoutes(
     } catch (error) {
       console.error('Error deleting project:', error);
       res.status(500).json({ error: 'Failed to delete project' });
+    }
+  });
+
+  // Get user subscription status
+  app.get("/api/subscription", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      let subscription = await storage.getSubscription(userId);
+      
+      if (!subscription) {
+        subscription = await storage.createOrUpdateSubscription(userId, {});
+      }
+
+      res.json({
+        plan: subscription.plan,
+        generationsUsed: subscription.generationsUsed,
+        generationsLimit: subscription.generationsLimit,
+        canGenerate: subscription.generationsUsed < subscription.generationsLimit,
+        stripeCustomerId: subscription.stripeCustomerId,
+      });
+    } catch (error) {
+      console.error('Error fetching subscription:', error);
+      res.status(500).json({ error: 'Failed to fetch subscription' });
+    }
+  });
+
+  // Purchase additional generations (pay-per-use)
+  app.post("/api/subscription/purchase", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const { count } = req.body;
+      if (!count || count < 1) {
+        return res.status(400).json({ error: 'Invalid count' });
+      }
+
+      // TODO: Integrate with Stripe to process payment
+      // For now, just add the generations
+      const subscription = await storage.getSubscription(userId);
+      if (subscription) {
+        await storage.createOrUpdateSubscription(userId, {
+          generationsLimit: subscription.generationsLimit + count,
+        });
+      }
+
+      res.json({ success: true, added: count });
+    } catch (error) {
+      console.error('Error purchasing generations:', error);
+      res.status(500).json({ error: 'Failed to purchase generations' });
     }
   });
 

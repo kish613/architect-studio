@@ -1,16 +1,32 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, serial, timestamp, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, serial, timestamp, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+// Re-export auth models
+export * from "./models/auth";
+
+// Subscription plans
+export type SubscriptionPlan = 'free' | 'starter' | 'pro' | 'studio';
+
+// User subscriptions table
+export const userSubscriptions = pgTable("user_subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().unique(),
+  plan: text("plan").notNull().default("free"),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  generationsUsed: integer("generations_used").notNull().default(0),
+  generationsLimit: integer("generations_limit").notNull().default(2), // Free tier: 2 generations
+  currentPeriodStart: timestamp("current_period_start"),
+  currentPeriodEnd: timestamp("current_period_end"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const projects = pgTable("projects", {
   id: serial("id").primaryKey(),
+  userId: varchar("user_id"),
   name: text("name").notNull(),
   lastModified: timestamp("last_modified").notNull().defaultNow(),
 });
@@ -26,13 +42,9 @@ export const floorplanModels = pgTable("floorplan_models", {
   meshyTaskId: text("meshy_task_id"),
   texturePrompt: text("texture_prompt"),
   retextureTaskId: text("retexture_task_id"),
+  retextureUsed: boolean("retexture_used").notNull().default(false),
   status: text("status").notNull().default("uploaded"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
 });
 
 export const insertProjectSchema = createInsertSchema(projects).omit({
@@ -45,11 +57,25 @@ export const insertFloorplanModelSchema = createInsertSchema(floorplanModels).om
   createdAt: true,
 });
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
+export const insertUserSubscriptionSchema = createInsertSchema(userSubscriptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type InsertProject = z.infer<typeof insertProjectSchema>;
 export type Project = typeof projects.$inferSelect;
 export type InsertFloorplanModel = z.infer<typeof insertFloorplanModelSchema>;
 export type FloorplanModel = typeof floorplanModels.$inferSelect;
+export type InsertUserSubscription = z.infer<typeof insertUserSubscriptionSchema>;
+export type UserSubscription = typeof userSubscriptions.$inferSelect;
 
 export type ModelStatus = 'uploaded' | 'generating_isometric' | 'isometric_ready' | 'generating_3d' | 'retexturing' | 'completed' | 'failed';
+
+// Plan limits
+export const PLAN_LIMITS: Record<SubscriptionPlan, number> = {
+  free: 2,
+  starter: 5,
+  pro: 20,
+  studio: 60,
+};

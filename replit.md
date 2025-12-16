@@ -8,6 +8,26 @@ Architect Studio is a web application that transforms 2D floorplans into 3D visu
 
 Preferred communication style: Simple, everyday language.
 
+## Authentication & Subscriptions
+
+### Authentication
+- **Provider**: Replit Auth (OpenID Connect)
+- **Routes**: `/api/login`, `/api/logout`, `/api/auth/user`
+- **Storage**: PostgreSQL session store with `users` and `sessions` tables
+
+### Subscription Plans
+| Plan | Price | Generations/Month |
+|------|-------|-------------------|
+| Free | $0 | 2 (trial) |
+| Starter | $9/mo | 5 |
+| Pro | $29/mo | 20 |
+| Studio | $79/mo | 60 |
+| Pay-per-use | $3/each | - |
+
+### Subscription API
+- `GET /api/subscription` - Get current user's subscription status
+- `POST /api/subscription/purchase` - Purchase additional generations
+
 ## System Architecture
 
 ### Frontend Architecture
@@ -26,16 +46,18 @@ Preferred communication style: Simple, everyday language.
 - **API Pattern**: RESTful endpoints under `/api/*`
 - **File Handling**: Multer for multipart uploads (images and PDFs up to 20MB)
 - **PDF Processing**: pdftoppm system utility for PDF-to-image conversion
+- **Authentication**: Replit Auth integration with passport and OIDC
 
 ### Data Storage
 - **Database**: PostgreSQL with Drizzle ORM
-- **Schema**: Three main tables - `users`, `projects`, `floorplanModels`
+- **Schema**: Four main tables - `users`, `sessions`, `user_subscriptions`, `projects`, `floorplanModels`
 - **Relationships**: Projects contain multiple floorplan models (one-to-many with cascade delete)
 - **Migrations**: Drizzle Kit for schema management (`npm run db:push`)
 
 ### AI Integration Pipeline
 1. **Isometric Generation**: Google Gemini AI transforms 2D floorplans into isometric 3D visualizations
 2. **3D Model Generation**: Meshy API converts isometric images into full 3D models with PBR textures
+3. **Retexturing**: Optional one-time texture enhancement per model (counts toward generation limit)
 
 ### Project Structure
 ```
@@ -44,13 +66,16 @@ Preferred communication style: Simple, everyday language.
 │   │   ├── components/  # UI components (layout, home, projects, viewer)
 │   │   ├── pages/       # Route pages (Home, Projects, Upload, Viewer)
 │   │   ├── lib/         # API client, utilities, stores
-│   │   └── hooks/       # Custom React hooks
+│   │   └── hooks/       # Custom React hooks (including use-auth.ts)
 ├── server/           # Express backend
 │   ├── routes.ts     # API endpoint definitions
 │   ├── storage.ts    # Database operations
 │   ├── gemini.ts     # Gemini AI integration
-│   └── meshy.ts      # Meshy 3D API integration
+│   ├── meshy.ts      # Meshy 3D API integration
+│   └── replit_integrations/  # Auth integration modules
 ├── shared/           # Shared TypeScript types and schema
+│   ├── schema.ts     # Main Drizzle schema
+│   └── models/       # Auth models (auth.ts)
 └── migrations/       # Database migration files
 ```
 
@@ -73,3 +98,5 @@ Preferred communication style: Simple, everyday language.
 - `@react-three/fiber` / `@react-three/drei`: 3D rendering in React
 - `multer`: File upload handling
 - `p-retry` / `p-limit`: Rate limiting and retry logic for AI API calls
+- `openid-client` / `passport`: Authentication
+- `express-session` / `connect-pg-simple`: Session management

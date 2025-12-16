@@ -105,7 +105,7 @@ export function Upload() {
             />
           </div>
 
-          <Card className={`border-2 border-dashed transition-colors cursor-pointer bg-card/30 ${isDragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}>
+          <Card className={`border border-white/20 transition-colors cursor-pointer bg-white/10 backdrop-blur-xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.1)] ${isDragActive ? 'border-primary bg-primary/20' : 'hover:border-white/30 hover:bg-white/15'}`}>
             <CardContent className="p-0">
               <div {...getRootProps()} className="flex flex-col items-center justify-center py-20 px-4 text-center" data-testid="dropzone-upload">
                 <input {...getInputProps()} />

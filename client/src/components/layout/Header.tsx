@@ -9,7 +9,7 @@ export function Header() {
 
   return (
     <header className="fixed top-4 left-4 right-4 z-50 border border-white/20 bg-gradient-to-b from-white/15 to-white/5 backdrop-blur-xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.2),inset_0_-1px_0_rgba(0,0,0,0.2)]">
-      <div className="container mx-auto px-8 h-28 flex items-center justify-between">
+      <div className="w-full px-4 h-28 flex items-center justify-between">
         <Link href="/">
           <img 
             src={logoImage} 

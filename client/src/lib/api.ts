@@ -77,3 +77,35 @@ export async function deleteProject(id: number): Promise<void> {
   });
   if (!response.ok) throw new Error('Failed to delete project');
 }
+
+export async function retextureModel(modelId: number, texturePrompt: string): Promise<FloorplanModel> {
+  const response = await fetch(`/api/models/${modelId}/retexture`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ texturePrompt }),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to start retexturing');
+  }
+  return response.json();
+}
+
+export async function checkRetextureStatus(modelId: number): Promise<FloorplanModel> {
+  const response = await fetch(`/api/models/${modelId}/retexture-status`);
+  if (!response.ok) throw new Error('Failed to check retexture status');
+  return response.json();
+}
+
+export async function revertTexture(modelId: number): Promise<FloorplanModel> {
+  const response = await fetch(`/api/models/${modelId}/revert-texture`, {
+    method: 'POST',
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to revert texture');
+  }
+  return response.json();
+}

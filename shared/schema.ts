@@ -22,7 +22,10 @@ export const floorplanModels = pgTable("floorplan_models", {
   isometricUrl: text("isometric_url"),
   isometricPrompt: text("isometric_prompt"),
   model3dUrl: text("model_3d_url"),
+  baseModel3dUrl: text("base_model_3d_url"),
   meshyTaskId: text("meshy_task_id"),
+  texturePrompt: text("texture_prompt"),
+  retextureTaskId: text("retexture_task_id"),
   status: text("status").notNull().default("uploaded"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -49,4 +52,4 @@ export type Project = typeof projects.$inferSelect;
 export type InsertFloorplanModel = z.infer<typeof insertFloorplanModelSchema>;
 export type FloorplanModel = typeof floorplanModels.$inferSelect;
 
-export type ModelStatus = 'uploaded' | 'generating_isometric' | 'isometric_ready' | 'generating_3d' | 'completed' | 'failed';
+export type ModelStatus = 'uploaded' | 'generating_isometric' | 'isometric_ready' | 'generating_3d' | 'retexturing' | 'completed' | 'failed';

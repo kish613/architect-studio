@@ -8,7 +8,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs/promises";
 import { generateIsometricFloorplan } from "./gemini";
-import { createImageTo3DTask, checkMeshyTaskStatus, pollMeshyTask } from "./meshy";
+import { createImageTo3DTask, checkMeshyTaskStatus, pollMeshyTask, createRetextureTask, checkRetextureTaskStatus } from "./meshy";
 import { convertPdfToImage, isPdf } from "./pdf-utils";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -285,6 +285,118 @@ export async function registerRoutes(
     } catch (error) {
       console.error('Error proxying model:', error);
       res.status(500).json({ error: 'Failed to proxy model' });
+    }
+  });
+
+  // Retexture 3D model with new texture prompt
+  app.post("/api/models/:id/retexture", async (req, res) => {
+    try {
+      const modelId = parseInt(req.params.id);
+      const { texturePrompt } = req.body;
+
+      if (!texturePrompt || typeof texturePrompt !== 'string') {
+        return res.status(400).json({ error: 'Texture prompt is required' });
+      }
+
+      const model = await storage.getModel(modelId);
+      if (!model) {
+        return res.status(404).json({ error: 'Model not found' });
+      }
+
+      if (!model.model3dUrl) {
+        return res.status(400).json({ error: '3D model not yet generated' });
+      }
+
+      // Backup the original model URL before retexturing (if not already backed up)
+      const baseModelUrl = model.baseModel3dUrl || model.model3dUrl;
+      
+      // Update status to retexturing (distinct from generating_3d)
+      await storage.updateModel(modelId, { 
+        status: 'retexturing',
+        texturePrompt: texturePrompt,
+        baseModel3dUrl: baseModelUrl,
+      });
+
+      // Create retexture task with the existing model URL
+      const result = await createRetextureTask(model.model3dUrl, texturePrompt);
+
+      if (result.success && result.taskId) {
+        const updatedModel = await storage.updateModel(modelId, {
+          retextureTaskId: result.taskId,
+        });
+        res.json(updatedModel);
+      } else {
+        await storage.updateModel(modelId, { status: 'completed' }); // Revert to completed since we have a model
+        res.status(500).json({ error: result.error || 'Failed to start retexturing' });
+      }
+    } catch (error) {
+      console.error('Error starting retexture:', error);
+      res.status(500).json({ error: 'Failed to start retexturing' });
+    }
+  });
+
+  // Check retexture status
+  app.get("/api/models/:id/retexture-status", async (req, res) => {
+    try {
+      const modelId = parseInt(req.params.id);
+
+      const model = await storage.getModel(modelId);
+      if (!model) {
+        return res.status(404).json({ error: 'Model not found' });
+      }
+
+      // If there's a retexture task, check its status
+      if (model.retextureTaskId && model.status === 'retexturing') {
+        const taskResult = await checkRetextureTaskStatus(model.retextureTaskId);
+        
+        if (taskResult.status === 'completed' && taskResult.modelUrl) {
+          const updatedModel = await storage.updateModel(modelId, {
+            status: 'completed',
+            model3dUrl: taskResult.modelUrl,
+            retextureTaskId: null, // Clear after completion
+          });
+          return res.json(updatedModel);
+        } else if (taskResult.status === 'failed') {
+          // Revert to completed since we still have the previous model
+          await storage.updateModel(modelId, { 
+            status: 'completed',
+            retextureTaskId: null,
+          });
+          return res.json({ ...model, status: 'completed', error: 'Retexture failed' });
+        }
+      }
+
+      res.json(model);
+    } catch (error) {
+      console.error('Error checking retexture status:', error);
+      res.status(500).json({ error: 'Failed to check retexture status' });
+    }
+  });
+
+  // Revert to base 3D model (undo retexturing)
+  app.post("/api/models/:id/revert-texture", async (req, res) => {
+    try {
+      const modelId = parseInt(req.params.id);
+
+      const model = await storage.getModel(modelId);
+      if (!model) {
+        return res.status(404).json({ error: 'Model not found' });
+      }
+
+      if (!model.baseModel3dUrl) {
+        return res.status(400).json({ error: 'No base model to revert to' });
+      }
+
+      // Revert to the base model
+      const updatedModel = await storage.updateModel(modelId, {
+        model3dUrl: model.baseModel3dUrl,
+        texturePrompt: null,
+      });
+
+      res.json(updatedModel);
+    } catch (error) {
+      console.error('Error reverting texture:', error);
+      res.status(500).json({ error: 'Failed to revert texture' });
     }
   });
 

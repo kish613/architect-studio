@@ -1,11 +1,11 @@
 import { useParams, Link } from "wouter";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Share2, Loader2, Sparkles, Box, RotateCw, Check } from "lucide-react";
+import { ArrowLeft, Download, Share2, Loader2, Sparkles, Box, RotateCw, Check, Paintbrush, Undo2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchProject, generateIsometric, generate3D, checkModelStatus } from "@/lib/api";
+import { fetchProject, generateIsometric, generate3D, checkModelStatus, retextureModel, checkRetextureStatus, revertTexture } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -19,6 +19,7 @@ export function Viewer() {
   const { id } = useParams();
   const [viewMode, setViewMode] = useState<ViewMode>('original');
   const [customPrompt, setCustomPrompt] = useState("");
+  const [texturePrompt, setTexturePrompt] = useState("");
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
@@ -29,7 +30,7 @@ export function Viewer() {
     refetchInterval: (query) => {
       const data = query.state.data;
       const model = data?.models[0];
-      if (model?.status === 'generating_isometric' || model?.status === 'generating_3d') {
+      if (model?.status === 'generating_isometric' || model?.status === 'generating_3d' || model?.status === 'retexturing') {
         return 3000;
       }
       return false;
@@ -60,8 +61,49 @@ export function Viewer() {
     },
   });
 
+  const retextureMutation = useMutation({
+    mutationFn: ({ modelId, prompt }: { modelId: number; prompt: string }) => 
+      retextureModel(modelId, prompt),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
+      toast({ title: "Retexturing started!", description: "AI is enhancing textures..." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Retexturing failed", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const revertMutation = useMutation({
+    mutationFn: (modelId: number) => revertTexture(modelId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
+      toast({ title: "Reverted to original", description: "Model restored to original textures." });
+      setViewMode('3d');
+    },
+    onError: (error: Error) => {
+      toast({ title: "Revert failed", description: error.message, variant: "destructive" });
+    },
+  });
+
   useEffect(() => {
     const model = project?.models[0];
+    // Handle retexturing status polling
+    if (model?.status === 'retexturing' && model.retextureTaskId) {
+      const interval = setInterval(async () => {
+        const updated = await checkRetextureStatus(model.id);
+        if (updated.status === 'completed' || updated.status === 'failed') {
+          clearInterval(interval);
+          refetch();
+          if (updated.status === 'completed') {
+            toast({ title: "Retexturing complete!", description: "Your model has new textures." });
+            setViewMode('3d');
+          }
+        }
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+    
+    // Handle regular 3D generation status polling
     if (model?.status === 'generating_3d' && model.meshyTaskId) {
       const interval = setInterval(async () => {
         const updated = await checkModelStatus(model.id);
@@ -76,7 +118,7 @@ export function Viewer() {
       }, 5000);
       return () => clearInterval(interval);
     }
-  }, [project?.models[0]?.status, project?.models[0]?.meshyTaskId]);
+  }, [project?.models[0]?.status, project?.models[0]?.meshyTaskId, project?.models[0]?.retextureTaskId]);
 
   if (isLoading) {
     return (
@@ -117,7 +159,7 @@ export function Viewer() {
     );
   }
 
-  const isGenerating = model.status === 'generating_isometric' || model.status === 'generating_3d';
+  const isGenerating = model.status === 'generating_isometric' || model.status === 'generating_3d' || model.status === 'retexturing';
   const hasIsometric = !!model.isometricUrl;
   const has3D = !!model.model3dUrl;
 
@@ -131,6 +173,8 @@ export function Viewer() {
         return <span className="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400">Isometric Ready</span>;
       case 'generating_3d':
         return <span className="text-xs px-2 py-1 rounded-full bg-purple-500/20 text-purple-400 animate-pulse">Creating 3D Model...</span>;
+      case 'retexturing':
+        return <span className="text-xs px-2 py-1 rounded-full bg-orange-500/20 text-orange-400 animate-pulse">Retexturing...</span>;
       case 'completed':
         return <span className="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400">Complete</span>;
       case 'failed':
@@ -247,6 +291,78 @@ export function Viewer() {
                   </>
                 )}
               </Button>
+            </CardContent>
+          </Card>
+
+          {/* Step 3: Retexture (optional) */}
+          <Card className={`mb-4 bg-background/50 border-border/50 ${!has3D ? 'opacity-50' : ''}`}>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${has3D ? 'bg-primary' : 'bg-muted'}`}>
+                  3
+                </div>
+                <h3 className="font-medium">Enhance Textures</h3>
+                <span className="text-xs text-muted-foreground">(Optional)</span>
+              </div>
+              
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="texture-prompt" className="text-xs text-muted-foreground">Describe new texture style</Label>
+                  <Textarea
+                    id="texture-prompt"
+                    placeholder="Weathered wood, rustic brick walls, marble floors..."
+                    value={texturePrompt}
+                    onChange={(e) => setTexturePrompt(e.target.value)}
+                    className="mt-1 text-sm bg-background/50 resize-none"
+                    rows={2}
+                    disabled={!has3D || isGenerating || retextureMutation.isPending}
+                  />
+                </div>
+                <Button
+                  onClick={() => retextureMutation.mutate({ modelId: model.id, prompt: texturePrompt })}
+                  disabled={!has3D || !texturePrompt.trim() || isGenerating || retextureMutation.isPending}
+                  className="w-full"
+                  variant="outline"
+                  size="sm"
+                  data-testid="button-retexture"
+                >
+                  {retextureMutation.isPending || model.status === 'retexturing' ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Retexturing...
+                    </>
+                  ) : (
+                    <>
+                      <Paintbrush className="w-4 h-4 mr-2" />
+                      Apply New Textures
+                    </>
+                  )}
+                </Button>
+                
+                {/* Revert button - only show if we have a base model to revert to */}
+                {model.baseModel3dUrl && model.baseModel3dUrl !== model.model3dUrl && (
+                  <Button
+                    onClick={() => revertMutation.mutate(model.id)}
+                    disabled={isGenerating || revertMutation.isPending}
+                    className="w-full"
+                    variant="ghost"
+                    size="sm"
+                    data-testid="button-revert-texture"
+                  >
+                    {revertMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Reverting...
+                      </>
+                    ) : (
+                      <>
+                        <Undo2 className="w-4 h-4 mr-2" />
+                        Revert to Original
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
 
@@ -396,7 +512,8 @@ export function Viewer() {
               <div className="text-center">
                 <Loader2 className="w-12 h-12 mx-auto mb-4 text-primary animate-spin" />
                 <p className="text-lg font-medium">
-                  {model.status === 'generating_isometric' ? 'Generating Isometric View...' : 'Creating 3D Model...'}
+                  {model.status === 'generating_isometric' ? 'Generating Isometric View...' : 
+                   model.status === 'retexturing' ? 'Enhancing Textures...' : 'Creating 3D Model...'}
                 </p>
                 <p className="text-sm text-muted-foreground mt-2">This may take a moment</p>
               </div>

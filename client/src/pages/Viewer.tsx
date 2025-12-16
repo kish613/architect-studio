@@ -350,7 +350,7 @@ export function Viewer() {
                 className="w-full h-full"
               >
                 {has3D ? (
-                  <Model3DViewer modelUrl={model.model3dUrl!} />
+                  <Model3DViewer modelUrl={model.model3dUrl!} isometricUrl={model.isometricUrl || undefined} />
                 ) : (
                   <Model3DPlaceholder />
                 )}

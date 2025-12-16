@@ -77,16 +77,28 @@ export function Header() {
               </a>
             </div>
           ) : (
-            <a href="/api/login">
-              <Button 
-                size="sm" 
-                className="gap-2 bg-primary hover:bg-primary/90 text-white border-0 shadow-lg shadow-primary/20"
-                data-testid="button-login"
-              >
-                <LogIn className="w-4 h-4" />
-                <span className="hidden sm:inline">Sign In</span>
-              </Button>
-            </a>
+            <div className="flex items-center gap-2">
+              <a href="/api/login">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="gap-2 text-muted-foreground hover:text-foreground"
+                  data-testid="button-signin"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span className="hidden sm:inline">Sign In</span>
+                </Button>
+              </a>
+              <a href="/api/login">
+                <Button 
+                  size="sm" 
+                  className="gap-2 bg-primary hover:bg-primary/90 text-white border-0 shadow-lg shadow-primary/20"
+                  data-testid="button-signup"
+                >
+                  <span>Sign Up</span>
+                </Button>
+              </a>
+            </div>
           )}
         </nav>
       </div>

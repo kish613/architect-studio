@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { Plus, Grid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import logoImage from "@assets/archudio_1765823035835.png";
+import logoImage from "@assets/archudio_big_1765911734573.png";
 
 export function Header() {
   const [location] = useLocation();

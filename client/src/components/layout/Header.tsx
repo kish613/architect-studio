@@ -14,7 +14,7 @@ export function Header() {
           <img 
             src={logoImage} 
             alt="Architect Studio" 
-            className="h-16 w-auto object-contain transition-transform hover:scale-105 cursor-pointer"
+            className="h-20 w-auto object-contain transition-transform hover:scale-105 cursor-pointer"
             data-testid="img-logo"
           />
         </Link>

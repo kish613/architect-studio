@@ -144,7 +144,7 @@ export function Viewer() {
     <Layout>
       <div className="flex-1 flex flex-col lg:flex-row h-[calc(100vh-96px)] overflow-hidden">
         {/* Left Panel - Controls */}
-        <div className="w-full lg:w-80 border-b lg:border-b-0 lg:border-r border-border/40 bg-card/30 p-6 overflow-y-auto">
+        <div className="w-full lg:w-80 shrink-0 max-h-[40vh] lg:max-h-none border-b lg:border-b-0 lg:border-r border-border/40 bg-card/30 p-4 lg:p-6 overflow-y-auto">
           <div className="flex items-center gap-4 mb-6">
             <Link href="/projects">
               <Button variant="ghost" size="icon" className="rounded-full" data-testid="button-back">
@@ -305,7 +305,7 @@ export function Viewer() {
         </div>
 
         {/* Right Panel - Canvas */}
-        <div className="flex-1 relative bg-black/80 overflow-hidden">
+        <div className="flex-1 min-h-[60vh] lg:min-h-0 relative bg-black/80 overflow-hidden">
           <AnimatePresence mode="wait">
             {viewMode === 'original' && (
               <motion.div 

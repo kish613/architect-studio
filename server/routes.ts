@@ -420,7 +420,7 @@ export async function registerRoutes(
   // Get user subscription status
   app.get("/api/subscription", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = (req.user as any)?.claims?.sub;
       if (!userId) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
@@ -444,32 +444,167 @@ export async function registerRoutes(
     }
   });
 
-  // Purchase additional generations (pay-per-use)
+  // Purchase additional generations (pay-per-use) - creates Stripe checkout
   app.post("/api/subscription/purchase", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = (req.user as any)?.claims?.sub;
+      const userEmail = (req.user as any)?.claims?.email;
       if (!userId) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
-      const { count } = req.body;
-      if (!count || count < 1) {
-        return res.status(400).json({ error: 'Invalid count' });
+      const { priceId, count } = req.body;
+      if (!priceId) {
+        return res.status(400).json({ error: 'Price ID required' });
       }
 
-      // TODO: Integrate with Stripe to process payment
-      // For now, just add the generations
-      const subscription = await storage.getSubscription(userId);
-      if (subscription) {
+      const { getUncachableStripeClient } = await import('./stripeClient');
+      const stripe = await getUncachableStripeClient();
+
+      let subscription = await storage.getSubscription(userId);
+      let customerId = subscription?.stripeCustomerId;
+
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: userEmail || undefined,
+          metadata: { userId },
+        });
+        customerId = customer.id;
         await storage.createOrUpdateSubscription(userId, {
-          generationsLimit: subscription.generationsLimit + count,
+          stripeCustomerId: customerId,
         });
       }
 
-      res.json({ success: true, added: count });
+      const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        payment_method_types: ['card'],
+        line_items: [{ price: priceId, quantity: count || 1 }],
+        mode: 'payment',
+        success_url: `${baseUrl}/pricing?success=true`,
+        cancel_url: `${baseUrl}/pricing?canceled=true`,
+        metadata: { userId, type: 'pay_per_use', count: String(count || 1) },
+      });
+
+      res.json({ url: session.url });
     } catch (error) {
-      console.error('Error purchasing generations:', error);
-      res.status(500).json({ error: 'Failed to purchase generations' });
+      console.error('Error creating checkout session:', error);
+      res.status(500).json({ error: 'Failed to create checkout session' });
+    }
+  });
+
+  // Create checkout for subscription plans
+  app.post("/api/subscription/checkout", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub;
+      const userEmail = (req.user as any)?.claims?.email;
+      if (!userId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const { priceId } = req.body;
+      if (!priceId) {
+        return res.status(400).json({ error: 'Price ID required' });
+      }
+
+      const { getUncachableStripeClient } = await import('./stripeClient');
+      const stripe = await getUncachableStripeClient();
+
+      let subscription = await storage.getSubscription(userId);
+      let customerId = subscription?.stripeCustomerId;
+
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: userEmail || undefined,
+          metadata: { userId },
+        });
+        customerId = customer.id;
+        await storage.createOrUpdateSubscription(userId, {
+          stripeCustomerId: customerId,
+        });
+      }
+
+      const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        payment_method_types: ['card'],
+        line_items: [{ price: priceId, quantity: 1 }],
+        mode: 'subscription',
+        success_url: `${baseUrl}/pricing?success=true`,
+        cancel_url: `${baseUrl}/pricing?canceled=true`,
+        metadata: { userId, type: 'subscription' },
+      });
+
+      res.json({ url: session.url });
+    } catch (error) {
+      console.error('Error creating subscription checkout:', error);
+      res.status(500).json({ error: 'Failed to create checkout session' });
+    }
+  });
+
+  // Get Stripe publishable key for frontend
+  app.get("/api/stripe/config", async (req, res) => {
+    try {
+      const { getStripePublishableKey } = await import('./stripeClient');
+      const publishableKey = await getStripePublishableKey();
+      res.json({ publishableKey });
+    } catch (error) {
+      console.error('Error getting Stripe config:', error);
+      res.status(500).json({ error: 'Failed to get Stripe config' });
+    }
+  });
+
+  // List available products and prices
+  app.get("/api/stripe/products", async (req, res) => {
+    try {
+      const { sql } = await import('drizzle-orm');
+      const { db } = await import('./db');
+      
+      const result = await db.execute(
+        sql`
+          SELECT 
+            p.id as product_id,
+            p.name as product_name,
+            p.description as product_description,
+            p.active as product_active,
+            p.metadata as product_metadata,
+            pr.id as price_id,
+            pr.unit_amount,
+            pr.currency,
+            pr.recurring,
+            pr.active as price_active
+          FROM stripe.products p
+          LEFT JOIN stripe.prices pr ON pr.product = p.id AND pr.active = true
+          WHERE p.active = true
+          ORDER BY p.id, pr.unit_amount
+        `
+      );
+      
+      const productsMap = new Map();
+      for (const row of result.rows as any[]) {
+        if (!productsMap.has(row.product_id)) {
+          productsMap.set(row.product_id, {
+            id: row.product_id,
+            name: row.product_name,
+            description: row.product_description,
+            metadata: row.product_metadata,
+            prices: []
+          });
+        }
+        if (row.price_id) {
+          productsMap.get(row.product_id).prices.push({
+            id: row.price_id,
+            unit_amount: row.unit_amount,
+            currency: row.currency,
+            recurring: row.recurring,
+          });
+        }
+      }
+
+      res.json({ products: Array.from(productsMap.values()) });
+    } catch (error) {
+      console.error('Error listing products:', error);
+      res.status(500).json({ error: 'Failed to list products' });
     }
   });
 

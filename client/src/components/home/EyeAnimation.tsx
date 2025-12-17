@@ -240,13 +240,179 @@ export function EyeAnimation() {
   return (
     <section 
       ref={containerRef}
-      className="relative py-24 overflow-hidden bg-gradient-to-b from-black via-zinc-950 to-black"
+      className="relative py-24 overflow-hidden bg-black"
       data-testid="section-eye-animation"
     >
-      {/* Ambient background glow */}
-      <div className="absolute inset-0 opacity-40">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-primary/15 rounded-full blur-[150px]" />
+      {/* Animated Northern Lights Background */}
+      <div className="absolute inset-0 overflow-hidden">
+        {/* Base dark gradient */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-zinc-950 to-black" />
+        
+        {/* Aurora Layer 1 - Main flowing wave */}
+        <div 
+          className="absolute inset-0 opacity-60"
+          style={{
+            background: `
+              radial-gradient(ellipse 120% 60% at 50% 100%, 
+                transparent 0%,
+                rgba(249, 115, 22, 0.15) 30%,
+                rgba(234, 88, 12, 0.25) 50%,
+                rgba(194, 65, 12, 0.2) 70%,
+                transparent 100%
+              )
+            `,
+            animation: "aurora1 8s ease-in-out infinite",
+          }}
+        />
+        
+        {/* Aurora Layer 2 - Secondary wave */}
+        <div 
+          className="absolute inset-0 opacity-50"
+          style={{
+            background: `
+              radial-gradient(ellipse 100% 50% at 30% 80%, 
+                transparent 0%,
+                rgba(251, 146, 60, 0.2) 40%,
+                rgba(249, 115, 22, 0.3) 60%,
+                transparent 100%
+              )
+            `,
+            animation: "aurora2 12s ease-in-out infinite",
+          }}
+        />
+        
+        {/* Aurora Layer 3 - Accent wave */}
+        <div 
+          className="absolute inset-0 opacity-40"
+          style={{
+            background: `
+              radial-gradient(ellipse 80% 40% at 70% 90%, 
+                transparent 0%,
+                rgba(253, 186, 116, 0.15) 30%,
+                rgba(251, 146, 60, 0.25) 50%,
+                rgba(249, 115, 22, 0.2) 70%,
+                transparent 100%
+              )
+            `,
+            animation: "aurora3 10s ease-in-out infinite",
+          }}
+        />
+        
+        {/* Vertical light rays */}
+        <div 
+          className="absolute inset-0 opacity-20"
+          style={{
+            background: `
+              repeating-linear-gradient(
+                90deg,
+                transparent 0px,
+                transparent 80px,
+                rgba(249, 115, 22, 0.1) 82px,
+                rgba(251, 146, 60, 0.15) 85px,
+                rgba(249, 115, 22, 0.1) 88px,
+                transparent 90px,
+                transparent 200px
+              )
+            `,
+            animation: "rays 15s linear infinite",
+          }}
+        />
+        
+        {/* Floating particles */}
+        <div 
+          className="absolute inset-0"
+          style={{
+            background: `
+              radial-gradient(circle at 20% 70%, rgba(249, 115, 22, 0.4) 0%, transparent 0.5%),
+              radial-gradient(circle at 80% 60%, rgba(251, 146, 60, 0.3) 0%, transparent 0.4%),
+              radial-gradient(circle at 40% 80%, rgba(253, 186, 116, 0.3) 0%, transparent 0.3%),
+              radial-gradient(circle at 60% 75%, rgba(249, 115, 22, 0.35) 0%, transparent 0.4%),
+              radial-gradient(circle at 25% 65%, rgba(234, 88, 12, 0.25) 0%, transparent 0.3%),
+              radial-gradient(circle at 75% 85%, rgba(251, 146, 60, 0.3) 0%, transparent 0.35%)
+            `,
+            animation: "particles 20s ease-in-out infinite",
+          }}
+        />
+        
+        {/* Top fade overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black opacity-70" />
       </div>
+      
+      {/* CSS Animations */}
+      <style>{`
+        @keyframes aurora1 {
+          0%, 100% {
+            transform: translateY(0) scaleY(1);
+            opacity: 0.6;
+          }
+          25% {
+            transform: translateY(-20px) scaleY(1.1);
+            opacity: 0.7;
+          }
+          50% {
+            transform: translateY(10px) scaleY(0.95);
+            opacity: 0.5;
+          }
+          75% {
+            transform: translateY(-10px) scaleY(1.05);
+            opacity: 0.65;
+          }
+        }
+        
+        @keyframes aurora2 {
+          0%, 100% {
+            transform: translateX(0) translateY(0);
+            opacity: 0.5;
+          }
+          33% {
+            transform: translateX(30px) translateY(-15px);
+            opacity: 0.6;
+          }
+          66% {
+            transform: translateX(-20px) translateY(10px);
+            opacity: 0.4;
+          }
+        }
+        
+        @keyframes aurora3 {
+          0%, 100% {
+            transform: translateX(0) scaleX(1);
+            opacity: 0.4;
+          }
+          50% {
+            transform: translateX(-40px) scaleX(1.2);
+            opacity: 0.55;
+          }
+        }
+        
+        @keyframes rays {
+          0% {
+            transform: translateX(-100px);
+          }
+          100% {
+            transform: translateX(100px);
+          }
+        }
+        
+        @keyframes particles {
+          0%, 100% {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+          }
+          25% {
+            transform: translateY(-30px) scale(1.1);
+            opacity: 0.8;
+          }
+          50% {
+            transform: translateY(-10px) scale(0.95);
+            opacity: 1;
+          }
+          75% {
+            transform: translateY(-40px) scale(1.05);
+            opacity: 0.9;
+          }
+        }
+      `}</style>
       
       <div className="container mx-auto px-4 relative z-10">
         <div className="text-center mb-16">

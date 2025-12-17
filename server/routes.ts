@@ -180,6 +180,12 @@ export async function registerRoutes(
         return res.status(404).json({ error: 'Model not found' });
       }
 
+      // Verify model ownership through project
+      const project = await storage.getProject(model.projectId);
+      if (!project || project.userId !== userId) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
       // Update status to generating
       await storage.updateModel(modelId, { 
         status: 'generating_isometric',
@@ -213,14 +219,25 @@ export async function registerRoutes(
     }
   });
 
-  // Start 3D generation using Meshy
-  app.post("/api/models/:id/generate-3d", async (req, res) => {
+  // Start 3D generation using Meshy (3D generation is free after isometric, no additional credits)
+  app.post("/api/models/:id/generate-3d", isAuthenticated, async (req, res) => {
     try {
+      const userId = (req.user as any)?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
       const modelId = parseInt(req.params.id);
 
       const model = await storage.getModel(modelId);
       if (!model) {
         return res.status(404).json({ error: 'Model not found' });
+      }
+
+      // Verify model ownership through project
+      const project = await storage.getProject(model.projectId);
+      if (!project || project.userId !== userId) {
+        return res.status(403).json({ error: 'Access denied' });
       }
 
       if (!model.isometricUrl) {
@@ -337,6 +354,12 @@ export async function registerRoutes(
         return res.status(404).json({ error: 'Model not found' });
       }
 
+      // Verify model ownership through project
+      const project = await storage.getProject(model.projectId);
+      if (!project || project.userId !== userId) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
       if (!model.model3dUrl) {
         return res.status(400).json({ error: '3D model not yet generated' });
       }
@@ -366,29 +389,33 @@ export async function registerRoutes(
       // Backup the original model URL before retexturing (if not already backed up)
       const baseModelUrl = model.baseModel3dUrl || model.model3dUrl;
       
-      // Update status to retexturing (distinct from generating_3d)
+      // Update status to retexturing (but don't mark retextureUsed yet - only on success)
       await storage.updateModel(modelId, { 
         status: 'retexturing',
         texturePrompt: texturePrompt,
         baseModel3dUrl: baseModelUrl,
-        retextureUsed: true,
-      });
-
-      // Increment usage count for retexturing
-      await storage.createOrUpdateSubscription(userId, {
-        generationsUsed: subscription.generationsUsed + 1,
       });
 
       // Create retexture task with the existing model URL
       const result = await createRetextureTask(model.model3dUrl, texturePrompt);
 
       if (result.success && result.taskId) {
+        // Only increment credits and mark retextureUsed on successful task creation
+        await storage.createOrUpdateSubscription(userId, {
+          generationsUsed: subscription.generationsUsed + 1,
+        });
+        
         const updatedModel = await storage.updateModel(modelId, {
           retextureTaskId: result.taskId,
+          retextureUsed: true,
         });
         res.json(updatedModel);
       } else {
-        await storage.updateModel(modelId, { status: 'completed' }); // Revert to completed since we have a model
+        // Revert status on failure - retexture can still be retried
+        await storage.updateModel(modelId, { 
+          status: 'completed',
+          texturePrompt: null,
+        });
         res.status(500).json({ error: result.error || 'Failed to start retexturing' });
       }
     } catch (error) {

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useDropzone } from "react-dropzone";
 import { Upload as UploadIcon, FileUp, Loader2, ArrowRight } from "lucide-react";
@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createProject, uploadFloorplan } from "@/lib/api";
+import { useAuth } from "@/hooks/use-auth";
 import uploadBgVideo from "@assets/kish613_a_floorplan_morphing_from_a_regular_2d_drawing_and_gr__1765912738462.mp4";
 
 export function Upload() {
@@ -18,6 +19,20 @@ export function Upload() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      toast({
+        title: "Sign up required",
+        description: "Create a free account to start transforming floorplans into 3D models.",
+      });
+      setTimeout(() => {
+        window.location.href = "/api/login";
+      }, 500);
+    }
+  }, [isAuthenticated, isLoading, toast]);
 
   const createProjectMutation = useMutation({
     mutationFn: async () => {
@@ -67,6 +82,32 @@ export function Upload() {
   const handleUpload = () => {
     createProjectMutation.mutate();
   };
+
+  // Show loading state while checking auth
+  if (isLoading || !isAuthenticated) {
+    return (
+      <Layout>
+        <div className="fixed inset-0 z-0">
+          <div className="absolute inset-0 bg-black/70 z-10" />
+          <video 
+            autoPlay 
+            loop 
+            muted 
+            playsInline
+            className="w-full h-full object-cover"
+          >
+            <source src={uploadBgVideo} type="video/mp4" />
+          </video>
+        </div>
+        <div className="container relative z-10 mx-auto px-4 py-12 max-w-2xl pt-32 flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+            <p className="text-muted-foreground">Redirecting to sign up...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>

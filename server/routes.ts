@@ -151,8 +151,27 @@ export async function registerRoutes(
   });
 
   // Generate isometric view using Gemini
-  app.post("/api/models/:id/generate-isometric", async (req, res) => {
+  app.post("/api/models/:id/generate-isometric", isAuthenticated, async (req, res) => {
     try {
+      const userId = (req.user as any)?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      // Check usage limits
+      let subscription = await storage.getSubscription(userId);
+      if (!subscription) {
+        subscription = await storage.createOrUpdateSubscription(userId, {});
+      }
+      
+      if (subscription.generationsUsed >= subscription.generationsLimit) {
+        return res.status(403).json({ 
+          error: 'Generation limit reached', 
+          message: 'Please upgrade your plan or purchase additional generations',
+          redirectTo: '/pricing'
+        });
+      }
+
       const modelId = parseInt(req.params.id);
       const { prompt } = req.body;
 
@@ -174,6 +193,11 @@ export async function registerRoutes(
       const result = await generateIsometricFloorplan(filePath, prompt);
 
       if (result.success && result.imageUrl) {
+        // Increment usage count on successful generation
+        await storage.createOrUpdateSubscription(userId, {
+          generationsUsed: subscription.generationsUsed + 1,
+        });
+
         const updatedModel = await storage.updateModel(modelId, {
           status: 'isometric_ready',
           isometricUrl: result.imageUrl,
@@ -293,9 +317,14 @@ export async function registerRoutes(
     }
   });
 
-  // Retexture 3D model with new texture prompt
-  app.post("/api/models/:id/retexture", async (req, res) => {
+  // Retexture 3D model with new texture prompt (counts toward generation limit, limited to once per model)
+  app.post("/api/models/:id/retexture", isAuthenticated, async (req, res) => {
     try {
+      const userId = (req.user as any)?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
       const modelId = parseInt(req.params.id);
       const { texturePrompt } = req.body;
 
@@ -312,6 +341,28 @@ export async function registerRoutes(
         return res.status(400).json({ error: '3D model not yet generated' });
       }
 
+      // Check if retexturing was already used for this model
+      if (model.retextureUsed) {
+        return res.status(403).json({ 
+          error: 'Retexturing limit reached',
+          message: 'Retexturing is limited to once per model'
+        });
+      }
+
+      // Check usage limits
+      let subscription = await storage.getSubscription(userId);
+      if (!subscription) {
+        subscription = await storage.createOrUpdateSubscription(userId, {});
+      }
+      
+      if (subscription.generationsUsed >= subscription.generationsLimit) {
+        return res.status(403).json({ 
+          error: 'Generation limit reached', 
+          message: 'Please upgrade your plan or purchase additional generations',
+          redirectTo: '/pricing'
+        });
+      }
+
       // Backup the original model URL before retexturing (if not already backed up)
       const baseModelUrl = model.baseModel3dUrl || model.model3dUrl;
       
@@ -320,6 +371,12 @@ export async function registerRoutes(
         status: 'retexturing',
         texturePrompt: texturePrompt,
         baseModel3dUrl: baseModelUrl,
+        retextureUsed: true,
+      });
+
+      // Increment usage count for retexturing
+      await storage.createOrUpdateSubscription(userId, {
+        generationsUsed: subscription.generationsUsed + 1,
       });
 
       // Create retexture task with the existing model URL

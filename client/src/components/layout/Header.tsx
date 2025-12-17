@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Plus, Grid, LogIn, LogOut, User } from "lucide-react";
+import { Plus, Grid, LogIn, LogOut, User, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
@@ -22,6 +22,16 @@ export function Header() {
         </Link>
 
         <nav className="flex items-center gap-4">
+          <Link href="/pricing">
+            <span className={cn(
+              "text-sm font-medium transition-colors hover:text-primary flex items-center gap-2 cursor-pointer",
+              location === "/pricing" ? "text-foreground" : "text-muted-foreground"
+            )}>
+              <CreditCard className="w-4 h-4" />
+              <span className="hidden sm:inline">Pricing</span>
+            </span>
+          </Link>
+
           {isAuthenticated && (
             <>
               <Link href="/projects">

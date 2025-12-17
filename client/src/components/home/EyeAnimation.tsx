@@ -7,7 +7,7 @@ export function EyeAnimation() {
   const leftEyeRef = useRef<HTMLDivElement>(null);
   const rightEyeRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLDivElement>(null);
-  const isInView = useInView(sectionRef, { once: false, amount: 0.3 });
+  const isInView = useInView(sectionRef, { once: true, amount: 0.3 });
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {

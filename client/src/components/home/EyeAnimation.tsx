@@ -15,7 +15,7 @@ export function EyeAnimation() {
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
 
-  const calculatePupilPosition = useCallback((eyeRef: React.RefObject<HTMLDivElement | null>, maxDistance: number = 20) => {
+  const calculatePupilPosition = useCallback((eyeRef: React.RefObject<HTMLDivElement | null>, maxDistance: number = 18) => {
     if (!eyeRef.current) return { x: 0, y: 0 };
 
     const eye = eyeRef.current.getBoundingClientRect();
@@ -37,15 +37,215 @@ export function EyeAnimation() {
   const leftPupil = calculatePupilPosition(leftEyeRef);
   const rightPupil = calculatePupilPosition(rightEyeRef);
 
+  const Eye = ({ eyeRef, pupilPosition, testId }: { 
+    eyeRef: React.RefObject<HTMLDivElement | null>, 
+    pupilPosition: { x: number, y: number },
+    testId: string 
+  }) => (
+    <div 
+      ref={eyeRef}
+      className="relative w-36 h-36 md:w-52 md:h-52 lg:w-60 lg:h-60"
+      data-testid={testId}
+      style={{
+        perspective: "500px",
+        transformStyle: "preserve-3d",
+      }}
+    >
+      {/* Outer eye socket shadow */}
+      <div 
+        className="absolute inset-0 rounded-full"
+        style={{
+          background: "radial-gradient(ellipse at 30% 20%, transparent 0%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.6) 100%)",
+          transform: "translateZ(-20px)",
+        }}
+      />
+      
+      {/* Eyeball base - 3D sphere effect */}
+      <div 
+        className="absolute inset-2 rounded-full"
+        style={{
+          background: `
+            radial-gradient(ellipse at 25% 25%, #ffffff 0%, #f8f8f8 25%, #e8e8e8 50%, #d0d0d0 75%, #b8b8b8 100%)
+          `,
+          boxShadow: `
+            0 20px 60px rgba(0,0,0,0.5),
+            0 10px 30px rgba(0,0,0,0.3),
+            inset 0 -15px 40px rgba(0,0,0,0.15),
+            inset 0 15px 30px rgba(255,255,255,0.9),
+            0 0 80px rgba(249,115,22,0.2)
+          `,
+          transform: "translateZ(10px)",
+        }}
+      />
+      
+      {/* Inner eyeball highlight layer */}
+      <div 
+        className="absolute inset-4 rounded-full"
+        style={{
+          background: `
+            radial-gradient(ellipse at 30% 25%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.6) 30%, transparent 60%)
+          `,
+        }}
+      />
+
+      {/* Iris and pupil container */}
+      <div 
+        className="absolute inset-0 flex items-center justify-center"
+        style={{ transform: "translateZ(15px)" }}
+      >
+        <div 
+          className="relative w-16 h-16 md:w-24 md:h-24 lg:w-28 lg:h-28 rounded-full transition-transform duration-100 ease-out"
+          style={{ 
+            transform: `translate(${pupilPosition.x}px, ${pupilPosition.y}px)`,
+          }}
+        >
+          {/* Iris outer ring */}
+          <div 
+            className="absolute inset-0 rounded-full"
+            style={{
+              background: `
+                radial-gradient(circle at 50% 50%, 
+                  #1a1a1a 0%,
+                  #2d1810 10%,
+                  #8b4513 20%,
+                  #d35400 35%,
+                  #e67e22 45%,
+                  #f39c12 55%,
+                  #d35400 70%,
+                  #8b4513 85%,
+                  #1a1a1a 100%
+                )
+              `,
+              boxShadow: `
+                inset 0 0 20px rgba(0,0,0,0.8),
+                inset 0 0 40px rgba(0,0,0,0.4),
+                0 4px 15px rgba(0,0,0,0.5)
+              `,
+            }}
+          />
+          
+          {/* Iris texture - radial lines */}
+          <div 
+            className="absolute inset-1 rounded-full overflow-hidden"
+            style={{
+              background: `
+                repeating-conic-gradient(
+                  from 0deg,
+                  rgba(0,0,0,0.1) 0deg 2deg,
+                  transparent 2deg 8deg
+                )
+              `,
+              mixBlendMode: "overlay",
+            }}
+          />
+          
+          {/* Inner iris glow */}
+          <div 
+            className="absolute inset-2 rounded-full"
+            style={{
+              background: `
+                radial-gradient(circle at 50% 50%,
+                  transparent 30%,
+                  rgba(249,115,22,0.4) 50%,
+                  rgba(249,115,22,0.6) 60%,
+                  transparent 80%
+                )
+              `,
+            }}
+          />
+
+          {/* Pupil */}
+          <div 
+            className="absolute inset-0 flex items-center justify-center"
+          >
+            <div 
+              className="w-7 h-7 md:w-10 md:h-10 lg:w-12 lg:h-12 rounded-full"
+              style={{
+                background: `
+                  radial-gradient(circle at 40% 35%,
+                    #1a1a1a 0%,
+                    #0a0a0a 50%,
+                    #000000 100%
+                  )
+                `,
+                boxShadow: `
+                  inset 0 2px 8px rgba(255,255,255,0.1),
+                  inset 0 -2px 8px rgba(0,0,0,0.8),
+                  0 2px 10px rgba(0,0,0,0.5)
+                `,
+              }}
+            />
+          </div>
+
+          {/* Primary light reflection */}
+          <div 
+            className="absolute top-1 left-2 md:top-2 md:left-3 w-4 h-4 md:w-6 md:h-6 rounded-full"
+            style={{
+              background: `
+                radial-gradient(circle at 50% 50%,
+                  rgba(255,255,255,0.95) 0%,
+                  rgba(255,255,255,0.6) 40%,
+                  transparent 70%
+                )
+              `,
+            }}
+          />
+          
+          {/* Secondary light reflection */}
+          <div 
+            className="absolute top-4 left-5 md:top-5 md:left-7 w-2 h-2 md:w-2.5 md:h-2.5 rounded-full"
+            style={{
+              background: `
+                radial-gradient(circle at 50% 50%,
+                  rgba(255,255,255,0.8) 0%,
+                  rgba(255,255,255,0.4) 50%,
+                  transparent 100%
+                )
+              `,
+            }}
+          />
+
+          {/* Bottom rim light */}
+          <div 
+            className="absolute bottom-2 right-3 md:bottom-3 md:right-4 w-6 h-2 md:w-8 md:h-3 rounded-full opacity-30"
+            style={{
+              background: `
+                radial-gradient(ellipse at 50% 50%,
+                  rgba(255,200,150,0.6) 0%,
+                  transparent 100%
+                )
+              `,
+              transform: "rotate(-30deg)",
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Glass-like overlay for depth */}
+      <div 
+        className="absolute inset-2 rounded-full pointer-events-none"
+        style={{
+          background: `
+            linear-gradient(135deg, 
+              rgba(255,255,255,0.1) 0%, 
+              transparent 50%,
+              rgba(0,0,0,0.05) 100%
+            )
+          `,
+        }}
+      />
+    </div>
+  );
+
   return (
     <section 
       ref={containerRef}
       className="relative py-24 overflow-hidden bg-gradient-to-b from-black via-zinc-950 to-black"
       data-testid="section-eye-animation"
     >
-      <div className="absolute inset-0 opacity-30">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[120px]" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-[120px]" />
+      {/* Ambient background glow */}
+      <div className="absolute inset-0 opacity-40">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-primary/15 rounded-full blur-[150px]" />
       </div>
       
       <div className="container mx-auto px-4 relative z-10">
@@ -58,54 +258,9 @@ export function EyeAnimation() {
           </p>
         </div>
 
-        <div className="flex justify-center items-center gap-8 md:gap-16">
-          <div 
-            ref={leftEyeRef}
-            className="relative w-32 h-32 md:w-48 md:h-48 rounded-full bg-gradient-to-br from-white via-gray-100 to-gray-200 shadow-[0_0_60px_rgba(249,115,22,0.3),inset_0_-8px_30px_rgba(0,0,0,0.15)] flex items-center justify-center"
-            data-testid="eye-left"
-          >
-            <div className="absolute inset-3 rounded-full bg-gradient-to-br from-gray-50 to-white shadow-inner" />
-            
-            <div 
-              className="relative w-14 h-14 md:w-20 md:h-20 rounded-full bg-gradient-to-br from-zinc-800 via-zinc-900 to-black shadow-lg transition-transform duration-75 ease-out"
-              style={{ 
-                transform: `translate(${leftPupil.x}px, ${leftPupil.y}px)` 
-              }}
-            >
-              <div className="absolute inset-1 rounded-full bg-gradient-to-br from-primary/80 via-orange-600 to-orange-800" />
-              
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-black shadow-inner" />
-              </div>
-              
-              <div className="absolute top-2 left-2 w-2 h-2 md:w-3 md:h-3 rounded-full bg-white/80" />
-              <div className="absolute top-3 left-4 md:top-4 md:left-6 w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-white/60" />
-            </div>
-          </div>
-
-          <div 
-            ref={rightEyeRef}
-            className="relative w-32 h-32 md:w-48 md:h-48 rounded-full bg-gradient-to-br from-white via-gray-100 to-gray-200 shadow-[0_0_60px_rgba(249,115,22,0.3),inset_0_-8px_30px_rgba(0,0,0,0.15)] flex items-center justify-center"
-            data-testid="eye-right"
-          >
-            <div className="absolute inset-3 rounded-full bg-gradient-to-br from-gray-50 to-white shadow-inner" />
-            
-            <div 
-              className="relative w-14 h-14 md:w-20 md:h-20 rounded-full bg-gradient-to-br from-zinc-800 via-zinc-900 to-black shadow-lg transition-transform duration-75 ease-out"
-              style={{ 
-                transform: `translate(${rightPupil.x}px, ${rightPupil.y}px)` 
-              }}
-            >
-              <div className="absolute inset-1 rounded-full bg-gradient-to-br from-primary/80 via-orange-600 to-orange-800" />
-              
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-black shadow-inner" />
-              </div>
-              
-              <div className="absolute top-2 left-2 w-2 h-2 md:w-3 md:h-3 rounded-full bg-white/80" />
-              <div className="absolute top-3 left-4 md:top-4 md:left-6 w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-white/60" />
-            </div>
-          </div>
+        <div className="flex justify-center items-center gap-6 md:gap-12 lg:gap-16">
+          <Eye eyeRef={leftEyeRef} pupilPosition={leftPupil} testId="eye-left" />
+          <Eye eyeRef={rightEyeRef} pupilPosition={rightPupil} testId="eye-right" />
         </div>
 
         <div className="text-center mt-12">

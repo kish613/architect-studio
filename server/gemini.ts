@@ -50,21 +50,31 @@ export async function generateIsometricFloorplan(
           
           const prompt = `Transform this 2D floorplan into a photorealistic 3D architectural visualization.
 
+CRITICAL - PRESERVE ORIGINAL STRUCTURE (HIGHEST PRIORITY):
+- WALLS: Keep ALL walls EXACTLY as shown in the original floorplan. Do NOT add, remove, or move any walls.
+- DOORS: Keep ALL doors in their EXACT positions and sizes as shown in the original floorplan. Do NOT relocate doors.
+- WINDOWS: Keep ALL windows in their EXACT positions as shown in the original floorplan.
+- ROOM LAYOUT: The room layout is FIXED and must match the floorplan precisely.
+- Only change the structure if the user explicitly requests it in their style preferences.
+
 CRITICAL: You MUST follow the EXACT layout shown in the reference floorplan image:
 - Match the EXACT room positions, shapes, and proportions from the floorplan
-- Preserve ALL wall positions and angles exactly as shown
+- Preserve ALL wall positions, thicknesses, and angles exactly as shown
 - Keep room sizes PROPORTIONAL to what is shown in the floorplan
 - Identify and render all rooms visible in the floorplan
+- Door swings and openings must match the floorplan exactly
 
 Create an isometric cutaway view of this SINGLE FLOOR layout with walls cut at eye level to reveal the interior.
 
-LAYOUT ACCURACY (MOST IMPORTANT):
-- Follow the exact wall layout from the floorplan image
-- Each room must be enclosed with walls matching the floorplan boundaries
-- Bathrooms must be their own separate enclosed rooms (not open areas)
+STRUCTURAL ACCURACY (MOST IMPORTANT - DO NOT DEVIATE):
+- Follow the exact wall layout from the floorplan image - NO modifications
+- Each room must be enclosed with walls matching the floorplan boundaries EXACTLY
+- Door positions are FIXED - render doors exactly where they appear in the source
+- Window positions are FIXED - render windows exactly where they appear in the source
+- Bathrooms must be their own separate enclosed rooms with doors where shown
 - Match all room dimensions proportionally to the source floorplan
 
-USER STYLE PREFERENCES:
+USER STYLE PREFERENCES (apply to decor/furniture ONLY, NOT structure):
 ${userStyle}
 
 Style rendering:

@@ -1,5 +1,6 @@
 import { Layout } from "@/components/layout/Layout";
 import { Hero } from "@/components/home/Hero";
+import { EyeAnimation } from "@/components/home/EyeAnimation";
 import { Capabilities } from "@/components/home/Capabilities";
 import { DesignGallery } from "@/components/home/DesignGallery";
 
@@ -7,6 +8,7 @@ export function Home() {
   return (
     <Layout>
       <Hero />
+      <EyeAnimation />
       <Capabilities />
       <DesignGallery />
       

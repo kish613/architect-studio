@@ -262,12 +262,6 @@ export function EyeAnimation() {
           <Eye eyeRef={leftEyeRef} pupilPosition={leftPupil} testId="eye-left" />
           <Eye eyeRef={rightEyeRef} pupilPosition={rightPupil} testId="eye-right" />
         </div>
-
-        <div className="text-center mt-12">
-          <p className="text-muted-foreground text-sm">
-            Move your cursor around <span className="text-primary">👀</span>
-          </p>
-        </div>
       </div>
     </section>
   );

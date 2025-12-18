@@ -7,7 +7,14 @@ import {
   getSessionCookieHeader,
 } from "../../lib/auth";
 
+// #region agent log - Module loaded successfully marker
+const MODULE_LOADED = true;
+// #endregion
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // #region agent log - Check if we reach the handler
+  console.log("[DEBUG] Callback handler reached, module loaded:", MODULE_LOADED);
+  // #endregion
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }

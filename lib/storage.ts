@@ -1,4 +1,4 @@
-import { 
+import {
   type Project,
   type InsertProject,
   type FloorplanModel,
@@ -9,8 +9,8 @@ import {
   floorplanModels,
   userSubscriptions,
   PLAN_LIMITS,
-  type SubscriptionPlan
-} from "@shared/schema";
+  type SubscriptionPlan,
+} from "../shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
@@ -19,18 +19,27 @@ export interface IStorage {
   getAllProjects(userId?: string): Promise<Project[]>;
   getProject(id: number): Promise<Project | undefined>;
   createProject(project: InsertProject): Promise<Project>;
-  updateProject(id: number, project: Partial<InsertProject>): Promise<Project | undefined>;
+  updateProject(
+    id: number,
+    project: Partial<InsertProject>
+  ): Promise<Project | undefined>;
   deleteProject(id: number): Promise<void>;
-  
+
   // Models
   getModelsByProject(projectId: number): Promise<FloorplanModel[]>;
   getModel(id: number): Promise<FloorplanModel | undefined>;
   createModel(model: InsertFloorplanModel): Promise<FloorplanModel>;
-  updateModel(id: number, model: Partial<InsertFloorplanModel>): Promise<FloorplanModel | undefined>;
-  
+  updateModel(
+    id: number,
+    model: Partial<InsertFloorplanModel>
+  ): Promise<FloorplanModel | undefined>;
+
   // Subscriptions
   getSubscription(userId: string): Promise<UserSubscription | undefined>;
-  createOrUpdateSubscription(userId: string, data: Partial<InsertUserSubscription>): Promise<UserSubscription>;
+  createOrUpdateSubscription(
+    userId: string,
+    data: Partial<InsertUserSubscription>
+  ): Promise<UserSubscription>;
   incrementGenerationsUsed(userId: string): Promise<UserSubscription | undefined>;
   canGenerate(userId: string): Promise<boolean>;
   resetMonthlyUsage(userId: string): Promise<void>;
@@ -39,13 +48,20 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   async getAllProjects(userId?: string): Promise<Project[]> {
     if (userId) {
-      return await db.select().from(projects).where(eq(projects.userId, userId)).orderBy(desc(projects.lastModified));
+      return await db
+        .select()
+        .from(projects)
+        .where(eq(projects.userId, userId))
+        .orderBy(desc(projects.lastModified));
     }
     return await db.select().from(projects).orderBy(desc(projects.lastModified));
   }
 
   async getProject(id: number): Promise<Project | undefined> {
-    const [project] = await db.select().from(projects).where(eq(projects.id, id));
+    const [project] = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.id, id));
     return project || undefined;
   }
 
@@ -57,7 +73,10 @@ export class DatabaseStorage implements IStorage {
     return project;
   }
 
-  async updateProject(id: number, projectUpdate: Partial<InsertProject>): Promise<Project | undefined> {
+  async updateProject(
+    id: number,
+    projectUpdate: Partial<InsertProject>
+  ): Promise<Project | undefined> {
     const [project] = await db
       .update(projects)
       .set({ ...projectUpdate, lastModified: new Date() })
@@ -79,7 +98,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getModel(id: number): Promise<FloorplanModel | undefined> {
-    const [model] = await db.select().from(floorplanModels).where(eq(floorplanModels.id, id));
+    const [model] = await db
+      .select()
+      .from(floorplanModels)
+      .where(eq(floorplanModels.id, id));
     return model || undefined;
   }
 
@@ -91,7 +113,10 @@ export class DatabaseStorage implements IStorage {
     return model;
   }
 
-  async updateModel(id: number, modelUpdate: Partial<InsertFloorplanModel>): Promise<FloorplanModel | undefined> {
+  async updateModel(
+    id: number,
+    modelUpdate: Partial<InsertFloorplanModel>
+  ): Promise<FloorplanModel | undefined> {
     const [model] = await db
       .update(floorplanModels)
       .set(modelUpdate)
@@ -102,13 +127,19 @@ export class DatabaseStorage implements IStorage {
 
   // Subscription methods
   async getSubscription(userId: string): Promise<UserSubscription | undefined> {
-    const [sub] = await db.select().from(userSubscriptions).where(eq(userSubscriptions.userId, userId));
+    const [sub] = await db
+      .select()
+      .from(userSubscriptions)
+      .where(eq(userSubscriptions.userId, userId));
     return sub || undefined;
   }
 
-  async createOrUpdateSubscription(userId: string, data: Partial<InsertUserSubscription>): Promise<UserSubscription> {
+  async createOrUpdateSubscription(
+    userId: string,
+    data: Partial<InsertUserSubscription>
+  ): Promise<UserSubscription> {
     const existing = await this.getSubscription(userId);
-    
+
     if (existing) {
       const [updated] = await db
         .update(userSubscriptions)
@@ -117,31 +148,33 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return updated;
     }
-    
+
     const [created] = await db
       .insert(userSubscriptions)
-      .values({ 
-        userId, 
-        plan: 'free',
+      .values({
+        userId,
+        plan: "free",
         generationsLimit: PLAN_LIMITS.free,
-        ...data 
+        ...data,
       })
       .returning();
     return created;
   }
 
-  async incrementGenerationsUsed(userId: string): Promise<UserSubscription | undefined> {
+  async incrementGenerationsUsed(
+    userId: string
+  ): Promise<UserSubscription | undefined> {
     let sub = await this.getSubscription(userId);
-    
+
     if (!sub) {
       sub = await this.createOrUpdateSubscription(userId, {});
     }
-    
+
     const [updated] = await db
       .update(userSubscriptions)
-      .set({ 
+      .set({
         generationsUsed: sub.generationsUsed + 1,
-        updatedAt: new Date() 
+        updatedAt: new Date(),
       })
       .where(eq(userSubscriptions.userId, userId))
       .returning();
@@ -150,11 +183,11 @@ export class DatabaseStorage implements IStorage {
 
   async canGenerate(userId: string): Promise<boolean> {
     let sub = await this.getSubscription(userId);
-    
+
     if (!sub) {
       sub = await this.createOrUpdateSubscription(userId, {});
     }
-    
+
     return sub.generationsUsed < sub.generationsLimit;
   }
 
@@ -167,3 +200,6 @@ export class DatabaseStorage implements IStorage {
 }
 
 export const storage = new DatabaseStorage();
+
+
+

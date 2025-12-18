@@ -1,19 +1,11 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 import pLimit from "p-limit";
 import pRetry, { AbortError } from "p-retry";
-import fs from "fs/promises";
-import path from "path";
-import { fileURLToPath } from "url";
+import { put } from "@vercel/blob";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-// Initialize Gemini AI with Replit AI Integrations
+// Initialize Gemini AI with direct Google API
 const ai = new GoogleGenAI({
-  apiKey: process.env.AI_INTEGRATIONS_GEMINI_API_KEY || "",
-  httpOptions: {
-    apiVersion: "",
-    baseUrl: process.env.AI_INTEGRATIONS_GEMINI_BASE_URL || "",
-  },
+  apiKey: process.env.GOOGLE_GEMINI_API_KEY || "",
 });
 
 function isRateLimitError(error: any): boolean {
@@ -33,7 +25,8 @@ export interface IsometricGenerationResult {
 }
 
 export async function generateIsometricFloorplan(
-  originalImagePath: string,
+  imageBuffer: Buffer,
+  mimeType: string,
   stylePrompt?: string
 ): Promise<IsometricGenerationResult> {
   const limit = pLimit(1);
@@ -42,12 +35,12 @@ export async function generateIsometricFloorplan(
     pRetry(
       async () => {
         try {
-          const imageBuffer = await fs.readFile(originalImagePath);
           const base64Image = imageBuffer.toString("base64");
-          const mimeType = originalImagePath.endsWith(".png") ? "image/png" : "image/jpeg";
 
-          const userStyle = stylePrompt || "modern minimalist interior, neutral colors, clean aesthetic";
-          
+          const userStyle =
+            stylePrompt ||
+            "modern minimalist interior, neutral colors, clean aesthetic";
+
           const prompt = `Transform this 2D floorplan into a photorealistic 3D architectural visualization.
 
 CRITICAL - PRESERVE ORIGINAL STRUCTURE (HIGHEST PRIORITY):
@@ -98,7 +91,7 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
 - 4K QUALITY, photorealistic materials, ultra-high resolution textures`;
 
           const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash-image",
+            model: "gemini-2.0-flash-exp",
             contents: [
               {
                 role: "user",
@@ -125,14 +118,18 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
           const outputMimeType = imagePart.inlineData.mimeType || "image/png";
           const ext = outputMimeType.includes("png") ? "png" : "jpg";
           const filename = `isometric-${Date.now()}.${ext}`;
-          const outputPath = path.join(__dirname, "../uploads", filename);
 
           const imageData = Buffer.from(imagePart.inlineData.data, "base64");
-          await fs.writeFile(outputPath, imageData);
+
+          // Upload to Vercel Blob
+          const blob = await put(filename, imageData, {
+            access: "public",
+            contentType: outputMimeType,
+          });
 
           return {
             success: true,
-            imageUrl: `/uploads/${filename}`,
+            imageUrl: blob.url,
           };
         } catch (error: any) {
           if (isRateLimitError(error)) {
@@ -150,3 +147,6 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
     )
   );
 }
+
+
+

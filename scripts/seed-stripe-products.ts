@@ -1,8 +1,16 @@
-import { getUncachableStripeClient } from '../server/stripeClient';
+import Stripe from 'stripe';
+
+// Load environment variables in development
+if (!process.env.STRIPE_SECRET_KEY) {
+  console.error('STRIPE_SECRET_KEY environment variable is required');
+  process.exit(1);
+}
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: '2025-04-30.basil',
+});
 
 async function seedProducts() {
-  const stripe = await getUncachableStripeClient();
-  
   console.log('Creating Architect Studio subscription products...\n');
 
   // Check if products already exist
@@ -28,7 +36,7 @@ async function seedProducts() {
     name: 'Starter Plan',
     description: '5 floorplan-to-3D generations per month',
     metadata: {
-      plan_type: 'starter',
+      plan: 'starter',
       generations_limit: '5',
     },
   });
@@ -46,7 +54,7 @@ async function seedProducts() {
     name: 'Pro Plan',
     description: '20 floorplan-to-3D generations per month',
     metadata: {
-      plan_type: 'pro',
+      plan: 'pro',
       generations_limit: '20',
     },
   });
@@ -64,7 +72,7 @@ async function seedProducts() {
     name: 'Studio Plan',
     description: '60 floorplan-to-3D generations per month',
     metadata: {
-      plan_type: 'studio',
+      plan: 'studio',
       generations_limit: '60',
     },
   });
@@ -82,7 +90,7 @@ async function seedProducts() {
     name: 'Additional Generation',
     description: 'Single floorplan-to-3D generation credit',
     metadata: {
-      plan_type: 'pay_per_use',
+      plan: 'pay_per_use',
       generations_per_unit: '1',
     },
   });

@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { storage } from "../../lib/storage";
-import { insertProjectSchema } from "../../shared/schema";
+import { storage } from "../_lib/storage";
+import { insertProjectSchema } from "../_shared/schema";
 import { z } from "zod";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

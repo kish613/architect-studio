@@ -1,11 +1,11 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { storage } from "../../../lib/storage";
-import { generateIsometricFloorplan } from "../../../lib/gemini";
+import { storage } from "../../_lib/storage";
+import { generateIsometricFloorplan } from "../../_lib/gemini";
 import {
   getSessionFromCookies,
   verifySession,
   getUserById,
-} from "../../../lib/auth";
+} from "../../_lib/auth";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {

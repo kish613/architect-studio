@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { storage } from "../../../lib/storage";
-import { checkMeshyTaskStatus } from "../../../lib/meshy";
+import { storage } from "../../_lib/storage";
+import { checkMeshyTaskStatus } from "../../_lib/meshy";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") {

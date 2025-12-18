@@ -15,7 +15,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Try to import lib/auth dynamically
   try {
-    const auth = await import("../../lib/auth");
+    const auth = await import("../_lib/auth");
     diagnostics.authModule = {
       loaded: true,
       exports: Object.keys(auth),
@@ -30,7 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Try to import lib/db dynamically
   try {
-    const db = await import("../../lib/db");
+    const db = await import("../_lib/db");
     diagnostics.dbModule = {
       loaded: true,
       exports: Object.keys(db),

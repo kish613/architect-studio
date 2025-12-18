@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
-import { storage } from "../../lib/storage";
-import { PLAN_LIMITS, type SubscriptionPlan } from "../../shared/schema";
+import { storage } from "../_lib/storage";
+import { PLAN_LIMITS, type SubscriptionPlan } from "../_shared/schema";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2025-11-17.clover",

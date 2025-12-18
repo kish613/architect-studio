@@ -1,11 +1,11 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
-import { storage } from "../../lib/storage";
+import { storage } from "../_lib/storage";
 import {
   getSessionFromCookies,
   verifySession,
   getUserById,
-} from "../../lib/auth";
+} from "../_lib/auth";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2025-11-17.clover",

@@ -1,28 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-
-// #region agent log H2 H3
-let authModule: any = null;
-let importError: Error | null = null;
-try {
-  authModule = require("../../lib/auth");
-} catch (e) {
-  importError = e instanceof Error ? e : new Error(String(e));
-}
-// #endregion
+import { getGoogleOAuthURL } from "../../lib/auth";
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
-  // #region agent log H2 H3
-  if (importError) {
-    console.error("[DEBUG H2/H3] Module import failed:", importError.message);
-    return res.status(500).json({
-      hypothesis: "H2/H3",
-      error: "Module import failed",
-      message: importError.message,
-      stack: importError.stack,
-    });
-  }
-  // #endregion
-
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -65,10 +44,10 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     console.log("[DEBUG H4] Attempting getGoogleOAuthURL with redirectUri:", redirectUri);
     // #endregion
 
-    const authUrl = authModule.getGoogleOAuthURL(redirectUri);
+    const authUrl = getGoogleOAuthURL(redirectUri);
 
     // #region agent log H4
-    console.log("[DEBUG H4] Generated authUrl:", authUrl?.substring(0, 100) + "...");
+    console.log("[DEBUG H4] Generated authUrl successfully, redirecting...");
     // #endregion
 
     res.redirect(authUrl);

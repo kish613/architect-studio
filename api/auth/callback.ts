@@ -1,32 +1,13 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-
-// #region agent log H1 - Check module import
-let authModule: any = null;
-let importError: string | null = null;
-try {
-  authModule = await import("../../lib/auth");
-} catch (e: any) {
-  importError = e?.message || String(e);
-}
-// #endregion
+import {
+  getGoogleTokens,
+  getGoogleUserInfo,
+  upsertUser,
+  createSession,
+  getSessionCookieHeader,
+} from "../../lib/auth";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // #region agent log H1
-  if (importError) {
-    return res.status(500).json({
-      endpoint: "callback",
-      hypothesis: "H1",
-      error: "Module import failed",
-      message: importError,
-      envCheck: {
-        DATABASE_URL: !!process.env.DATABASE_URL,
-        GOOGLE_CLIENT_ID: !!process.env.GOOGLE_CLIENT_ID,
-        GOOGLE_CLIENT_SECRET: !!process.env.GOOGLE_CLIENT_SECRET,
-      },
-    });
-  }
-  // #endregion
-
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -47,39 +28,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const host = req.headers.host;
     const redirectUri = `${protocol}://${host}/api/auth/callback`;
 
-    // #region agent log H4
+    // #region agent log
     console.log("[DEBUG] Getting tokens...");
     // #endregion
-    const tokens = await authModule.getGoogleTokens(code, redirectUri);
+    const tokens = await getGoogleTokens(code, redirectUri);
 
-    // #region agent log H4
+    // #region agent log
     console.log("[DEBUG] Getting user info...");
     // #endregion
-    const googleUser = await authModule.getGoogleUserInfo(tokens.access_token);
+    const googleUser = await getGoogleUserInfo(tokens.access_token);
 
-    // #region agent log H4
+    // #region agent log
     console.log("[DEBUG] Upserting user...");
     // #endregion
-    const user = await authModule.upsertUser(googleUser);
+    const user = await upsertUser(googleUser);
 
-    // #region agent log H4
+    // #region agent log
     console.log("[DEBUG] Creating session...");
     // #endregion
-    const sessionToken = await authModule.createSession({
+    const sessionToken = await createSession({
       userId: user.id,
       email: user.email || "",
     });
 
-    res.setHeader("Set-Cookie", authModule.getSessionCookieHeader(sessionToken));
+    res.setHeader("Set-Cookie", getSessionCookieHeader(sessionToken));
     res.redirect("/");
   } catch (error: any) {
-    // #region agent log H4
+    // #region agent log
+    console.error("[DEBUG] Callback error:", error);
     return res.status(500).json({
       endpoint: "callback",
-      hypothesis: "H4",
       error: "Callback processing failed",
       message: error?.message || String(error),
-      stack: error?.stack,
     });
     // #endregion
   }

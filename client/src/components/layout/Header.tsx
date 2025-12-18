@@ -74,7 +74,7 @@ export function Header() {
                   {user?.firstName || 'User'}
                 </span>
               </div>
-              <a href="/api/logout">
+              <a href="/api/auth/logout">
                 <Button 
                   variant="ghost" 
                   size="sm" 
@@ -88,7 +88,7 @@ export function Header() {
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <a href="/api/login">
+              <a href="/api/auth/login">
                 <Button 
                   variant="ghost" 
                   size="sm" 
@@ -99,7 +99,7 @@ export function Header() {
                   <span className="hidden sm:inline">Sign In</span>
                 </Button>
               </a>
-              <a href="/api/login">
+              <a href="/api/auth/login">
                 <Button 
                   size="sm" 
                   className="gap-2 bg-primary hover:bg-primary/90 text-white border-0 shadow-lg shadow-primary/20"

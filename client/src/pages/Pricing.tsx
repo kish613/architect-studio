@@ -120,7 +120,7 @@ export function Pricing() {
 
   const handleSubscribe = async (plan: PricingPlan) => {
     if (!user) {
-      setLocation('/api/login');
+      setLocation('/api/auth/login');
       return;
     }
 
@@ -156,7 +156,7 @@ export function Pricing() {
 
   const handlePayPerUse = async (count: number) => {
     if (!user) {
-      setLocation('/api/login');
+      setLocation('/api/auth/login');
       return;
     }
 

@@ -29,7 +29,7 @@ export function Upload() {
         description: "Create a free account to start transforming floorplans into 3D models.",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        window.location.href = "/api/auth/login";
       }, 500);
     }
   }, [isAuthenticated, isLoading, toast]);

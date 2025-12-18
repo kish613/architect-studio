@@ -28,7 +28,7 @@ export function Projects() {
         description: "Create a free account to view your projects.",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        window.location.href = "/api/auth/login";
       }, 500);
     }
   }, [isAuthenticated, authLoading, toast]);

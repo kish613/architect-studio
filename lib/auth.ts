@@ -21,6 +21,7 @@ export interface SessionPayload {
   userId: string;
   email: string;
   exp?: number;
+  [key: string]: unknown;
 }
 
 // Google OAuth configuration

@@ -4,7 +4,7 @@ import { storage } from "../../lib/storage";
 import { PLAN_LIMITS, type SubscriptionPlan } from "../../shared/schema";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2025-04-30.basil",
+  apiVersion: "2025-11-17.clover",
 });
 
 export const config = {
@@ -71,7 +71,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           // Update subscription plan
           const stripeSubscription = await stripe.subscriptions.retrieve(
             session.subscription as string
-          );
+          ) as unknown as Stripe.Subscription;
           const priceId = stripeSubscription.items.data[0]?.price.id;
 
           // Map price ID to plan (you'll need to configure these)
@@ -84,16 +84,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             plan = product.metadata.plan as SubscriptionPlan;
           }
 
+          // Get billing period from subscription items
+          const subscriptionItem = stripeSubscription.items.data[0];
+          const periodStart = (subscriptionItem as any)?.current_period_start || 
+                              (stripeSubscription as any).current_period_start || 
+                              Math.floor(Date.now() / 1000);
+          const periodEnd = (subscriptionItem as any)?.current_period_end || 
+                            (stripeSubscription as any).current_period_end || 
+                            Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
+
           await storage.createOrUpdateSubscription(userId, {
             plan,
             stripeSubscriptionId: session.subscription as string,
             generationsLimit: PLAN_LIMITS[plan],
-            currentPeriodStart: new Date(
-              stripeSubscription.current_period_start * 1000
-            ),
-            currentPeriodEnd: new Date(
-              stripeSubscription.current_period_end * 1000
-            ),
+            currentPeriodStart: new Date(periodStart * 1000),
+            currentPeriodEnd: new Date(periodEnd * 1000),
           });
         }
         break;

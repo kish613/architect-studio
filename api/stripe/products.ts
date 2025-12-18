@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2025-04-30.basil",
+  apiVersion: "2025-11-17.clover",
 });
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

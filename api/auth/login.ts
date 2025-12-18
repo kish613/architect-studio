@@ -1,5 +1,23 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getGoogleOAuthURL } from "../../lib/auth";
+
+// #region agent log H6 - Inline OAuth URL generation to avoid db import chain
+function getGoogleOAuthURL(redirectUri: string): string {
+  const rootUrl = "https://accounts.google.com/o/oauth2/v2/auth";
+  const options = {
+    redirect_uri: redirectUri,
+    client_id: process.env.GOOGLE_CLIENT_ID!,
+    access_type: "offline",
+    response_type: "code",
+    prompt: "consent",
+    scope: [
+      "https://www.googleapis.com/auth/userinfo.profile",
+      "https://www.googleapis.com/auth/userinfo.email",
+    ].join(" "),
+  };
+  const qs = new URLSearchParams(options);
+  return `${rootUrl}?${qs.toString()}`;
+}
+// #endregion
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") {

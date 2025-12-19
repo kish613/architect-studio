@@ -1,12 +1,48 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { put } from "@vercel/blob";
-import { storage } from "../../../serverless-lib/storage";
+import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
+import { pgTable, text, varchar, serial, timestamp, integer, boolean } from "drizzle-orm/pg-core";
+import { eq } from "drizzle-orm";
 
 export const config = {
   api: {
     bodyParser: false,
   },
 };
+
+// Inline schema
+const projects = pgTable("projects", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id"),
+  name: text("name").notNull(),
+  lastModified: timestamp("last_modified").notNull().defaultNow(),
+});
+
+const floorplanModels = pgTable("floorplan_models", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull(),
+  originalUrl: text("original_url").notNull(),
+  isometricUrl: text("isometric_url"),
+  isometricPrompt: text("isometric_prompt"),
+  model3dUrl: text("model_3d_url"),
+  baseModel3dUrl: text("base_model_3d_url"),
+  meshyTaskId: text("meshy_task_id"),
+  texturePrompt: text("texture_prompt"),
+  retextureTaskId: text("retexture_task_id"),
+  retextureUsed: boolean("retexture_used").notNull().default(false),
+  status: text("status").notNull().default("uploaded"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Inline db connection
+function getDb() {
+  if (!process.env.DATABASE_URL) {
+    throw new Error("DATABASE_URL must be set");
+  }
+  const sql = neon(process.env.DATABASE_URL);
+  return drizzle(sql);
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
@@ -21,7 +57,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const project = await storage.getProject(projectId);
+    const db = getDb();
+    const [project] = await db.select().from(projects).where(eq(projects.id, projectId));
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
     }
@@ -102,11 +139,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     // Create model record
-    const model = await storage.createModel({
+    const [model] = await db.insert(floorplanModels).values({
       projectId,
       originalUrl: blob.url,
       status: "uploaded",
-    });
+    }).returning();
 
     res.status(201).json(model);
   } catch (error) {
@@ -114,6 +151,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(500).json({ error: "Failed to upload file" });
   }
 }
-
-
-

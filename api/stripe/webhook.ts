@@ -1,7 +1,9 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
-import { storage } from "../../serverless-lib/storage";
-import { PLAN_LIMITS, type SubscriptionPlan } from "../../serverless-shared/schema";
+import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
+import { pgTable, text, varchar, serial, timestamp, integer } from "drizzle-orm/pg-core";
+import { eq } from "drizzle-orm";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2025-11-17.clover",
@@ -12,6 +14,39 @@ export const config = {
     bodyParser: false,
   },
 };
+
+// Inline schema
+const userSubscriptions = pgTable("user_subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().unique(),
+  plan: text("plan").notNull().default("free"),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  generationsUsed: integer("generations_used").notNull().default(0),
+  generationsLimit: integer("generations_limit").notNull().default(2),
+  currentPeriodStart: timestamp("current_period_start"),
+  currentPeriodEnd: timestamp("current_period_end"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+type SubscriptionPlan = 'free' | 'starter' | 'pro' | 'studio';
+
+const PLAN_LIMITS: Record<SubscriptionPlan, number> = {
+  free: 2,
+  starter: 5,
+  pro: 20,
+  studio: 60,
+};
+
+// Inline db connection
+function getDb() {
+  if (!process.env.DATABASE_URL) {
+    throw new Error("DATABASE_URL must be set");
+  }
+  const sql = neon(process.env.DATABASE_URL);
+  return drizzle(sql);
+}
 
 async function buffer(readable: NodeJS.ReadableStream): Promise<Buffer> {
   const chunks: Buffer[] = [];
@@ -39,6 +74,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    const db = getDb();
     const buf = await buffer(req);
     const event = stripe.webhooks.constructEvent(
       buf,
@@ -61,11 +97,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (type === "pay_per_use") {
           // Add generations to user's account
           const count = parseInt(session.metadata?.count || "1", 10);
-          const subscription = await storage.getSubscription(userId);
+          const [subscription] = await db.select().from(userSubscriptions).where(eq(userSubscriptions.userId, userId));
           if (subscription) {
-            await storage.createOrUpdateSubscription(userId, {
+            await db.update(userSubscriptions).set({
               generationsLimit: subscription.generationsLimit + count,
-            });
+              updatedAt: new Date(),
+            }).where(eq(userSubscriptions.userId, userId));
           }
         } else if (type === "subscription") {
           // Update subscription plan
@@ -84,22 +121,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             plan = product.metadata.plan as SubscriptionPlan;
           }
 
-          // Get billing period from subscription items
-          const subscriptionItem = stripeSubscription.items.data[0];
-          const periodStart = (subscriptionItem as any)?.current_period_start || 
-                              (stripeSubscription as any).current_period_start || 
-                              Math.floor(Date.now() / 1000);
-          const periodEnd = (subscriptionItem as any)?.current_period_end || 
-                            (stripeSubscription as any).current_period_end || 
-                            Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
+          // Get billing period from subscription
+          const periodStart = stripeSubscription.current_period_start || Math.floor(Date.now() / 1000);
+          const periodEnd = stripeSubscription.current_period_end || Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
 
-          await storage.createOrUpdateSubscription(userId, {
-            plan,
-            stripeSubscriptionId: session.subscription as string,
-            generationsLimit: PLAN_LIMITS[plan],
-            currentPeriodStart: new Date(periodStart * 1000),
-            currentPeriodEnd: new Date(periodEnd * 1000),
-          });
+          const [existing] = await db.select().from(userSubscriptions).where(eq(userSubscriptions.userId, userId));
+          if (existing) {
+            await db.update(userSubscriptions).set({
+              plan,
+              stripeSubscriptionId: session.subscription as string,
+              generationsLimit: PLAN_LIMITS[plan],
+              currentPeriodStart: new Date(periodStart * 1000),
+              currentPeriodEnd: new Date(periodEnd * 1000),
+              updatedAt: new Date(),
+            }).where(eq(userSubscriptions.userId, userId));
+          } else {
+            await db.insert(userSubscriptions).values({
+              userId,
+              plan,
+              stripeSubscriptionId: session.subscription as string,
+              generationsLimit: PLAN_LIMITS[plan],
+              currentPeriodStart: new Date(periodStart * 1000),
+              currentPeriodEnd: new Date(periodEnd * 1000),
+            });
+          }
         }
         break;
       }
@@ -133,6 +178,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(400).json({ error: "Webhook processing error" });
   }
 }
-
-
-

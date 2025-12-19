@@ -1,15 +1,68 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
-import { storage } from "../../serverless-lib/storage";
-import {
-  getSessionFromCookies,
-  verifySession,
-  getUserById,
-} from "../../serverless-lib/auth";
+import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
+import { pgTable, text, varchar, serial, timestamp, integer } from "drizzle-orm/pg-core";
+import { eq } from "drizzle-orm";
+import { jwtVerify } from "jose";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2025-11-17.clover",
 });
+
+// Inline schema
+const users = pgTable("users", {
+  id: varchar("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  name: text("name"),
+  picture: text("picture"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+const userSubscriptions = pgTable("user_subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().unique(),
+  plan: text("plan").notNull().default("free"),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  generationsUsed: integer("generations_used").notNull().default(0),
+  generationsLimit: integer("generations_limit").notNull().default(2),
+  currentPeriodStart: timestamp("current_period_start"),
+  currentPeriodEnd: timestamp("current_period_end"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Inline db connection
+function getDb() {
+  if (!process.env.DATABASE_URL) {
+    throw new Error("DATABASE_URL must be set");
+  }
+  const sql = neon(process.env.DATABASE_URL);
+  return drizzle(sql);
+}
+
+// Inline auth helpers
+function getSessionFromCookies(cookieHeader: string | null): string | null {
+  if (!cookieHeader) return null;
+  const cookies = cookieHeader.split(";").map((c) => c.trim());
+  const sessionCookie = cookies.find((c) => c.startsWith("session="));
+  return sessionCookie ? sessionCookie.split("=")[1] : null;
+}
+
+async function verifySession(token: string): Promise<{ userId: string } | null> {
+  try {
+    const secret = new TextEncoder().encode(process.env.SESSION_SECRET || "fallback-secret");
+    const { payload } = await jwtVerify(token, secret);
+    if (typeof payload.userId === "string") {
+      return { userId: payload.userId };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
@@ -29,18 +82,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(401).json({ error: "Not authenticated" });
   }
 
-  const user = await getUserById(session.userId);
-  if (!user) {
-    return res.status(401).json({ error: "Not authenticated" });
-  }
-
   try {
+    const db = getDb();
+    const [user] = await db.select().from(users).where(eq(users.id, session.userId));
+    if (!user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
     const { priceId } = req.body || {};
     if (!priceId) {
       return res.status(400).json({ error: "Price ID required" });
     }
 
-    let subscription = await storage.getSubscription(user.id);
+    let [subscription] = await db.select().from(userSubscriptions).where(eq(userSubscriptions.userId, user.id));
     let customerId = subscription?.stripeCustomerId;
 
     if (!customerId) {
@@ -49,13 +103,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         metadata: { userId: user.id },
       });
       customerId = customer.id;
-      await storage.createOrUpdateSubscription(user.id, {
-        stripeCustomerId: customerId,
-      });
+      if (subscription) {
+        await db.update(userSubscriptions).set({ stripeCustomerId: customerId }).where(eq(userSubscriptions.userId, user.id));
+      } else {
+        await db.insert(userSubscriptions).values({
+          userId: user.id,
+          plan: "free",
+          generationsLimit: 2,
+          stripeCustomerId: customerId,
+        });
+      }
     }
 
-    const protocol =
-      req.headers["x-forwarded-proto"] || "https";
+    const protocol = req.headers["x-forwarded-proto"] || "https";
     const host = req.headers.host;
     const baseUrl = `${protocol}://${host}`;
 
@@ -75,6 +135,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(500).json({ error: "Failed to create checkout session" });
   }
 }
-
-
-

@@ -86,10 +86,14 @@ async function verifySession(token: string): Promise<{ userId: string } | null> 
   }
 }
 
-// Inline Gemini image generation
-const ai = new GoogleGenAI({
-  apiKey: process.env.GOOGLE_GEMINI_API_KEY || "",
-});
+// Inline Gemini image generation - validate API key early
+function getAI() {
+  const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("GOOGLE_GEMINI_API_KEY is not configured");
+  }
+  return new GoogleGenAI({ apiKey });
+}
 
 function isRateLimitError(error: any): boolean {
   const errorMsg = error?.message || String(error);
@@ -106,6 +110,7 @@ async function generateIsometricFloorplan(
   mimeType: string,
   stylePrompt?: string
 ) {
+  const ai = getAI();
   const limit = pLimit(1);
 
   return limit(() =>
@@ -325,8 +330,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         error: "Failed to generate isometric view",
       });
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating isometric:", error);
-    res.status(500).json({ error: "Failed to generate isometric view" });
+    const errorMessage = error?.message || "Failed to generate isometric view";
+    
+    // Check for specific error types
+    if (errorMessage.includes("GOOGLE_GEMINI_API_KEY")) {
+      return res.status(500).json({ error: "AI service is not configured properly" });
+    }
+    if (errorMessage.includes("quota") || errorMessage.includes("rate limit") || errorMessage.includes("429")) {
+      return res.status(429).json({ error: "AI service rate limit reached. Please try again later." });
+    }
+    if (errorMessage.includes("Generation limit reached")) {
+      return res.status(403).json({ error: errorMessage });
+    }
+    
+    res.status(500).json({ error: errorMessage });
   }
 }

@@ -4,6 +4,15 @@
   "outputDirectory": "dist/public",
   "installCommand": "npm install",
   "functions": {
+    "api/models/*/generate-isometric.ts": {
+      "maxDuration": 120
+    },
+    "api/models/*/generate-3d.ts": {
+      "maxDuration": 120
+    },
+    "api/models/*/retexture.ts": {
+      "maxDuration": 120
+    },
     "api/**/*.ts": {
       "maxDuration": 60
     }

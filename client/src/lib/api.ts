@@ -47,8 +47,18 @@ export async function generateIsometric(modelId: number, prompt?: string): Promi
   });
   
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to generate isometric view');
+    const text = await response.text();
+    let errorMessage = 'Failed to generate isometric view';
+    try {
+      const error = JSON.parse(text);
+      errorMessage = error.error || error.message || errorMessage;
+    } catch {
+      // Response was not JSON, use the text directly if it's not too long
+      if (text && text.length < 200) {
+        errorMessage = text;
+      }
+    }
+    throw new Error(errorMessage);
   }
   return response.json();
 }
@@ -59,8 +69,17 @@ export async function generate3D(modelId: number): Promise<FloorplanModel> {
   });
   
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to start 3D generation');
+    const text = await response.text();
+    let errorMessage = 'Failed to start 3D generation';
+    try {
+      const error = JSON.parse(text);
+      errorMessage = error.error || error.message || errorMessage;
+    } catch {
+      if (text && text.length < 200) {
+        errorMessage = text;
+      }
+    }
+    throw new Error(errorMessage);
   }
   return response.json();
 }
@@ -86,8 +105,17 @@ export async function retextureModel(modelId: number, texturePrompt: string): Pr
   });
   
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to start retexturing');
+    const text = await response.text();
+    let errorMessage = 'Failed to start retexturing';
+    try {
+      const error = JSON.parse(text);
+      errorMessage = error.error || error.message || errorMessage;
+    } catch {
+      if (text && text.length < 200) {
+        errorMessage = text;
+      }
+    }
+    throw new Error(errorMessage);
   }
   return response.json();
 }
@@ -104,8 +132,17 @@ export async function revertTexture(modelId: number): Promise<FloorplanModel> {
   });
   
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to revert texture');
+    const text = await response.text();
+    let errorMessage = 'Failed to revert texture';
+    try {
+      const error = JSON.parse(text);
+      errorMessage = error.error || error.message || errorMessage;
+    } catch {
+      if (text && text.length < 200) {
+        errorMessage = text;
+      }
+    }
+    throw new Error(errorMessage);
   }
   return response.json();
 }

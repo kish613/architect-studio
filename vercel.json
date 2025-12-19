@@ -5,8 +5,7 @@
   "installCommand": "npm install",
   "functions": {
     "api/**/*.ts": {
-      "maxDuration": 60,
-      "includeFiles": ["serverless-lib/**/*.ts", "serverless-shared/**/*.ts"]
+      "maxDuration": 60
     }
   },
   "rewrites": [

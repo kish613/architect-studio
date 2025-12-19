@@ -1,9 +1,54 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import {
-  getSessionFromCookies,
-  verifySession,
-  getUserById,
-} from "../../serverless-lib/auth";
+import { jwtVerify } from "jose";
+import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
+import { eq } from "drizzle-orm";
+import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+
+// Inline schema
+const users = pgTable("users", {
+  id: text("id").primaryKey(),
+  email: text("email"),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  profileImageUrl: text("profile_image_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Inline DB connection
+const sql = neon(process.env.DATABASE_URL!);
+const db = drizzle(sql);
+
+// Inline auth utilities
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.SESSION_SECRET || "fallback-secret-change-in-production"
+);
+const COOKIE_NAME = "auth_session";
+
+function getSessionFromCookies(cookieHeader: string | null): string | null {
+  if (!cookieHeader) return null;
+  const cookies = cookieHeader.split(";").reduce((acc, cookie) => {
+    const [key, value] = cookie.trim().split("=");
+    acc[key] = value;
+    return acc;
+  }, {} as Record<string, string>);
+  return cookies[COOKIE_NAME] || null;
+}
+
+async function verifySession(token: string) {
+  try {
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    return payload as { userId: string; email: string };
+  } catch {
+    return null;
+  }
+}
+
+async function getUserById(id: string) {
+  const [user] = await db.select().from(users).where(eq(users.id, id));
+  return user || null;
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") {
@@ -30,16 +75,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     res.json(user);
   } catch (error: any) {
-    // #region agent log
-    console.error("[DEBUG] User fetch error:", error);
-    return res.status(500).json({
-      endpoint: "user",
-      error: "User fetch failed",
-      message: error?.message || String(error),
-    });
-    // #endregion
+    console.error("User fetch error:", error);
+    res.status(500).json({ message: "Failed to fetch user" });
   }
 }
-
-
-

@@ -6,7 +6,7 @@
   "functions": {
     "api/**/*.ts": {
       "maxDuration": 60,
-      "includeFiles": "serverless-lib/**,serverless-shared/**"
+      "includeFiles": ["serverless-lib/**/*.ts", "serverless-shared/**/*.ts"]
     }
   },
   "rewrites": [

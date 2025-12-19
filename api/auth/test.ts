@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 // Static import to test bundling
-import { getSessionFromCookies } from "../lib/auth.js";
+import { getSessionFromCookies } from "../../serverless-lib/auth";
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
   res.json({

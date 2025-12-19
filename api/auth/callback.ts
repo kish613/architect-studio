@@ -5,7 +5,7 @@ import {
   upsertUser,
   createSession,
   getSessionCookieHeader,
-} from "../lib/auth";
+} from "../../serverless-lib/auth";
 
 // #region agent log - Module loaded successfully marker
 const MODULE_LOADED = true;

@@ -1,11 +1,11 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { storage } from "../../lib/storage";
-import { createRetextureTask } from "../../lib/meshy";
+import { storage } from "../../../serverless-lib/storage";
+import { createRetextureTask } from "../../../serverless-lib/meshy";
 import {
   getSessionFromCookies,
   verifySession,
   getUserById,
-} from "../../lib/auth";
+} from "../../../serverless-lib/auth";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {

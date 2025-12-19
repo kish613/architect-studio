@@ -293,6 +293,10 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  console.log("=== Generate Isometric Request Start ===");
+  console.log("Method:", req.method);
+  console.log("Query params:", req.query);
+
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -302,17 +306,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const token = getSessionFromCookies(cookieHeader);
 
   if (!token) {
+    console.log("ERROR: No authentication token");
     return res.status(401).json({ error: "Not authenticated" });
   }
 
   const session = await verifySession(token);
   if (!session) {
+    console.log("ERROR: Invalid session token");
     return res.status(401).json({ error: "Not authenticated" });
   }
 
   const db = getDb();
   const [user] = await db.select().from(users).where(eq(users.id, session.userId));
   if (!user) {
+    console.log("ERROR: User not found");
     return res.status(401).json({ error: "Not authenticated" });
   }
 
@@ -320,11 +327,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { id } = req.query;
   const modelId = parseInt(id as string);
 
+  console.log("User ID:", userId);
+  console.log("Model ID:", modelId);
+
   if (isNaN(modelId)) {
     return res.status(400).json({ error: "Invalid model ID" });
   }
 
   try {
+    // Verify API key is set
+    const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
+    console.log("API Key exists:", !!apiKey);
+    console.log("API Key prefix:", apiKey ? apiKey.substring(0, 10) + "..." : "missing");
+
+    if (!apiKey) {
+      console.error("ERROR: GOOGLE_GEMINI_API_KEY environment variable is not set");
+      return res.status(500).json({
+        error: "AI service not configured",
+        details: "Please set GOOGLE_GEMINI_API_KEY in Vercel environment variables"
+      });
+    }
     // Check usage limits
     let [subscription] = await db.select().from(userSubscriptions).where(eq(userSubscriptions.userId, userId));
     if (!subscription) {

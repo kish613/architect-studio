@@ -69,7 +69,7 @@ function getDb() {
 function getSessionFromCookies(cookieHeader: string | null): string | null {
   if (!cookieHeader) return null;
   const cookies = cookieHeader.split(";").map((c) => c.trim());
-  const sessionCookie = cookies.find((c) => c.startsWith("session="));
+  const sessionCookie = cookies.find((c) => c.startsWith("auth_session="));
   return sessionCookie ? sessionCookie.split("=")[1] : null;
 }
 

@@ -94,8 +94,8 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
 - CONSISTENT LIGHTING: Even, studio-style lighting without harsh shadows on the model
 - 4K QUALITY, photorealistic materials, ultra-high resolution textures`;
 
-          // Use Gemini 3 Pro Image REST API
-          const modelName = "gemini-3-pro-image-preview";
+          // Use Gemini Flash Image REST API (more widely available)
+          const modelName = "gemini-2.5-flash-image";
           const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
 
           console.log(`Calling Gemini 3 Pro Image API with model: ${modelName}`);

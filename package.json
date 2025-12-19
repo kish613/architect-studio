@@ -13,7 +13,6 @@
     "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
-    "@google/genai": "^1.33.0",
     "@hookform/resolvers": "^3.10.0",
     "@neondatabase/serverless": "^0.10.0",
     "@radix-ui/react-accordion": "^1.2.12",

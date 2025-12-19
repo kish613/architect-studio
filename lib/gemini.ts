@@ -1,12 +1,15 @@
-import { GoogleGenAI, Modality } from "@google/genai";
 import pLimit from "p-limit";
 import pRetry, { AbortError } from "p-retry";
 import { put } from "@vercel/blob";
 
-// Initialize Gemini AI with direct Google API
-const ai = new GoogleGenAI({
-  apiKey: process.env.GOOGLE_GEMINI_API_KEY || "",
-});
+// Get API key
+function getApiKey() {
+  const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("GOOGLE_GEMINI_API_KEY is not configured");
+  }
+  return apiKey;
+}
 
 function isRateLimitError(error: any): boolean {
   const errorMsg = error?.message || String(error);
@@ -29,6 +32,7 @@ export async function generateIsometricFloorplan(
   mimeType: string,
   stylePrompt?: string
 ): Promise<IsometricGenerationResult> {
+  const apiKey = getApiKey();
   const limit = pLimit(1);
 
   return limit(() =>
@@ -90,23 +94,57 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
 - CONSISTENT LIGHTING: Even, studio-style lighting without harsh shadows on the model
 - 4K QUALITY, photorealistic materials, ultra-high resolution textures`;
 
-          const response = await ai.models.generateContent({
-            model: "gemini-2.0-flash-exp",
-            contents: [
-              {
-                role: "user",
-                parts: [
-                  { text: prompt },
-                  { inlineData: { mimeType, data: base64Image } },
-                ],
-              },
-            ],
-            config: {
-              responseModalities: [Modality.TEXT, Modality.IMAGE],
+          // Use Gemini 3 Pro Image REST API
+          const modelName = "gemini-3-pro-image-preview";
+          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
+
+          console.log(`Calling Gemini 3 Pro Image API with model: ${modelName}`);
+          console.log("Image size:", Math.round(base64Image.length / 1024), "KB");
+
+          const requestBody = {
+            contents: [{
+              parts: [
+                { text: prompt },
+                {
+                  inlineData: {
+                    mimeType,
+                    data: base64Image
+                  }
+                }
+              ]
+            }],
+            generationConfig: {
+              responseModalities: ["TEXT", "IMAGE"],
+              imageConfig: {
+                aspectRatio: "16:9",
+                imageSize: "2K"
+              }
+            }
+          };
+
+          const fetchResponse = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+              "x-goog-api-key": apiKey,
+              "Content-Type": "application/json"
             },
+            body: JSON.stringify(requestBody)
           });
 
+          if (!fetchResponse.ok) {
+            const errorText = await fetchResponse.text();
+            console.error("API error response:", errorText);
+            throw new Error(`API request failed with status ${fetchResponse.status}: ${errorText}`);
+          }
+
+          const response = await fetchResponse.json();
+          console.log("Gemini API response received");
+
           const candidate = response.candidates?.[0];
+          if (!candidate) {
+            throw new Error("No candidates in API response");
+          }
+
           const imagePart = candidate?.content?.parts?.find(
             (part: any) => part.inlineData
           );

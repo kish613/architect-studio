@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { GoogleGenAI, Modality } from "@google/genai";
 import pLimit from "p-limit";
 import pRetry, { AbortError } from "p-retry";
 import { put } from "@vercel/blob";
@@ -86,13 +85,13 @@ async function verifySession(token: string): Promise<{ userId: string } | null> 
   }
 }
 
-// Inline Gemini image generation - validate API key early
-function getAI() {
+// Validate API key early
+function getApiKey() {
   const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("GOOGLE_GEMINI_API_KEY is not configured");
   }
-  return new GoogleGenAI({ apiKey });
+  return apiKey;
 }
 
 function isRateLimitError(error: any): boolean {
@@ -110,7 +109,7 @@ async function generateIsometricFloorplan(
   mimeType: string,
   stylePrompt?: string
 ) {
-  const ai = getAI();
+  const apiKey = getApiKey();
   const limit = pLimit(1);
 
   return limit(() =>
@@ -172,29 +171,92 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
 - CONSISTENT LIGHTING: Even, studio-style lighting without harsh shadows on the model
 - 4K QUALITY, photorealistic materials, ultra-high resolution textures`;
 
-          const response = await ai.models.generateContent({
-            model: "gemini-2.0-flash-exp",
-            contents: [
-              {
-                role: "user",
-                parts: [
-                  { text: prompt },
-                  { inlineData: { mimeType, data: base64Image } },
-                ],
+          // Use Gemini 3 Pro Image REST API
+          const modelName = "gemini-3-pro-image-preview";
+          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
+
+          console.log(`Calling Gemini 3 Pro Image API with model: ${modelName}`);
+          console.log("Image size:", Math.round(base64Image.length / 1024), "KB");
+
+          const requestBody = {
+            contents: [{
+              parts: [
+                { text: prompt },
+                {
+                  inlineData: {
+                    mimeType,
+                    data: base64Image
+                  }
+                }
+              ]
+            }],
+            generationConfig: {
+              responseModalities: ["TEXT", "IMAGE"],
+              imageConfig: {
+                aspectRatio: "16:9",
+                imageSize: "2K"
+              }
+            }
+          };
+
+          let response;
+          try {
+            const fetchResponse = await fetch(endpoint, {
+              method: "POST",
+              headers: {
+                "x-goog-api-key": apiKey,
+                "Content-Type": "application/json"
               },
-            ],
-            config: {
-              responseModalities: [Modality.TEXT, Modality.IMAGE],
-            },
-          });
+              body: JSON.stringify(requestBody)
+            });
+
+            if (!fetchResponse.ok) {
+              const errorText = await fetchResponse.text();
+              console.error("API error response:", errorText);
+              throw new Error(`API request failed with status ${fetchResponse.status}: ${errorText}`);
+            }
+
+            response = await fetchResponse.json();
+            console.log("Gemini API response received");
+          } catch (apiError: any) {
+            console.error("Gemini API call failed:", apiError);
+            console.error("Error details:", JSON.stringify({
+              message: apiError?.message,
+              status: apiError?.status,
+              statusText: apiError?.statusText,
+              name: apiError?.name,
+            }));
+            throw new Error(`Gemini API error: ${apiError?.message || 'Unknown error'}`);
+          }
+
+          // Validate response structure
+          if (!response) {
+            throw new Error("No response received from Gemini API");
+          }
+
+          console.log("Response structure:", JSON.stringify({
+            hasCandidates: !!response.candidates,
+            candidatesLength: response.candidates?.length,
+            firstCandidateHasContent: !!response.candidates?.[0]?.content,
+            firstCandidateHasParts: !!response.candidates?.[0]?.content?.parts,
+          }));
 
           const candidate = response.candidates?.[0];
+          if (!candidate) {
+            throw new Error("No candidates in API response");
+          }
+
           const imagePart = candidate?.content?.parts?.find(
             (part: any) => part.inlineData
           );
 
           if (!imagePart?.inlineData?.data) {
-            throw new Error("No image data in response");
+            console.error("No image data found in response. Parts:",
+              JSON.stringify(candidate?.content?.parts?.map((p: any) => ({
+                hasText: !!p.text,
+                hasInlineData: !!p.inlineData,
+              }))));
+            throw new Error("No image data in API response - model may not support image generation");
           }
 
           const outputMimeType = imagePart.inlineData.mimeType || "image/png";
@@ -332,8 +394,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   } catch (error: any) {
     console.error("Error generating isometric:", error);
+    console.error("Error stack:", error?.stack);
+
     const errorMessage = error?.message || "Failed to generate isometric view";
-    
+
+    // Update model status to failed
+    try {
+      await db.update(floorplanModels).set({ status: "failed" }).where(eq(floorplanModels.id, modelId));
+    } catch (updateError) {
+      console.error("Failed to update model status:", updateError);
+    }
+
     // Check for specific error types
     if (errorMessage.includes("GOOGLE_GEMINI_API_KEY")) {
       return res.status(500).json({ error: "AI service is not configured properly" });
@@ -344,7 +415,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (errorMessage.includes("Generation limit reached")) {
       return res.status(403).json({ error: errorMessage });
     }
-    
-    res.status(500).json({ error: errorMessage });
+    if (errorMessage.includes("Gemini API error")) {
+      return res.status(500).json({
+        error: "AI generation failed. Please try again or contact support if the issue persists.",
+        details: errorMessage
+      });
+    }
+    if (errorMessage.includes("No image data in API response")) {
+      return res.status(500).json({
+        error: "The AI model failed to generate an image. This might be a temporary issue - please try again.",
+        details: errorMessage
+      });
+    }
+
+    res.status(500).json({
+      error: "An unexpected error occurred during generation",
+      details: errorMessage
+    });
   }
 }

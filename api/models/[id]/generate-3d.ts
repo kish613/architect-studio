@@ -1,11 +1,11 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { storage } from "../../_lib/storage";
-import { createImageTo3DTask } from "../../_lib/meshy";
+import { storage } from "../../lib/storage";
+import { createImageTo3DTask } from "../../lib/meshy";
 import {
   getSessionFromCookies,
   verifySession,
   getUserById,
-} from "../../_lib/auth";
+} from "../../lib/auth";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {

@@ -5,7 +5,7 @@ import {
   upsertUser,
   createSession,
   getSessionCookieHeader,
-} from "../_lib/auth";
+} from "../lib/auth";
 
 // #region agent log - Module loaded successfully marker
 const MODULE_LOADED = true;

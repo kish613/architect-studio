@@ -3,7 +3,7 @@ import {
   getSessionFromCookies,
   verifySession,
   getUserById,
-} from "../_lib/auth";
+} from "../lib/auth";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") {

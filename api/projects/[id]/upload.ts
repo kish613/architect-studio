@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { put } from "@vercel/blob";
-import { storage } from "../../_lib/storage";
+import { storage } from "../../lib/storage";
 
 export const config = {
   api: {

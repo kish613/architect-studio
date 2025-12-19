@@ -10,7 +10,7 @@ import {
   userSubscriptions,
   PLAN_LIMITS,
   type SubscriptionPlan,
-} from "../_shared/schema";
+} from "../shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 

@@ -1,10 +1,10 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { storage } from "../_lib/storage";
+import { storage } from "../lib/storage";
 import {
   getSessionFromCookies,
   verifySession,
   getUserById,
-} from "../_lib/auth";
+} from "../lib/auth";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") {

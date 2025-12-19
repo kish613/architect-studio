@@ -1,8 +1,8 @@
 import { SignJWT, jwtVerify } from "jose";
 import { db } from "./db";
-import { users } from "../_shared/schema";
+import { users } from "../shared/schema";
 import { eq } from "drizzle-orm";
-import type { User } from "../_shared/models/auth";
+import type { User } from "../shared/models/auth";
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.SESSION_SECRET || "fallback-secret-change-in-production"

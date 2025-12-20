@@ -11,11 +11,12 @@ import { jwtVerify } from "jose";
 // Inline schema
 const users = pgTable("users", {
   id: varchar("id").primaryKey(),
-  email: text("email").notNull().unique(),
-  name: text("name"),
-  picture: text("picture"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 const projects = pgTable("projects", {

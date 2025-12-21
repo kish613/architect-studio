@@ -213,6 +213,22 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
             promptLength: prompt.length
           }, null, 2));
 
+          // Log the FULL request structure (without base64 data)
+          console.log("FULL REQUEST STRUCTURE:", JSON.stringify({
+            contents: [{
+              parts: [
+                { text: `[PROMPT: ${prompt.substring(0, 100)}...]` },
+                {
+                  inline_data: {
+                    mime_type: requestBody.contents[0].parts[1].inline_data.mime_type,
+                    data: `[BASE64 DATA: ${requestBody.contents[0].parts[1].inline_data.data.length} chars]`
+                  }
+                }
+              ]
+            }],
+            generationConfig: requestBody.generationConfig
+          }, null, 2));
+
           const startTime = Date.now();
           let response;
           try {

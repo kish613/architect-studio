@@ -317,6 +317,23 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
             safetyRatings: candidate.safetyRatings?.length || 0
           }, null, 2));
 
+          // Check if generation was blocked or failed
+          if (candidate.finishReason && candidate.finishReason !== "STOP") {
+            console.error("ERROR: Generation did not complete normally");
+            console.error("Finish reason:", candidate.finishReason);
+            console.error("Safety ratings:", JSON.stringify(candidate.safetyRatings, null, 2));
+
+            if (candidate.finishReason === "SAFETY") {
+              throw new Error("Content generation was blocked by safety filters");
+            } else if (candidate.finishReason === "RECITATION") {
+              throw new Error("Content generation was blocked due to recitation");
+            } else if (candidate.finishReason === "MAX_TOKENS") {
+              throw new Error("Content generation exceeded maximum token limit");
+            } else {
+              throw new Error(`Content generation failed with reason: ${candidate.finishReason}`);
+            }
+          }
+
           const parts = candidate?.content?.parts;
           if (!parts || !Array.isArray(parts)) {
             console.error("ERROR: Parts is not an array or is missing");

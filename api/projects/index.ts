@@ -5,6 +5,7 @@ import { pgTable, text, varchar, serial, timestamp, integer, boolean } from "dri
 import { createInsertSchema } from "drizzle-zod";
 import { eq, desc } from "drizzle-orm";
 import { z } from "zod";
+import { jwtVerify } from "jose";
 
 // Inline schema
 const projects = pgTable("projects", {
@@ -35,6 +36,27 @@ const insertProjectSchema = createInsertSchema(projects).omit({
   lastModified: true,
 });
 
+// Inline auth helpers
+function getSessionFromCookies(cookieHeader: string | null): string | null {
+  if (!cookieHeader) return null;
+  const cookies = cookieHeader.split(";").map((c) => c.trim());
+  const sessionCookie = cookies.find((c) => c.startsWith("auth_session="));
+  return sessionCookie ? sessionCookie.split("=")[1] : null;
+}
+
+async function verifySession(token: string): Promise<{ userId: string } | null> {
+  try {
+    const secret = new TextEncoder().encode(process.env.SESSION_SECRET || "fallback-secret");
+    const { payload } = await jwtVerify(token, secret);
+    if (typeof payload.userId === "string") {
+      return { userId: payload.userId };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 // Inline db connection
 function getDb() {
   if (!process.env.DATABASE_URL) {
@@ -56,11 +78,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
 async function handleGet(req: VercelRequest, res: VercelResponse) {
   try {
+    // Check authentication
+    const cookieHeader = req.headers.cookie || null;
+    const token = getSessionFromCookies(cookieHeader);
+
+    if (!token) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const session = await verifySession(token);
+    if (!session) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
     const db = getDb();
-    const allProjects = await db.select().from(projects).orderBy(desc(projects.lastModified));
+    // Only fetch projects owned by the current user
+    const userProjects = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.userId, session.userId))
+      .orderBy(desc(projects.lastModified));
 
     const projectsWithModels = await Promise.all(
-      allProjects.map(async (project) => {
+      userProjects.map(async (project) => {
         const models = await db
           .select()
           .from(floorplanModels)
@@ -79,9 +119,32 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
 
 async function handlePost(req: VercelRequest, res: VercelResponse) {
   try {
+    // Check authentication
+    const cookieHeader = req.headers.cookie || null;
+    const token = getSessionFromCookies(cookieHeader);
+
+    if (!token) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const session = await verifySession(token);
+    if (!session) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
     const db = getDb();
     const data = insertProjectSchema.parse(req.body);
-    const [project] = await db.insert(projects).values(data).returning();
+
+    // Automatically set the userId from the authenticated session
+    const [project] = await db
+      .insert(projects)
+      .values({
+        ...data,
+        userId: session.userId,
+      })
+      .returning();
+
+    console.log("Created project:", project.id, "for user:", session.userId);
     res.status(201).json(project);
   } catch (error) {
     if (error instanceof z.ZodError) {

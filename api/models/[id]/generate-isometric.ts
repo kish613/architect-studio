@@ -190,8 +190,8 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
               parts: [
                 { text: prompt },
                 {
-                  inline_data: {
-                    mime_type: mimeType,
+                  inlineData: {
+                    mimeType: mimeType,
                     data: base64Image
                   }
                 }
@@ -212,9 +212,9 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
               parts: [
                 { text: `[PROMPT: ${prompt.substring(0, 100)}...]` },
                 {
-                  inline_data: {
-                    mime_type: imagePartData?.inline_data?.mime_type || mimeType,
-                    data: `[BASE64 DATA: ${imagePartData?.inline_data?.data?.length || 0} chars]`
+                  inlineData: {
+                    mimeType: imagePartData?.inlineData?.mimeType || mimeType,
+                    data: `[BASE64 DATA: ${imagePartData?.inlineData?.data?.length || 0} chars]`
                   }
                 }
               ]

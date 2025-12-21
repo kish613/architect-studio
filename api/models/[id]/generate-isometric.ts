@@ -483,9 +483,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Verify model ownership through project
     const [project] = await db.select().from(projects).where(eq(projects.id, model.projectId));
-    if (!project || project.userId !== userId) {
-      console.error("Access denied - project ownership mismatch");
-      return res.status(403).json({ error: "Access denied" });
+
+    console.log("Ownership verification:", JSON.stringify({
+      projectExists: !!project,
+      projectId: model.projectId,
+      projectUserId: project?.userId,
+      projectUserIdType: typeof project?.userId,
+      currentUserId: userId,
+      currentUserIdType: typeof userId,
+      idsMatch: project?.userId === userId,
+      strictEquality: project?.userId === userId,
+      looseEquality: project?.userId == userId
+    }, null, 2));
+
+    if (!project) {
+      console.error("Access denied - project not found");
+      return res.status(403).json({ error: "Access denied - project not found" });
+    }
+
+    if (project.userId !== userId) {
+      console.error("Access denied - user ID mismatch:", {
+        expected: userId,
+        actual: project.userId
+      });
+      return res.status(403).json({ error: "Access denied - not your project" });
     }
 
     const { prompt } = req.body || {};

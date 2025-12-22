@@ -37,7 +37,7 @@ const plans: PricingPlan[] = [
   {
     name: 'Starter',
     price: '$9',
-    priceId: 'price_1SfMrG2c02b28KeeDxvZduFi',
+    priceId: 'price_1Sh6X4Ka4ONQEKZdyYdeLXR0',
     generations: 5,
     description: 'Perfect for personal projects',
     features: [
@@ -53,7 +53,7 @@ const plans: PricingPlan[] = [
   {
     name: 'Pro',
     price: '$29',
-    priceId: 'price_1SfMrG2c02b28Kee7LYF9lMB',
+    priceId: 'price_1Sh6X4Ka4ONQEKZdlnyynqqU',
     generations: 20,
     description: 'For professionals and small studios',
     features: [
@@ -70,7 +70,7 @@ const plans: PricingPlan[] = [
   {
     name: 'Studio',
     price: '$79',
-    priceId: 'price_1SfMrH2c02b28KeeVuN2W2fE',
+    priceId: 'price_1Sh6X5Ka4ONQEKZdlkvXtu22',
     generations: 60,
     description: 'For architecture firms and teams',
     features: [
@@ -88,7 +88,7 @@ const plans: PricingPlan[] = [
 const payPerUse = {
   name: 'Pay Per Use',
   price: '$3',
-  priceId: 'price_1SfMrH2c02b28KeenQ4hN86Y',
+  priceId: 'price_1Sh6X5Ka4ONQEKZdhed2SW8r',
   description: 'Need just a few more? Buy individual generations',
   icon: <CreditCard className="w-6 h-6" />,
 };

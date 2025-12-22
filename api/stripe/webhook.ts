@@ -10,9 +10,9 @@ import {
   resetBillingPeriod,
   clearGracePeriod,
   setGracePeriod,
-} from "../../lib/subscription-manager";
+} from "../lib/subscription-manager";
 import { PLAN_LIMITS, type SubscriptionPlan, userSubscriptions } from "../../shared/schema";
-import { db } from "../../lib/db";
+import { db } from "../lib/db";
 import { eq } from "drizzle-orm";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {

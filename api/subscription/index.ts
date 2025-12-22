@@ -4,7 +4,7 @@ import { drizzle } from "drizzle-orm/neon-http";
 import { pgTable, text, varchar, serial, timestamp, integer } from "drizzle-orm/pg-core";
 import { eq } from "drizzle-orm";
 import { jwtVerify } from "jose";
-import { getSubscriptionStatus } from "../../lib/subscription-manager";
+import { getSubscriptionStatus } from "../lib/subscription-manager";
 
 // Inline schema
 const users = pgTable("users", {

@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { userSubscriptions, PLAN_LIMITS, type SubscriptionPlan, type UserSubscription } from "../shared/schema";
+import { userSubscriptions, PLAN_LIMITS, type SubscriptionPlan, type UserSubscription } from "../../shared/schema";
 import { eq } from "drizzle-orm";
 
 /**

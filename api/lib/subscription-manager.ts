@@ -1,5 +1,5 @@
-import { db } from "./db";
-import { userSubscriptions, PLAN_LIMITS, type SubscriptionPlan, type UserSubscription } from "../../shared/schema";
+import { db } from "./db.js";
+import { userSubscriptions, PLAN_LIMITS, type SubscriptionPlan, type UserSubscription } from "../../shared/schema.js";
 import { eq } from "drizzle-orm";
 
 /**

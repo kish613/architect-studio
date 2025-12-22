@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
 import { jwtVerify } from "jose";
-import { getSubscription } from "../lib/subscription-manager";
+import { getSubscription } from "../lib/subscription-manager.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2025-12-15.clover",

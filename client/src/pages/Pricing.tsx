@@ -22,7 +22,7 @@ interface PricingPlan {
 const plans: PricingPlan[] = [
   {
     name: 'Free',
-    price: '$0',
+    price: '£0',
     generations: 2,
     description: 'Try it out with 2 free generations',
     features: [
@@ -36,8 +36,8 @@ const plans: PricingPlan[] = [
   },
   {
     name: 'Starter',
-    price: '$9',
-    priceId: 'price_1Sh6X4Ka4ONQEKZdyYdeLXR0',
+    price: '£7',
+    priceId: 'price_1ShCuEKa4ONQEKZdgxUo8zFM',
     generations: 5,
     description: 'Perfect for personal projects',
     features: [
@@ -52,8 +52,8 @@ const plans: PricingPlan[] = [
   },
   {
     name: 'Pro',
-    price: '$29',
-    priceId: 'price_1Sh6X4Ka4ONQEKZdlnyynqqU',
+    price: '£23',
+    priceId: 'price_1ShCuFKa4ONQEKZdIkYue80S',
     generations: 20,
     description: 'For professionals and small studios',
     features: [
@@ -69,8 +69,8 @@ const plans: PricingPlan[] = [
   },
   {
     name: 'Studio',
-    price: '$79',
-    priceId: 'price_1Sh6X5Ka4ONQEKZdlkvXtu22',
+    price: '£63',
+    priceId: 'price_1ShCuGKa4ONQEKZdrJgImeWA',
     generations: 60,
     description: 'For architecture firms and teams',
     features: [
@@ -87,8 +87,8 @@ const plans: PricingPlan[] = [
 
 const payPerUse = {
   name: 'Pay Per Use',
-  price: '$3',
-  priceId: 'price_1Sh6X5Ka4ONQEKZdhed2SW8r',
+  price: '£2.50',
+  priceId: 'price_1ShCuGKa4ONQEKZdA5jz5rwe',
   description: 'Need just a few more? Buy individual generations',
   icon: <CreditCard className="w-6 h-6" />,
 };
@@ -283,7 +283,7 @@ export function Pricing() {
                   onClick={() => handlePayPerUse(count)}
                   disabled={processingPlan === 'pay_per_use'}
                 >
-                  Buy {count} for ${count * 3}
+                  Buy {count} for £{(count * 2.5).toFixed(2)}
                 </Button>
               ))}
             </div>

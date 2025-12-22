@@ -7,6 +7,7 @@ import { drizzle } from "drizzle-orm/neon-http";
 import { pgTable, text, varchar, serial, timestamp, integer, boolean } from "drizzle-orm/pg-core";
 import { eq } from "drizzle-orm";
 import { jwtVerify } from "jose";
+import { canUserGenerate, getSubscriptionStatus, deductCredit } from "../../../lib/subscription-manager.js";
 
 // Inline schema
 const users = pgTable("users", {
@@ -475,7 +476,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
     // Check usage limits using subscription manager
-    const { canUserGenerate, getSubscriptionStatus } = await import("../../../lib/subscription-manager");
     const hasCredits = await canUserGenerate(userId);
 
     if (!hasCredits) {
@@ -578,7 +578,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.log("Result image URL:", result.imageUrl);
 
       // Deduct credit using subscription manager (atomic operation)
-      const { deductCredit } = await import("../../../lib/subscription-manager");
       const deducted = await deductCredit(userId);
       if (!deducted) {
         console.error("Failed to deduct credit - possible race condition");

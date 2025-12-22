@@ -8,8 +8,12 @@ import {
   updateStripeCustomerId,
   getUserIdFromStripeCustomer,
   resetBillingPeriod,
-} from "../../lib/subscription-manager";
-import { PLAN_LIMITS, type SubscriptionPlan } from "../../shared/schema";
+  clearGracePeriod,
+  setGracePeriod,
+} from "../../lib/subscription-manager.js";
+import { PLAN_LIMITS, type SubscriptionPlan, userSubscriptions } from "../../shared/schema";
+import { db } from "../../lib/db.js";
+import { eq } from "drizzle-orm";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2025-11-17.clover",
@@ -104,10 +108,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const periodEnd = stripeSubscription.current_period_end || Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
 
           // Update billing period in database
-          const { db } = await import("../../lib/db");
-          const { userSubscriptions } = await import("../../shared/schema");
-          const { eq } = await import("drizzle-orm");
-
           await db.update(userSubscriptions).set({
             currentPeriodStart: new Date(periodStart * 1000),
             currentPeriodEnd: new Date(periodEnd * 1000),
@@ -148,10 +148,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         await updateSubscriptionPlan(userId, plan, subscription.id);
 
         // Update billing period
-        const { db } = await import("../../lib/db");
-        const { userSubscriptions } = await import("../../shared/schema");
-        const { eq } = await import("drizzle-orm");
-
         await db.update(userSubscriptions).set({
           currentPeriodStart: new Date(subscription.current_period_start * 1000),
           currentPeriodEnd: new Date(subscription.current_period_end * 1000),
@@ -191,7 +187,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.log(`Invoice paid for user ${userId}, resetting billing period`);
 
         // Clear grace period if user was past_due
-        const { clearGracePeriod } = await import("../../lib/subscription-manager");
         await clearGracePeriod(userId, "active");
 
         // Reset credits for new billing period
@@ -213,7 +208,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.log(`Payment failed for user ${userId} - starting grace period`);
 
         // Set 3-day grace period
-        const { setGracePeriod } = await import("../../lib/subscription-manager");
         await setGracePeriod(userId);
 
         // TODO: Send email notification about payment failure

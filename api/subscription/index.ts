@@ -4,6 +4,7 @@ import { drizzle } from "drizzle-orm/neon-http";
 import { pgTable, text, varchar, serial, timestamp, integer } from "drizzle-orm/pg-core";
 import { eq } from "drizzle-orm";
 import { jwtVerify } from "jose";
+import { getSubscriptionStatus } from "../../lib/subscription-manager.js";
 
 // Inline schema
 const users = pgTable("users", {
@@ -80,7 +81,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     // Use subscription manager for better handling
-    const { getSubscriptionStatus } = await import("../../lib/subscription-manager");
     const status = await getSubscriptionStatus(session.userId);
 
     res.json({

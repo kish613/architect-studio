@@ -4,8 +4,7 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "dev": "vercel dev",
-    "dev:vite": "vite dev --port 5000",
+    "dev": "vite dev --port 5000",
     "build": "vite build",
     "preview": "vite preview",
     "check": "tsc",

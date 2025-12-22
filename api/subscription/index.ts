@@ -100,6 +100,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   } catch (error) {
     console.error("Error fetching subscription:", error);
-    res.status(500).json({ error: "Failed to fetch subscription" });
+    console.error("Error details:", error instanceof Error ? error.message : String(error));
+    console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
+    res.status(500).json({
+      error: "Failed to fetch subscription",
+      message: error instanceof Error ? error.message : String(error)
+    });
   }
 }

@@ -37,7 +37,7 @@ export async function requireCredits(request: Request): Promise<{ userId: string
     );
   }
 
-  return user;
+  return { userId: user.id, email: user.email || "" };
 }
 
 /**

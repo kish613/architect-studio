@@ -143,7 +143,7 @@ export class DatabaseStorage implements IStorage {
     if (existing) {
       const [updated] = await db
         .update(userSubscriptions)
-        .set({ ...data, updatedAt: new Date() })
+        .set({ ...data as any, updatedAt: new Date() })
         .where(eq(userSubscriptions.userId, userId))
         .returning();
       return updated;
@@ -155,7 +155,7 @@ export class DatabaseStorage implements IStorage {
         userId,
         plan: "free",
         generationsLimit: PLAN_LIMITS.free,
-        ...data,
+        ...data as any,
       })
       .returning();
     return created;

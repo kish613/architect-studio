@@ -16,7 +16,7 @@ import { db } from "../../lib/db";
 import { eq } from "drizzle-orm";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2025-11-17.clover",
+  apiVersion: "2025-12-15.clover",
 });
 
 export const config = {
@@ -104,8 +104,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
           // Set billing period
           const subscription = await getSubscription(userId);
-          const periodStart = stripeSubscription.current_period_start || Math.floor(Date.now() / 1000);
-          const periodEnd = stripeSubscription.current_period_end || Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
+          const periodStart = (stripeSubscription as any).current_period_start || Math.floor(Date.now() / 1000);
+          const periodEnd = (stripeSubscription as any).current_period_end || Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
 
           // Update billing period in database
           await db.update(userSubscriptions).set({
@@ -149,8 +149,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // Update billing period
         await db.update(userSubscriptions).set({
-          currentPeriodStart: new Date(subscription.current_period_start * 1000),
-          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+          currentPeriodStart: new Date((subscription as any).current_period_start * 1000),
+          currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
           updatedAt: new Date(),
         }).where(eq(userSubscriptions.userId, userId));
 

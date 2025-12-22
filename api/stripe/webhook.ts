@@ -1,9 +1,15 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
-import { pgTable, text, varchar, serial, timestamp, integer } from "drizzle-orm/pg-core";
-import { eq } from "drizzle-orm";
+import {
+  getSubscription,
+  addCredits,
+  updateSubscriptionPlan,
+  cancelSubscription,
+  updateStripeCustomerId,
+  getUserIdFromStripeCustomer,
+  resetBillingPeriod,
+} from "../../lib/subscription-manager";
+import { PLAN_LIMITS, type SubscriptionPlan } from "../../shared/schema";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2025-11-17.clover",
@@ -14,39 +20,6 @@ export const config = {
     bodyParser: false,
   },
 };
-
-// Inline schema
-const userSubscriptions = pgTable("user_subscriptions", {
-  id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull().unique(),
-  plan: text("plan").notNull().default("free"),
-  stripeCustomerId: text("stripe_customer_id"),
-  stripeSubscriptionId: text("stripe_subscription_id"),
-  generationsUsed: integer("generations_used").notNull().default(0),
-  generationsLimit: integer("generations_limit").notNull().default(2),
-  currentPeriodStart: timestamp("current_period_start"),
-  currentPeriodEnd: timestamp("current_period_end"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
-
-type SubscriptionPlan = 'free' | 'starter' | 'pro' | 'studio';
-
-const PLAN_LIMITS: Record<SubscriptionPlan, number> = {
-  free: 2,
-  starter: 5,
-  pro: 20,
-  studio: 60,
-};
-
-// Inline db connection
-function getDb() {
-  if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL must be set");
-  }
-  const sql = neon(process.env.DATABASE_URL);
-  return drizzle(sql);
-}
 
 async function buffer(readable: NodeJS.ReadableStream): Promise<Buffer> {
   const chunks: Buffer[] = [];
@@ -74,13 +47,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const db = getDb();
     const buf = await buffer(req);
     const event = stripe.webhooks.constructEvent(
       buf,
       signature,
       webhookSecret
     );
+
+    console.log(`Received webhook: ${event.type}`);
 
     // Handle the event
     switch (event.type) {
@@ -94,16 +68,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           break;
         }
 
+        // Store Stripe customer ID if not already stored
+        if (session.customer) {
+          await updateStripeCustomerId(userId, session.customer as string);
+        }
+
         if (type === "pay_per_use") {
           // Add generations to user's account
           const count = parseInt(session.metadata?.count || "1", 10);
-          const [subscription] = await db.select().from(userSubscriptions).where(eq(userSubscriptions.userId, userId));
-          if (subscription) {
-            await db.update(userSubscriptions).set({
-              generationsLimit: subscription.generationsLimit + count,
-              updatedAt: new Date(),
-            }).where(eq(userSubscriptions.userId, userId));
-          }
+          console.log(`Adding ${count} credits to user ${userId}`);
+          await addCredits(userId, count);
         } else if (type === "subscription") {
           // Update subscription plan
           const stripeSubscription = await stripe.subscriptions.retrieve(
@@ -111,7 +85,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           ) as unknown as Stripe.Subscription;
           const priceId = stripeSubscription.items.data[0]?.price.id;
 
-          // Map price ID to plan (you'll need to configure these)
+          // Map price ID to plan
           let plan: SubscriptionPlan = "free";
           const price = await stripe.prices.retrieve(priceId);
           const productId = price.product as string;
@@ -121,30 +95,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             plan = product.metadata.plan as SubscriptionPlan;
           }
 
-          // Get billing period from subscription
+          console.log(`Updating user ${userId} to ${plan} plan`);
+          await updateSubscriptionPlan(userId, plan, session.subscription as string);
+
+          // Set billing period
+          const subscription = await getSubscription(userId);
           const periodStart = stripeSubscription.current_period_start || Math.floor(Date.now() / 1000);
           const periodEnd = stripeSubscription.current_period_end || Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
 
-          const [existing] = await db.select().from(userSubscriptions).where(eq(userSubscriptions.userId, userId));
-          if (existing) {
-            await db.update(userSubscriptions).set({
-              plan,
-              stripeSubscriptionId: session.subscription as string,
-              generationsLimit: PLAN_LIMITS[plan],
-              currentPeriodStart: new Date(periodStart * 1000),
-              currentPeriodEnd: new Date(periodEnd * 1000),
-              updatedAt: new Date(),
-            }).where(eq(userSubscriptions.userId, userId));
-          } else {
-            await db.insert(userSubscriptions).values({
-              userId,
-              plan,
-              stripeSubscriptionId: session.subscription as string,
-              generationsLimit: PLAN_LIMITS[plan],
-              currentPeriodStart: new Date(periodStart * 1000),
-              currentPeriodEnd: new Date(periodEnd * 1000),
-            });
-          }
+          // Update billing period in database
+          const { db } = await import("../../lib/db");
+          const { userSubscriptions } = await import("../../shared/schema");
+          const { eq } = await import("drizzle-orm");
+
+          await db.update(userSubscriptions).set({
+            currentPeriodStart: new Date(periodStart * 1000),
+            currentPeriodEnd: new Date(periodEnd * 1000),
+            updatedAt: new Date(),
+          }).where(eq(userSubscriptions.userId, userId));
         }
         break;
       }
@@ -154,8 +122,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const customerId = subscription.customer as string;
 
         // Find user by Stripe customer ID
-        // This would require a lookup - for now we'll skip this
-        console.log("Subscription updated for customer:", customerId);
+        const userId = await getUserIdFromStripeCustomer(customerId);
+        if (!userId) {
+          console.error("No user found for Stripe customer:", customerId);
+          break;
+        }
+
+        const priceId = subscription.items.data[0]?.price.id;
+        if (!priceId) {
+          console.error("No price ID found in subscription");
+          break;
+        }
+
+        // Get plan from product metadata
+        let plan: SubscriptionPlan = "free";
+        const price = await stripe.prices.retrieve(priceId);
+        const productId = price.product as string;
+        const product = await stripe.products.retrieve(productId);
+
+        if (product.metadata?.plan) {
+          plan = product.metadata.plan as SubscriptionPlan;
+        }
+
+        console.log(`Subscription updated for user ${userId} to ${plan} plan`);
+        await updateSubscriptionPlan(userId, plan, subscription.id);
+
+        // Update billing period
+        const { db } = await import("../../lib/db");
+        const { userSubscriptions } = await import("../../shared/schema");
+        const { eq } = await import("drizzle-orm");
+
+        await db.update(userSubscriptions).set({
+          currentPeriodStart: new Date(subscription.current_period_start * 1000),
+          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+          updatedAt: new Date(),
+        }).where(eq(userSubscriptions.userId, userId));
+
         break;
       }
 
@@ -163,8 +165,58 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
 
-        console.log("Subscription deleted for customer:", customerId);
-        // Reset to free plan
+        // Find user by Stripe customer ID
+        const userId = await getUserIdFromStripeCustomer(customerId);
+        if (!userId) {
+          console.error("No user found for Stripe customer:", customerId);
+          break;
+        }
+
+        console.log(`Subscription canceled for user ${userId}, downgrading to free plan`);
+        await cancelSubscription(userId);
+        break;
+      }
+
+      case "invoice.paid": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const customerId = invoice.customer as string;
+
+        // Find user by Stripe customer ID
+        const userId = await getUserIdFromStripeCustomer(customerId);
+        if (!userId) {
+          console.error("No user found for Stripe customer:", customerId);
+          break;
+        }
+
+        console.log(`Invoice paid for user ${userId}, resetting billing period`);
+
+        // Clear grace period if user was past_due
+        const { clearGracePeriod } = await import("../../lib/subscription-manager");
+        await clearGracePeriod(userId, "active");
+
+        // Reset credits for new billing period
+        await resetBillingPeriod(userId);
+        break;
+      }
+
+      case "invoice.payment_failed": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const customerId = invoice.customer as string;
+
+        // Find user by Stripe customer ID
+        const userId = await getUserIdFromStripeCustomer(customerId);
+        if (!userId) {
+          console.error("No user found for Stripe customer:", customerId);
+          break;
+        }
+
+        console.log(`Payment failed for user ${userId} - starting grace period`);
+
+        // Set 3-day grace period
+        const { setGracePeriod } = await import("../../lib/subscription-manager");
+        await setGracePeriod(userId);
+
+        // TODO: Send email notification about payment failure
         break;
       }
 

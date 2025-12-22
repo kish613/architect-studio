@@ -1,13 +1,17 @@
 import { Link, useLocation } from "wouter";
-import { Plus, Grid, LogIn, LogOut, User, CreditCard } from "lucide-react";
+import { Plus, Grid, LogIn, LogOut, User, CreditCard, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
+import { useSubscription } from "@/hooks/use-subscription";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { UsageDisplay } from "@/components/subscription/UsageDisplay";
 import logoImage from "@assets/archudio_big_1765911734573.png";
 
 export function Header() {
   const [location] = useLocation();
   const { user, isLoading, isAuthenticated } = useAuth();
+  const { subscription } = useSubscription();
 
   return (
     <header className="fixed top-4 left-4 right-4 z-50 border border-white/20 bg-gradient-to-b from-white/15 to-white/5 backdrop-blur-xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.2),inset_0_-1px_0_rgba(0,0,0,0.2)]">
@@ -43,7 +47,52 @@ export function Header() {
                   <span className="hidden sm:inline">My Projects</span>
                 </span>
               </Link>
-              
+
+              {subscription && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="gap-2 text-muted-foreground hover:text-foreground"
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      <span className="hidden md:inline text-xs">
+                        {subscription.remaining}/{subscription.generationsLimit}
+                      </span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80">
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="font-semibold mb-1">Credits</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {subscription.plan.charAt(0).toUpperCase() + subscription.plan.slice(1)} Plan
+                        </p>
+                      </div>
+                      <UsageDisplay
+                        used={subscription.generationsUsed}
+                        limit={subscription.generationsLimit}
+                        showPercentage
+                      />
+                      <div className="flex gap-2">
+                        <Link href="/settings" className="flex-1">
+                          <Button variant="outline" size="sm" className="w-full gap-2">
+                            <Settings className="w-4 h-4" />
+                            Manage
+                          </Button>
+                        </Link>
+                        <Link href="/pricing" className="flex-1">
+                          <Button size="sm" className="w-full">
+                            Upgrade
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
+
               <Link href="/upload">
                 <Button size="sm" className="gap-2 bg-primary hover:bg-primary/90 text-white border-0 shadow-lg shadow-primary/20" data-testid="button-new-project">
                   <Plus className="w-4 h-4" />

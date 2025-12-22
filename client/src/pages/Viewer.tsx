@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Model3DViewer, Model3DPlaceholder } from "@/components/viewer/Model3DViewer";
+import { PaywallModal } from "@/components/subscription";
+import { useSubscription } from "@/hooks/use-subscription";
 
 type ViewMode = 'original' | 'isometric' | '3d' | 'split';
 
@@ -20,8 +22,10 @@ export function Viewer() {
   const [viewMode, setViewMode] = useState<ViewMode>('original');
   const [customPrompt, setCustomPrompt] = useState("");
   const [texturePrompt, setTexturePrompt] = useState("");
+  const [showPaywall, setShowPaywall] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { subscription, invalidate: invalidateSubscription } = useSubscription();
   
   const { data: project, isLoading, refetch } = useQuery({
     queryKey: ['project', id],
@@ -38,14 +42,33 @@ export function Viewer() {
   });
 
   const generateIsometricMutation = useMutation({
-    mutationFn: ({ modelId, prompt }: { modelId: number; prompt?: string }) => 
-      generateIsometric(modelId, prompt),
+    mutationFn: async ({ modelId, prompt }: { modelId: number; prompt?: string }) => {
+      // Pre-check: Verify credits available before making request
+      if (!subscription?.canGenerate) {
+        throw new Error("INSUFFICIENT_CREDITS");
+      }
+      return generateIsometric(modelId, prompt);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project', id] });
+      invalidateSubscription(); // Refresh subscription to update credit count
       toast({ title: "Isometric view generated!", description: "Your floorplan has been transformed." });
       setViewMode('isometric');
     },
     onError: (error: Error) => {
+      // Check if error is credit-related
+      if (error.message === "INSUFFICIENT_CREDITS" || error.message.includes("limit")) {
+        setShowPaywall(true);
+        return;
+      }
+
+      // Check for API 403 response (credit limit hit during generation)
+      if (error.message.includes("403") || error.message.includes("Credit limit")) {
+        setShowPaywall(true);
+        invalidateSubscription(); // Refresh to show accurate credit count
+        return;
+      }
+
       toast({ title: "Generation failed", description: error.message, variant: "destructive" });
     },
   });
@@ -521,6 +544,16 @@ export function Viewer() {
           )}
         </div>
       </div>
+
+      {/* Paywall Modal */}
+      <PaywallModal
+        isOpen={showPaywall}
+        onClose={() => {
+          setShowPaywall(false);
+          invalidateSubscription(); // Refresh subscription data when modal closes
+        }}
+        trigger="limit_reached"
+      />
     </Layout>
   );
 }

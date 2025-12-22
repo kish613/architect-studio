@@ -9,6 +9,9 @@ export * from "./models/auth";
 // Subscription plans
 export type SubscriptionPlan = 'free' | 'starter' | 'pro' | 'studio';
 
+// Subscription status
+export type SubscriptionStatus = 'active' | 'past_due' | 'canceled' | 'unpaid' | 'trialing';
+
 // User subscriptions table
 export const userSubscriptions = pgTable("user_subscriptions", {
   id: serial("id").primaryKey(),
@@ -20,6 +23,8 @@ export const userSubscriptions = pgTable("user_subscriptions", {
   generationsLimit: integer("generations_limit").notNull().default(2), // Free tier: 2 generations
   currentPeriodStart: timestamp("current_period_start"),
   currentPeriodEnd: timestamp("current_period_end"),
+  subscriptionStatus: text("subscription_status").$type<SubscriptionStatus>().default("active"),
+  gracePeriodEndsAt: timestamp("grace_period_ends_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

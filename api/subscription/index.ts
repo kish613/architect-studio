@@ -79,28 +79,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const db = getDb();
-    const [user] = await db.select().from(users).where(eq(users.id, session.userId));
-    if (!user) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-
-    let [subscription] = await db.select().from(userSubscriptions).where(eq(userSubscriptions.userId, user.id));
-
-    if (!subscription) {
-      [subscription] = await db.insert(userSubscriptions).values({
-        userId: user.id,
-        plan: "free",
-        generationsLimit: 2,
-      }).returning();
-    }
+    // Use subscription manager for better handling
+    const { getSubscriptionStatus } = await import("../../lib/subscription-manager");
+    const status = await getSubscriptionStatus(session.userId);
 
     res.json({
-      plan: subscription.plan,
-      generationsUsed: subscription.generationsUsed,
-      generationsLimit: subscription.generationsLimit,
-      canGenerate: subscription.generationsUsed < subscription.generationsLimit,
-      stripeCustomerId: subscription.stripeCustomerId,
+      plan: status.plan,
+      generationsUsed: status.generationsUsed,
+      generationsLimit: status.generationsLimit,
+      remaining: status.remaining,
+      canGenerate: status.canGenerate,
+      usagePercentage: status.usagePercentage,
+      isNearLimit: status.isNearLimit,
+      stripeCustomerId: status.stripeCustomerId,
+      stripeSubscriptionId: status.stripeSubscriptionId,
+      currentPeriodStart: status.currentPeriodStart,
+      currentPeriodEnd: status.currentPeriodEnd,
+      subscriptionStatus: status.subscriptionStatus,
+      gracePeriodEndsAt: status.gracePeriodEndsAt,
     });
   } catch (error) {
     console.error("Error fetching subscription:", error);

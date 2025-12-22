@@ -474,23 +474,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         details: "Please set GOOGLE_GEMINI_API_KEY in Vercel environment variables"
       });
     }
-    // Check usage limits
-    let [subscription] = await db.select().from(userSubscriptions).where(eq(userSubscriptions.userId, userId));
-    if (!subscription) {
-      [subscription] = await db.insert(userSubscriptions).values({
-        userId,
-        plan: "free",
-        generationsLimit: 2,
-      }).returning();
-    }
+    // Check usage limits using subscription manager
+    const { canUserGenerate, getSubscriptionStatus } = await import("../../../lib/subscription-manager");
+    const hasCredits = await canUserGenerate(userId);
 
-    if (subscription.generationsUsed >= subscription.generationsLimit) {
+    if (!hasCredits) {
+      const status = await getSubscriptionStatus(userId);
       return res.status(403).json({
-        error: "Generation limit reached",
+        error: "Credit limit reached",
+        code: "LIMIT_REACHED",
+        details: {
+          remaining: status.remaining,
+          limit: status.generationsLimit,
+          plan: status.plan,
+        },
         message: "Please upgrade your plan or purchase additional generations",
         redirectTo: "/pricing",
       });
     }
+
+    // Get subscription for later use
+    const subscription = await getSubscriptionStatus(userId);
 
     const [model] = await db.select().from(floorplanModels).where(eq(floorplanModels.id, modelId));
     if (!model) {
@@ -573,12 +577,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.log("Generation successful!");
       console.log("Result image URL:", result.imageUrl);
 
-      // Increment usage count on successful generation
-      console.log("Incrementing usage count from", subscription.generationsUsed, "to", subscription.generationsUsed + 1);
-      await db.update(userSubscriptions).set({
-        generationsUsed: subscription.generationsUsed + 1,
-        updatedAt: new Date(),
-      }).where(eq(userSubscriptions.userId, userId));
+      // Deduct credit using subscription manager (atomic operation)
+      const { deductCredit } = await import("../../../lib/subscription-manager");
+      const deducted = await deductCredit(userId);
+      if (!deducted) {
+        console.error("Failed to deduct credit - possible race condition");
+        // Still continue with the generation result since it succeeded
+      } else {
+        console.log("Successfully deducted 1 credit from user", userId);
+      }
 
       console.log("Updating model status to isometric_ready...");
       const [updatedModel] = await db.update(floorplanModels).set({

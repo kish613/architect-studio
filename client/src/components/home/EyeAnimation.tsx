@@ -419,8 +419,8 @@ export function EyeAnimation() {
           <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">
             We See Your <span className="text-primary">Vision</span>
           </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Our AI watches every detail of your floorplan to create the perfect 3D visualization
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto bg-white">
+            Turn customers' eyes with expertly rendered floorplans and models.
           </p>
         </div>
 

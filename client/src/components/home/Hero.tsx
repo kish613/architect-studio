@@ -28,8 +28,8 @@ export function Hero() {
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/50">3D Worlds</span>
           </h1>
           
-          <p className="text-xl text-muted-foreground mb-8 max-w-lg animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
-            Upload your 2D floorplans and instantly visualize them in stunning, photorealistic 3D environments.
+          <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto bg-white animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
+            Turn customers' eyes with expertly rendered floorplans and models.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300">

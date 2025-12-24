@@ -17,7 +17,7 @@ export function Layout({ children }: LayoutProps) {
           <UsageWarningBanner />
         </div>
       )}
-      <main className="min-h-screen flex flex-col">
+      <main className="min-h-screen flex flex-col pt-32">
         {children}
       </main>
     </div>

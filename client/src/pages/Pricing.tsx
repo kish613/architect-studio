@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
-import { Header } from '@/components/layout/Header';
+import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Check, Zap, Sparkles, Building2, CreditCard } from 'lucide-react';
@@ -184,9 +184,9 @@ export function Pricing() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950">
-      <Header />
-      <main className="container mx-auto px-4 py-16">
+    <Layout>
+      <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950">
+        <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
             Simple, Transparent Pricing
@@ -289,7 +289,8 @@ export function Pricing() {
             </div>
           </CardContent>
         </Card>
-      </main>
-    </div>
+        </div>
+      </div>
+    </Layout>
   );
 }

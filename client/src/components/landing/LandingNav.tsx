@@ -1,7 +1,8 @@
 import { Link } from "wouter";
-import { PenTool, PlusCircle, UserCircle, LogIn, LogOut, User } from "lucide-react";
+import { PlusCircle, UserCircle, LogIn, LogOut, User } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import logoImage from "@assets/architect-studio-logo.jpg";
 
 export function LandingNav() {
   const { user, isLoading, isAuthenticated } = useAuth();
@@ -10,15 +11,11 @@ export function LandingNav() {
     <nav className="relative z-10 flex items-center justify-between px-8 py-6 max-w-7xl mx-auto w-full font-[var(--font-poppins)]">
       {/* Logo */}
       <Link href="/">
-        <div className="flex items-center space-x-3 group cursor-pointer">
-          <div className="w-10 h-10 flex items-center justify-center bg-gradient-to-tr from-slate-900 to-slate-700 rounded-lg shadow-lg group-hover:shadow-cyan-500/20 transition-all">
-            <PenTool className="text-white w-5 h-5" />
-          </div>
-          <span className="text-xl font-semibold tracking-tight text-slate-900">
-            Architect
-            <span className="text-cyan-600">Studio</span>
-          </span>
-        </div>
+        <img 
+          src={logoImage} 
+          alt="Architect Studio" 
+          className="h-12 w-auto object-contain transition-transform hover:scale-105 cursor-pointer"
+        />
       </Link>
 
       {/* Navigation Links */}

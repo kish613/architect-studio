@@ -46,6 +46,7 @@
   --font-sans: 'Inter', sans-serif;
   --font-display: 'Space Grotesk', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+  --font-poppins: 'Poppins', sans-serif;
   
   --radius: 0.75rem;
 }
@@ -98,4 +99,126 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-display tracking-tight;
   }
+}
+
+/* Landing Page Styles */
+@layer components {
+  /* Glassmorphism Cards */
+  .glass-card {
+    backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+  }
+
+  .glass-frame {
+    backdrop-filter: blur(20px);
+    background: rgba(248, 250, 252, 0.4);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.05), 
+                0 0 0 1px rgba(255, 255, 255, 0.4), 
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+
+  .glass-overlay {
+    backdrop-filter: blur(16px);
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  }
+
+  .hero-text-overlay {
+    backdrop-filter: blur(25px);
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid #E2E8F0;
+    box-shadow: 0 32px 64px -12px rgba(15, 23, 42, 0.08), 
+                0 0 0 1px rgba(255, 255, 255, 0.5);
+  }
+
+  /* Hero Background */
+  .hero-bg {
+    background: linear-gradient(135deg, #F0F9FF 0%, #F1F5F9 100%);
+  }
+
+  /* Blueprint Grid Pattern */
+  .blueprint-grid {
+    background-image: linear-gradient(rgba(148, 163, 184, 0.1) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(148, 163, 184, 0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  /* Perspective Frame for Photo Grid */
+  .perspective-frame {
+    perspective: 1200px;
+    perspective-origin: 50% 20%;
+    overflow: hidden;
+  }
+
+  .perspective-inner {
+    transform: rotateX(20deg) rotateZ(-5deg) scale(1.1);
+    will-change: transform;
+  }
+
+  /* Grid Container */
+  .grid-container {
+    width: 120%;
+    margin-left: -10%;
+  }
+
+  /* Grid Item Hover Effect */
+  .grid-item {
+    transition: transform 0.3s ease;
+    cursor: pointer;
+    filter: saturate(0.8) contrast(1.1);
+  }
+
+  .grid-item:hover {
+    transform: scale(1.02) !important;
+    filter: saturate(1) contrast(1);
+    z-index: 10;
+  }
+}
+
+/* Landing Page Animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes floatLeft {
+  0%, 100% {
+    transform: translateX(-60px);
+  }
+  50% {
+    transform: translateX(60px);
+  }
+}
+
+@keyframes floatRight {
+  0%, 100% {
+    transform: translateX(60px);
+  }
+  50% {
+    transform: translateX(-60px);
+  }
+}
+
+/* Animation Classes */
+.floating-animation {
+  animation: float 6s ease-in-out infinite;
+}
+
+.row-animate-right {
+  animation: floatRight 12s ease-in-out infinite;
+}
+
+.row-animate-left {
+  animation: floatLeft 10s ease-in-out infinite;
+}
+
+.row-animate-right-slow {
+  animation: floatRight 11s ease-in-out infinite;
 }

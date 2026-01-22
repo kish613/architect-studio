@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { PlusCircle, UserCircle, LogIn, LogOut, User } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import logoImage from "@assets/architect-studio-logo.jpg";
+import logoImage from "@assets/architect-studio-logo.png";
 
 export function LandingNav() {
   const { user, isLoading, isAuthenticated } = useAuth();

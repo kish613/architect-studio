@@ -14,7 +14,7 @@ export function LandingNav() {
         <img 
           src={logoImage} 
           alt="Architect Studio" 
-          className="h-12 w-auto object-contain transition-transform hover:scale-105 cursor-pointer"
+          className="h-36 w-auto object-contain transition-transform hover:scale-105 cursor-pointer"
         />
       </Link>
 

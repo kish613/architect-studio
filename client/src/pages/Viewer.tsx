@@ -5,7 +5,7 @@ import { ArrowLeft, Download, Share2, Loader2, Sparkles, Box, RotateCw, Check, P
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchProject, generateIsometric, generate3D, checkModelStatus, retextureModel, checkRetextureStatus, revertTexture } from "@/lib/api";
+import { fetchProject, generateIsometric, generate3D, generate3DTrellis, checkModelStatus, retextureModel, checkRetextureStatus, revertTexture } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ import { PaywallModal } from "@/components/subscription";
 import { useSubscription } from "@/hooks/use-subscription";
 
 type ViewMode = 'original' | 'isometric' | '3d' | 'split';
+type Provider3D = 'meshy' | 'trellis';
 
 export function Viewer() {
   const { id } = useParams();
@@ -23,6 +24,7 @@ export function Viewer() {
   const [customPrompt, setCustomPrompt] = useState("");
   const [texturePrompt, setTexturePrompt] = useState("");
   const [showPaywall, setShowPaywall] = useState(false);
+  const [provider3D, setProvider3D] = useState<Provider3D>('trellis');
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { subscription, invalidate: invalidateSubscription } = useSubscription();
@@ -74,10 +76,16 @@ export function Viewer() {
   });
 
   const generate3DMutation = useMutation({
-    mutationFn: (modelId: number) => generate3D(modelId),
+    mutationFn: (modelId: number) =>
+      provider3D === 'trellis' ? generate3DTrellis(modelId) : generate3D(modelId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project', id] });
-      toast({ title: "3D generation started!", description: "This may take a few minutes." });
+      if (provider3D === 'trellis') {
+        toast({ title: "3D model ready!", description: "TRELLIS model generated successfully." });
+        setViewMode('3d');
+      } else {
+        toast({ title: "3D generation started!", description: "This may take a few minutes." });
+      }
     },
     onError: (error: Error) => {
       toast({ title: "3D generation failed", description: error.message, variant: "destructive" });
@@ -284,11 +292,44 @@ export function Viewer() {
                 </div>
                 <h3 className="font-medium">Create 3D Model</h3>
               </div>
-              
+
+              {/* Provider Toggle */}
+              <div className="mb-3">
+                <Label className="text-xs text-muted-foreground mb-1.5 block">3D Engine</Label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    onClick={() => setProvider3D('trellis')}
+                    disabled={isGenerating || generate3DMutation.isPending}
+                    className={`text-xs px-2 py-1.5 rounded-md border transition-colors ${
+                      provider3D === 'trellis'
+                        ? 'bg-primary/20 border-primary text-primary font-medium'
+                        : 'bg-background/50 border-border/50 text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    TRELLIS
+                    <span className="block text-[10px] opacity-70">Open Source</span>
+                  </button>
+                  <button
+                    onClick={() => setProvider3D('meshy')}
+                    disabled={isGenerating || generate3DMutation.isPending}
+                    className={`text-xs px-2 py-1.5 rounded-md border transition-colors ${
+                      provider3D === 'meshy'
+                        ? 'bg-primary/20 border-primary text-primary font-medium'
+                        : 'bg-background/50 border-border/50 text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Meshy AI
+                    <span className="block text-[10px] opacity-70">Commercial</span>
+                  </button>
+                </div>
+              </div>
+
               <p className="text-xs text-muted-foreground mb-3">
-                Transform your isometric view into a full 3D model using Meshy AI.
+                {provider3D === 'trellis'
+                  ? 'Generate with Microsoft TRELLIS (open source). Takes 1-2 minutes.'
+                  : 'Generate with Meshy AI (commercial). Takes 3-5 minutes.'}
               </p>
-              
+
               <Button
                 onClick={() => generate3DMutation.mutate(model.id)}
                 disabled={!hasIsometric || isGenerating || generate3DMutation.isPending}
@@ -300,7 +341,7 @@ export function Viewer() {
                 {generate3DMutation.isPending || model.status === 'generating_3d' ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Creating 3D Model...
+                    {provider3D === 'trellis' ? 'Generating with TRELLIS...' : 'Creating 3D Model...'}
                   </>
                 ) : has3D ? (
                   <>

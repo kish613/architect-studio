@@ -12,9 +12,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: "URL parameter required" });
     }
 
-    // Only allow Meshy URLs
-    if (!url.includes("meshy.ai")) {
-      return res.status(403).json({ error: "Only Meshy URLs are allowed" });
+    // Only allow Meshy and Vercel Blob URLs
+    const isAllowed =
+      url.includes("meshy.ai") ||
+      url.includes(".public.blob.vercel-storage.com");
+    if (!isAllowed) {
+      return res.status(403).json({ error: "URL not allowed" });
     }
 
     const response = await fetch(url);
@@ -35,6 +38,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(500).json({ error: "Failed to proxy model" });
   }
 }
+
 
 
 

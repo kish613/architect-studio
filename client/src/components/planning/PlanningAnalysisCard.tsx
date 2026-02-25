@@ -47,7 +47,7 @@ export function PlanningAnalysisCard({ analysis, index }: PlanningAnalysisCardPr
         transition={{ duration: 0.4, delay: index * 0.1 }}
       >
         <div className="group cursor-pointer">
-          <div className="relative overflow-hidden rounded-xl aspect-[4/3] bg-muted mb-4 border border-border/50 shadow-sm transition-all duration-300 group-hover:shadow-xl group-hover:shadow-primary/10 group-hover:scale-[1.02] ring-offset-background group-hover:ring-2 ring-primary/50">
+          <div className="relative overflow-hidden rounded-2xl aspect-[4/3] bg-muted mb-4 border border-white/[0.06] shadow-sm transition-all duration-300 group-hover:shadow-xl group-hover:shadow-primary/10 group-hover:scale-[1.02] ring-offset-background group-hover:ring-2 ring-primary/50">
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60 z-10 transition-opacity group-hover:opacity-40" />
             
             {thumbnail ? (

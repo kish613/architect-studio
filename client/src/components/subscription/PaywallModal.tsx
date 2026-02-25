@@ -4,6 +4,7 @@ import { Button } from "../ui/button";
 import { UsageDisplay } from "./UsageDisplay";
 import { useSubscription } from "../../hooks/use-subscription";
 import { Spinner } from "../ui/spinner";
+import { motion } from "framer-motion";
 
 interface PaywallModalProps {
   isOpen: boolean;
@@ -92,7 +93,12 @@ export function PaywallModal({ isOpen, onClose, trigger = "limit_reached" }: Pay
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto border-white/[0.06]">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+        >
         <DialogHeader>
           <DialogTitle className="text-2xl">{getTitle()}</DialogTitle>
           <DialogDescription>{getDescription()}</DialogDescription>
@@ -105,7 +111,7 @@ export function PaywallModal({ isOpen, onClose, trigger = "limit_reached" }: Pay
         ) : subscription ? (
           <div className="space-y-6">
             {/* Current Usage */}
-            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+            <div className="dark-glass-card rounded-xl p-4">
               <h3 className="text-sm font-semibold mb-3">Current Plan: {PLAN_DETAILS[subscription.plan].name}</h3>
               <UsageDisplay
                 used={subscription.generationsUsed}
@@ -124,19 +130,19 @@ export function PaywallModal({ isOpen, onClose, trigger = "limit_reached" }: Pay
                 return (
                   <div
                     key={plan}
-                    className={`border-2 rounded-lg p-6 ${
+                    className={`border rounded-2xl p-6 transition-all duration-300 hover:translate-y-[-2px] ${
                       plan === "pro"
-                        ? "border-primary bg-primary/5"
-                        : "border-gray-200 dark:border-gray-700"
+                        ? "border-primary/50 bg-primary/5 shadow-lg shadow-primary/10"
+                        : "border-white/[0.06] bg-white/[0.02] hover:border-primary/20"
                     }`}
                   >
                     {plan === "pro" && (
-                      <div className="text-xs font-semibold text-primary mb-2">MOST POPULAR</div>
+                      <div className="text-xs font-semibold text-primary mb-2 shimmer-badge inline-block px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20">MOST POPULAR</div>
                     )}
                     <h3 className="text-xl font-bold mb-2">{details.name}</h3>
                     <div className="text-3xl font-bold mb-4">
                       {details.price}
-                      <span className="text-sm font-normal text-gray-500">/month</span>
+                      <span className="text-sm font-normal text-muted-foreground">/month</span>
                     </div>
                     <ul className="space-y-2 mb-6">
                       {details.features.map((feature, idx) => (
@@ -179,12 +185,12 @@ export function PaywallModal({ isOpen, onClose, trigger = "limit_reached" }: Pay
             </div>
 
             {/* One-time Purchase Option */}
-            <div className="border-t pt-6">
+            <div className="border-t border-white/[0.06] pt-6">
               <h3 className="text-lg font-semibold mb-3">Or purchase credits one-time</h3>
-              <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+              <div className="flex items-center justify-between dark-glass-card rounded-xl p-4">
                 <div>
                   <p className="font-medium">1 Generation Credit</p>
-                  <p className="text-sm text-gray-500">No subscription required</p>
+                  <p className="text-sm text-muted-foreground">No subscription required</p>
                 </div>
                 <div className="flex items-center gap-4">
                   <span className="text-2xl font-bold">$3</span>
@@ -203,6 +209,7 @@ export function PaywallModal({ isOpen, onClose, trigger = "limit_reached" }: Pay
             </div>
           </div>
         ) : null}
+        </motion.div>
       </DialogContent>
     </Dialog>
   );

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useSubscription } from "@/hooks/use-subscription";
+import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UsageDisplay } from "@/components/subscription/UsageDisplay";
@@ -9,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Settings as SettingsIcon, CreditCard, User, Calendar, ExternalLink, AlertTriangle } from "lucide-react";
 import { Link } from "wouter";
+import { motion } from "framer-motion";
+import { PageTransition, staggerContainer, staggerItem } from "@/components/ui/page-transition";
 
 export default function Settings() {
   const { user, isLoading: authLoading } = useAuth();
@@ -62,66 +65,85 @@ export default function Settings() {
 
   if (authLoading || subLoading) {
     return (
-      <div className="container mx-auto py-16 flex justify-center">
-        <Spinner className="w-8 h-8" />
-      </div>
+      <Layout>
+        <div className="container mx-auto py-16 flex justify-center">
+          <Spinner className="w-8 h-8" />
+        </div>
+      </Layout>
     );
   }
 
   if (!user) {
     return (
-      <div className="container mx-auto py-16 text-center">
-        <p>Please log in to view settings.</p>
-      </div>
+      <Layout>
+        <div className="container mx-auto py-16 text-center">
+          <p>Please log in to view settings.</p>
+        </div>
+      </Layout>
     );
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-4xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold flex items-center gap-2 mb-2">
-          <SettingsIcon className="w-8 h-8" />
-          Settings
-        </h1>
-        <p className="text-muted-foreground">Manage your account and subscription</p>
-      </div>
+    <Layout>
+      <PageTransition>
+        <div className="container mx-auto py-8 px-4 max-w-4xl">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold flex items-center gap-2 mb-2">
+              <SettingsIcon className="w-8 h-8" />
+              Settings
+            </h1>
+            <div className="h-1 w-16 bg-gradient-to-r from-primary to-primary/40 rounded-full mb-3" />
+            <p className="text-muted-foreground">Manage your account and subscription</p>
+          </div>
 
-      <div className="space-y-6">
-        {/* Account Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="w-5 h-5" />
-              Account Information
-            </CardTitle>
-            <CardDescription>Your account details</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Name</p>
-                <p className="text-base">
-                  {user.firstName} {user.lastName}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Email</p>
-                <p className="text-base">{user.email}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          <motion.div
+            className="space-y-6"
+            variants={staggerContainer}
+            initial="initial"
+            animate="animate"
+          >
+            {/* Account Information */}
+            <motion.div variants={staggerItem}>
+              <Card className="dark-glass-card rounded-2xl border-white/[0.06] hover:border-primary/20 transition-all duration-300">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                      <User className="w-4 h-4 text-blue-400" />
+                    </div>
+                    Account Information
+                  </CardTitle>
+                  <CardDescription>Your account details</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Name</p>
+                      <p className="text-base">
+                        {user.firstName} {user.lastName}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Email</p>
+                      <p className="text-base">{user.email}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
 
-        {/* Subscription Information */}
-        {subscription && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="w-5 h-5" />
-                Subscription
-              </CardTitle>
-              <CardDescription>Manage your subscription and billing</CardDescription>
-            </CardHeader>
+            {/* Subscription Information */}
+            {subscription && (
+              <motion.div variants={staggerItem}>
+                <Card className="dark-glass-card rounded-2xl border-white/[0.06] hover:border-primary/20 transition-all duration-300">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <CreditCard className="w-4 h-4 text-primary" />
+                      </div>
+                      Subscription
+                    </CardTitle>
+                    <CardDescription>Manage your subscription and billing</CardDescription>
+                  </CardHeader>
             <CardContent className="space-y-6">
               {/* Plan Details */}
               <div className="grid grid-cols-2 gap-4">
@@ -152,7 +174,12 @@ export default function Settings() {
 
               {/* Grace Period Warning */}
               {subscription.subscriptionStatus === 'past_due' && subscription.gracePeriodEndsAt && (
-                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
+                  className="bg-destructive/10 border border-destructive/20 rounded-lg p-4"
+                >
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="w-5 h-5 text-destructive mt-0.5" />
                     <div>
@@ -163,7 +190,7 @@ export default function Settings() {
                       </p>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               )}
 
               <Separator />
@@ -220,22 +247,25 @@ export default function Settings() {
                 </p>
               )}
             </CardContent>
-          </Card>
-        )}
+              </Card>
+            </motion.div>
+          )}
 
-        {/* Danger Zone - Future feature */}
-        {/* <Card className="border-destructive/50">
-          <CardHeader>
-            <CardTitle className="text-destructive">Danger Zone</CardTitle>
-            <CardDescription>Irreversible actions</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button variant="destructive" size="sm">
-              Delete Account
-            </Button>
-          </CardContent>
-        </Card> */}
-      </div>
-    </div>
+            {/* Danger Zone - Future feature */}
+            {/* <Card className="border-destructive/50">
+              <CardHeader>
+                <CardTitle className="text-destructive">Danger Zone</CardTitle>
+                <CardDescription>Irreversible actions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button variant="destructive" size="sm">
+                  Delete Account
+                </Button>
+              </CardContent>
+            </Card> */}
+          </motion.div>
+        </div>
+      </PageTransition>
+    </Layout>
   );
 }

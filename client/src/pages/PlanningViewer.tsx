@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
+import { PageTransition } from "@/components/ui/page-transition";
 import { PropertyAnalysisCard } from "@/components/planning/PropertyAnalysisCard";
 import { ApprovalsList } from "@/components/planning/ApprovalsList";
 import { VisualizationCompare } from "@/components/planning/VisualizationCompare";
@@ -52,8 +54,17 @@ function ExtendProgressIndicator({ status }: { status: string }) {
   const currentIdx = steps.findIndex((s) => s.key === status);
 
   return (
-    <div className="py-12 border border-primary/30 rounded-2xl bg-primary/5">
-      <Loader2 className="w-12 h-12 animate-spin mx-auto mb-6 text-primary" />
+    <motion.div
+      initial={{ opacity: 0, scale: 0.97 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="py-12 dark-glass-card rounded-2xl border-primary/20"
+    >
+      <div className="relative w-16 h-16 mx-auto mb-6">
+        <div className="absolute inset-0 rounded-full border-2 border-primary/20" />
+        <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary animate-spin" />
+        <Loader2 className="w-8 h-8 absolute inset-0 m-auto text-primary animate-spin" />
+      </div>
       <h3 className="text-xl font-medium text-center mb-6">Running Smart Analysis...</h3>
       <div className="max-w-md mx-auto space-y-4 px-6">
         {steps.map((step, idx) => {
@@ -61,13 +72,19 @@ function ExtendProgressIndicator({ status }: { status: string }) {
           const isDone = idx < currentIdx;
           const isActive = idx === currentIdx;
           return (
-            <div key={step.key} className="flex items-start gap-3">
+            <motion.div
+              key={step.key}
+              className="flex items-start gap-3"
+              initial={{ opacity: 0, x: -12 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.4, delay: idx * 0.1, ease: "easeOut" }}
+            >
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
                   isDone
-                    ? "bg-green-500/20 text-green-400"
+                    ? "bg-green-500/20 text-green-400 shadow-sm shadow-green-500/20"
                     : isActive
-                    ? "bg-primary/20 text-primary"
+                    ? "bg-primary/20 text-primary ring-2 ring-primary/30"
                     : "bg-muted text-muted-foreground"
                 }`}
               >
@@ -87,11 +104,11 @@ function ExtendProgressIndicator({ status }: { status: string }) {
                   <p className="text-xs text-muted-foreground mt-0.5">{step.description}</p>
                 )}
               </div>
-            </div>
+            </motion.div>
           );
         })}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -308,13 +325,19 @@ export function PlanningViewer() {
 
   return (
     <Layout>
+      <PageTransition>
       <div className="container mx-auto px-4 py-12 max-w-6xl">
         {/* Header */}
-        <div className="mb-8">
+        <motion.div
+          className="mb-8"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+        >
           <Button
             variant="ghost"
             size="sm"
-            className="mb-4"
+            className="mb-4 hover:bg-primary/10 transition-colors duration-200"
             onClick={() => setLocation("/planning")}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -326,6 +349,7 @@ export function PlanningViewer() {
               <h1 className="text-3xl font-display font-bold mb-2">
                 {isExtendMode ? "Smart Extension Advisor" : "Planning Analysis"}
               </h1>
+              <div className="h-1 w-16 bg-gradient-to-r from-primary to-primary/40 rounded-full mb-3" />
               <p className="text-muted-foreground">
                 {analysis.houseNumber && `${analysis.houseNumber} `}
                 {analysis.address && `${analysis.address} • `}
@@ -335,20 +359,25 @@ export function PlanningViewer() {
               </p>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Steps Progress */}
-        <div className="flex items-center justify-center gap-4 mb-12 flex-wrap">
+        <motion.div
+          className="flex items-center justify-center gap-4 mb-12 flex-wrap"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
+        >
           {steps.map((step, idx) => (
             <div key={step.num} className="flex items-center gap-2">
               {idx > 0 && (
-                <ArrowRight className="w-4 h-4 text-muted-foreground hidden sm:block" />
+                <div className="w-8 h-px bg-gradient-to-r from-primary/50 to-muted hidden sm:block" />
               )}
               <div className="flex items-center gap-2">
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 ${
                     currentStep >= step.num
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-primary text-primary-foreground ring-2 ring-primary/30 ring-offset-2 ring-offset-background"
                       : "bg-muted text-muted-foreground"
                   }`}
                 >
@@ -364,7 +393,7 @@ export function PlanningViewer() {
               </div>
             </div>
           ))}
-        </div>
+        </motion.div>
 
         {/* Error State */}
         {analysis.status === "failed" && (
@@ -382,9 +411,14 @@ export function PlanningViewer() {
           <div className="space-y-8">
             {/* Pending — Start Smart Analysis */}
             {analysis.status === "pending" && (
-              <div className="text-center py-12 border border-dashed border-border rounded-2xl bg-card/30">
-                <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
-                  <Maximize2 className="w-8 h-8 text-primary" />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className="text-center py-12 dark-glass-card rounded-3xl"
+              >
+                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <Maximize2 className="w-8 h-8 text-primary floating-animation" />
                 </div>
                 <h3 className="text-xl font-medium mb-2">Ready for Smart Analysis</h3>
                 <p className="text-muted-foreground mb-6 max-w-md mx-auto">
@@ -393,7 +427,7 @@ export function PlanningViewer() {
                 </p>
                 <Button
                   size="lg"
-                  className="gap-2"
+                  className="gap-2 shadow-lg shadow-primary/20"
                   onClick={() => extendMutation.mutate()}
                   disabled={extendMutation.isPending}
                 >
@@ -409,7 +443,7 @@ export function PlanningViewer() {
                     </>
                   )}
                 </Button>
-              </div>
+              </motion.div>
             )}
 
             {/* Processing states */}
@@ -495,18 +529,33 @@ export function PlanningViewer() {
 
                 {/* Generating state */}
                 {analysis.status === "generating" && (
-                  <div className="text-center py-12 border border-primary/30 rounded-2xl bg-primary/5">
-                    <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.97 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                    className="text-center py-12 dark-glass-card rounded-2xl border-primary/20"
+                  >
+                    <div className="relative w-16 h-16 mx-auto mb-4">
+                      <div className="absolute inset-0 rounded-full border-2 border-primary/20" />
+                      <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary animate-spin" />
+                      <Loader2 className="w-8 h-8 absolute inset-0 m-auto text-primary animate-spin" />
+                    </div>
                     <h3 className="text-xl font-medium mb-2">Generating Extension Floorplan...</h3>
                     <p className="text-muted-foreground">
                       Creating your extended property visualization. This may take a minute.
                     </p>
-                  </div>
+                  </motion.div>
                 )}
 
                 {/* Completed — Show results */}
                 {analysis.status === "completed" && analysis.generatedExteriorUrl && (
-                  <VisualizationCompare analysis={analysis} />
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                  >
+                    <VisualizationCompare analysis={analysis} />
+                  </motion.div>
                 )}
 
                 <DisclaimerBanner />
@@ -520,9 +569,14 @@ export function PlanningViewer() {
           <div className="space-y-8">
             {/* Step 1: Pending - Start Analysis */}
             {analysis.status === "pending" && (
-              <div className="text-center py-12 border border-dashed border-border rounded-2xl bg-card/30">
-                <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
-                  <Search className="w-8 h-8 text-primary" />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className="text-center py-12 dark-glass-card rounded-3xl"
+              >
+                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <Search className="w-8 h-8 text-primary floating-animation" />
                 </div>
                 <h3 className="text-xl font-medium mb-2">Ready to Analyze</h3>
                 <p className="text-muted-foreground mb-6 max-w-md mx-auto">
@@ -530,7 +584,7 @@ export function PlanningViewer() {
                 </p>
                 <Button
                   size="lg"
-                  className="gap-2"
+                  className="gap-2 shadow-lg shadow-primary/20"
                   onClick={() => analyzeMutation.mutate()}
                   disabled={analyzeMutation.isPending}
                 >
@@ -546,13 +600,22 @@ export function PlanningViewer() {
                     </>
                   )}
                 </Button>
-              </div>
+              </motion.div>
             )}
 
             {/* Step 2: Analyzing or Searching */}
             {(analysis.status === "analyzing" || analysis.status === "searching") && (
-              <div className="text-center py-12 border border-primary/30 rounded-2xl bg-primary/5">
-                <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className="text-center py-12 dark-glass-card rounded-2xl border-primary/20"
+              >
+                <div className="relative w-16 h-16 mx-auto mb-4">
+                  <div className="absolute inset-0 rounded-full border-2 border-primary/20" />
+                  <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary animate-spin" />
+                  <Loader2 className="w-8 h-8 absolute inset-0 m-auto text-primary animate-spin" />
+                </div>
                 <h3 className="text-xl font-medium mb-2">
                   {analysis.status === "analyzing" ? "Analyzing Property..." : "Searching Planning Approvals..."}
                 </h3>
@@ -561,7 +624,7 @@ export function PlanningViewer() {
                     ? "Our AI is examining your property photo"
                     : "Finding similar approved applications nearby"}
                 </p>
-              </div>
+              </motion.div>
             )}
 
             {/* Property Analysis Result */}
@@ -633,22 +696,38 @@ export function PlanningViewer() {
 
             {/* Generating State */}
             {analysis.status === "generating" && (
-              <div className="text-center py-12 border border-primary/30 rounded-2xl bg-primary/5">
-                <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className="text-center py-12 dark-glass-card rounded-2xl border-primary/20"
+              >
+                <div className="relative w-16 h-16 mx-auto mb-4">
+                  <div className="absolute inset-0 rounded-full border-2 border-primary/20" />
+                  <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary animate-spin" />
+                  <Loader2 className="w-8 h-8 absolute inset-0 m-auto text-primary animate-spin" />
+                </div>
                 <h3 className="text-xl font-medium mb-2">Generating Visualization...</h3>
                 <p className="text-muted-foreground">
                   Creating your property transformation. This may take a minute.
                 </p>
-              </div>
+              </motion.div>
             )}
 
             {/* Completed - Show Visualization */}
             {analysis.status === "completed" && analysis.generatedExteriorUrl && (
-              <VisualizationCompare analysis={analysis} />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+              >
+                <VisualizationCompare analysis={analysis} />
+              </motion.div>
             )}
           </div>
         )}
       </div>
+      </PageTransition>
     </Layout>
   );
 }

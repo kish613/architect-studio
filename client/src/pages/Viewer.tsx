@@ -14,6 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Model3DViewer, Model3DPlaceholder } from "@/components/viewer/Model3DViewer";
 import { PaywallModal } from "@/components/subscription";
 import { useSubscription } from "@/hooks/use-subscription";
+import { PageTransition } from "@/components/ui/page-transition";
 
 type ViewMode = 'original' | 'isometric' | '3d' | 'split';
 type Provider3D = 'meshy' | 'trellis';
@@ -217,12 +218,19 @@ export function Viewer() {
 
   return (
     <Layout>
+      <PageTransition>
       <div className="flex-1 flex flex-col lg:flex-row h-[calc(100vh-96px)] overflow-hidden">
         {/* Left Panel - Controls */}
-        <div className="w-full lg:w-80 shrink-0 max-h-[40vh] lg:max-h-none border-b lg:border-b-0 lg:border-r border-border/40 bg-card/30 p-4 lg:p-6 overflow-y-auto">
-          <div className="flex items-center gap-4 mb-6">
+        <div className="w-full lg:w-80 shrink-0 max-h-[40vh] lg:max-h-none border-b lg:border-b-0 lg:border-r border-white/[0.06] bg-card/30 dark-dot-grid p-4 lg:p-6 overflow-y-auto relative">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-primary/40 to-transparent" />
+          <motion.div
+            className="flex items-center gap-4 mb-6"
+            initial={{ opacity: 0, x: -12 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+          >
             <Link href="/projects">
-              <Button variant="ghost" size="icon" className="rounded-full" data-testid="button-back">
+              <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/10 transition-colors duration-200" data-testid="button-back">
                 <ArrowLeft className="w-5 h-5" />
               </Button>
             </Link>
@@ -230,13 +238,18 @@ export function Viewer() {
               <h1 className="font-display font-semibold text-lg" data-testid="text-project-name">{project.name}</h1>
               {getStatusBadge()}
             </div>
-          </div>
+          </motion.div>
 
           {/* Step 1: Generate Isometric */}
-          <Card className="mb-4 bg-background/50 border-border/50">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
+          >
+          <Card className="mb-4 dark-glass-card rounded-2xl border-white/[0.06] hover:border-primary/20 transition-all duration-300">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-3">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${hasIsometric ? 'bg-green-500' : 'bg-primary'}`}>
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${hasIsometric ? 'bg-green-500 shadow-sm shadow-green-500/30' : 'bg-primary ring-2 ring-primary/30'}`}>
                   {hasIsometric ? <Check className="w-4 h-4" /> : '1'}
                 </div>
                 <h3 className="font-medium">Generate Isometric View</h3>
@@ -282,12 +295,18 @@ export function Viewer() {
               </div>
             </CardContent>
           </Card>
+          </motion.div>
 
           {/* Step 2: Generate 3D */}
-          <Card className={`mb-4 bg-background/50 border-border/50 ${!hasIsometric ? 'opacity-50' : ''}`}>
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2, ease: "easeOut" }}
+          >
+          <Card className={`mb-4 dark-glass-card rounded-2xl border-white/[0.06] hover:border-primary/20 transition-all duration-300 ${!hasIsometric ? 'opacity-50' : ''}`}>
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-3">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${has3D ? 'bg-green-500' : hasIsometric ? 'bg-primary' : 'bg-muted'}`}>
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${has3D ? 'bg-green-500 shadow-sm shadow-green-500/30' : hasIsometric ? 'bg-primary ring-2 ring-primary/30' : 'bg-muted'}`}>
                   {has3D ? <Check className="w-4 h-4" /> : '2'}
                 </div>
                 <h3 className="font-medium">Create 3D Model</h3>
@@ -357,12 +376,18 @@ export function Viewer() {
               </Button>
             </CardContent>
           </Card>
+          </motion.div>
 
           {/* Step 3: Retexture (optional) */}
-          <Card className={`mb-4 bg-background/50 border-border/50 ${!has3D ? 'opacity-50' : ''}`}>
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.3, ease: "easeOut" }}
+          >
+          <Card className={`mb-4 dark-glass-card rounded-2xl border-white/[0.06] hover:border-primary/20 transition-all duration-300 ${!has3D ? 'opacity-50' : ''}`}>
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-3">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${has3D ? 'bg-primary' : 'bg-muted'}`}>
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${has3D ? 'bg-primary ring-2 ring-primary/30' : 'bg-muted'}`}>
                   3
                 </div>
                 <h3 className="font-medium">Enhance Textures</h3>
@@ -429,63 +454,74 @@ export function Viewer() {
               </div>
             </CardContent>
           </Card>
+          </motion.div>
 
           {/* View Mode Selector */}
-          <div className="space-y-2 mt-6">
+          <motion.div
+            className="space-y-2 mt-6"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.4, ease: "easeOut" }}
+          >
             <Label className="text-xs text-muted-foreground">View Mode</Label>
             <div className="grid grid-cols-2 gap-2">
-              <Button 
-                variant={viewMode === 'original' ? 'secondary' : 'outline'} 
-                size="sm" 
+              <Button
+                variant={viewMode === 'original' ? 'secondary' : 'outline'}
+                size="sm"
                 onClick={() => setViewMode('original')}
-                className="text-xs"
+                className="text-xs transition-all duration-200"
               >
                 Original
               </Button>
-              <Button 
-                variant={viewMode === 'isometric' ? 'secondary' : 'outline'} 
-                size="sm" 
+              <Button
+                variant={viewMode === 'isometric' ? 'secondary' : 'outline'}
+                size="sm"
                 onClick={() => setViewMode('isometric')}
                 disabled={!hasIsometric}
-                className="text-xs"
+                className="text-xs transition-all duration-200"
               >
                 Isometric
               </Button>
-              <Button 
-                variant={viewMode === '3d' ? 'secondary' : 'outline'} 
-                size="sm" 
+              <Button
+                variant={viewMode === '3d' ? 'secondary' : 'outline'}
+                size="sm"
                 onClick={() => setViewMode('3d')}
                 disabled={!has3D}
-                className="text-xs"
+                className="text-xs transition-all duration-200"
               >
                 3D Model
               </Button>
-              <Button 
-                variant={viewMode === 'split' ? 'secondary' : 'outline'} 
-                size="sm" 
+              <Button
+                variant={viewMode === 'split' ? 'secondary' : 'outline'}
+                size="sm"
                 onClick={() => setViewMode('split')}
-                className="text-xs"
+                className="text-xs transition-all duration-200"
               >
                 Compare
               </Button>
             </div>
-          </div>
+          </motion.div>
 
           {/* Export Buttons */}
           {(hasIsometric || has3D) && (
-            <div className="mt-6 space-y-2">
-              <Button variant="outline" size="sm" className="w-full">
+            <motion.div
+              className="mt-6 space-y-2"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.5, ease: "easeOut" }}
+            >
+              <Button variant="outline" size="sm" className="w-full transition-all duration-200 hover:border-primary/30">
                 <Share2 className="w-4 h-4 mr-2" /> Share
               </Button>
-              <Button size="sm" className="w-full bg-primary text-white hover:bg-primary/90">
+              <Button size="sm" className="w-full bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300">
                 <Download className="w-4 h-4 mr-2" /> Export
               </Button>
-            </div>
+            </motion.div>
           )}
         </div>
 
         {/* Right Panel - Canvas */}
-        <div className="flex-1 min-h-[60vh] lg:min-h-0 relative bg-black/80 overflow-hidden">
+        <div className="flex-1 min-h-[60vh] lg:min-h-0 relative bg-black/80 dark-blueprint-grid overflow-hidden">
           <AnimatePresence mode="wait">
             {viewMode === 'original' && (
               <motion.div 
@@ -572,19 +608,29 @@ export function Viewer() {
 
           {/* Loading Overlay */}
           {isGenerating && (
-            <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm">
-              <div className="text-center">
-                <Loader2 className="w-12 h-12 mx-auto mb-4 text-primary animate-spin" />
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+              className="absolute inset-0 bg-black/70 flex items-center justify-center backdrop-blur-md"
+            >
+              <div className="text-center dark-glass-card rounded-2xl p-8 max-w-xs">
+                <div className="relative w-16 h-16 mx-auto mb-4">
+                  <div className="absolute inset-0 rounded-full border-2 border-primary/20" />
+                  <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary animate-spin" />
+                  <Loader2 className="w-8 h-8 absolute inset-0 m-auto text-primary animate-spin" />
+                </div>
                 <p className="text-lg font-medium">
-                  {model.status === 'generating_isometric' ? 'Generating Isometric View...' : 
+                  {model.status === 'generating_isometric' ? 'Generating Isometric View...' :
                    model.status === 'retexturing' ? 'Enhancing Textures...' : 'Creating 3D Model...'}
                 </p>
                 <p className="text-sm text-muted-foreground mt-2">This may take a moment</p>
               </div>
-            </div>
+            </motion.div>
           )}
         </div>
       </div>
+      </PageTransition>
 
       {/* Paywall Modal */}
       <PaywallModal

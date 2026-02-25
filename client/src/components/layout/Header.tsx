@@ -146,7 +146,7 @@ export function Header() {
   const { subscription } = useSubscription();
 
   return (
-    <header className="fixed top-4 left-4 right-4 z-50 border border-white/20 bg-gradient-to-b from-white/15 to-white/5 backdrop-blur-xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.2),inset_0_-1px_0_rgba(0,0,0,0.2)]">
+    <header className="fixed top-4 left-4 right-4 z-50 border border-white/20 bg-gradient-to-b from-white/15 to-white/5 backdrop-blur-xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.2),inset_0_-1px_0_rgba(0,0,0,0.2)] transition-all duration-300">
       <div className="w-full px-4 h-20 flex items-center justify-between">
         <Link href="/">
           <Logo 
@@ -157,8 +157,8 @@ export function Header() {
         <nav className="flex items-center gap-4">
           <Link href="/pricing">
             <span className={cn(
-              "text-sm font-medium transition-colors hover:text-primary flex items-center gap-2 cursor-pointer",
-              location === "/pricing" ? "text-foreground" : "text-muted-foreground"
+              "text-sm font-medium transition-all duration-200 hover:text-primary flex items-center gap-2 cursor-pointer px-3 py-1.5 rounded-lg",
+              location === "/pricing" ? "text-foreground bg-primary/10" : "text-muted-foreground"
             )}>
               <CreditCard className="w-4 h-4" />
               <span className="hidden sm:inline">Pricing</span>
@@ -169,8 +169,8 @@ export function Header() {
             <>
               <Link href="/projects">
                 <span className={cn(
-                  "text-sm font-medium transition-colors hover:text-primary flex items-center gap-2 cursor-pointer",
-                  location === "/projects" ? "text-foreground" : "text-muted-foreground"
+                  "text-sm font-medium transition-all duration-200 hover:text-primary flex items-center gap-2 cursor-pointer px-3 py-1.5 rounded-lg",
+                  location === "/projects" ? "text-foreground bg-primary/10" : "text-muted-foreground"
                 )}>
                   <Grid className="w-4 h-4" />
                   <span className="hidden sm:inline">My Projects</span>
@@ -179,8 +179,8 @@ export function Header() {
 
               <Link href="/planning">
                 <span className={cn(
-                  "text-sm font-medium transition-colors hover:text-primary flex items-center gap-2 cursor-pointer",
-                  location.startsWith("/planning") ? "text-foreground" : "text-muted-foreground"
+                  "text-sm font-medium transition-all duration-200 hover:text-primary flex items-center gap-2 cursor-pointer px-3 py-1.5 rounded-lg",
+                  location.startsWith("/planning") ? "text-foreground bg-primary/10" : "text-muted-foreground"
                 )}>
                   <Search className="w-4 h-4" />
                   <span className="hidden sm:inline">Planning</span>

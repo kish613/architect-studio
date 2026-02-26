@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useLocation } from "wouter";
-import { Layout } from "@/components/layout/Layout";
+import { WorkspaceLayout } from "@/components/layout/WorkspaceLayout";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { PageTransition } from "@/components/ui/page-transition";
@@ -58,14 +58,14 @@ function ExtendProgressIndicator({ status }: { status: string }) {
       initial={{ opacity: 0, scale: 0.97 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="py-12 dark-glass-card rounded-2xl border-primary/20"
+      className="py-12 weavy-panel rounded-2xl border-primary/20"
     >
       <div className="relative w-16 h-16 mx-auto mb-6">
         <div className="absolute inset-0 rounded-full border-2 border-primary/20" />
         <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary animate-spin" />
         <Loader2 className="w-8 h-8 absolute inset-0 m-auto text-primary animate-spin" />
       </div>
-      <h3 className="text-xl font-medium text-center mb-6">Running Smart Analysis...</h3>
+      <h3 className="text-xl font-medium text-center mb-6 text-white/90">Running Smart Analysis...</h3>
       <div className="max-w-md mx-auto space-y-4 px-6">
         {steps.map((step, idx) => {
           const Icon = step.icon;
@@ -80,13 +80,12 @@ function ExtendProgressIndicator({ status }: { status: string }) {
               transition={{ duration: 0.4, delay: idx * 0.1, ease: "easeOut" }}
             >
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
-                  isDone
-                    ? "bg-green-500/20 text-green-400 shadow-sm shadow-green-500/20"
+                className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300 ${isDone
+                    ? "bg-green-500/20 text-green-400 shadow-[0_0_10px_rgba(34,197,94,0.3)]"
                     : isActive
-                    ? "bg-primary/20 text-primary ring-2 ring-primary/30"
-                    : "bg-muted text-muted-foreground"
-                }`}
+                      ? "bg-primary/20 text-primary ring-2 ring-primary/30"
+                      : "bg-white/5 text-white/30"
+                  }`}
               >
                 {isDone ? (
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -97,11 +96,11 @@ function ExtendProgressIndicator({ status }: { status: string }) {
                 )}
               </div>
               <div>
-                <p className={`text-sm font-medium ${isActive ? "text-foreground" : isDone ? "text-green-400" : "text-muted-foreground"}`}>
+                <p className={`text-sm font-medium ${isActive ? "text-white/90" : isDone ? "text-green-400" : "text-white/40"}`}>
                   {step.label}
                 </p>
                 {isActive && (
-                  <p className="text-xs text-muted-foreground mt-0.5">{step.description}</p>
+                  <p className="text-xs text-white/50 mt-0.5">{step.description}</p>
                 )}
               </div>
             </motion.div>
@@ -241,23 +240,23 @@ export function PlanningViewer() {
   // Loading state
   if (authLoading || isLoading) {
     return (
-      <Layout>
-        <div className="container mx-auto px-4 py-12 flex items-center justify-center min-h-[60vh]">
+      <WorkspaceLayout title="Loading..." onBack={() => setLocation("/planning")}>
+        <div className="flex items-center justify-center h-full w-full">
           <div className="text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-            <p className="text-muted-foreground">Loading analysis...</p>
+            <p className="text-white/60">Loading analysis...</p>
           </div>
         </div>
-      </Layout>
+      </WorkspaceLayout>
     );
   }
 
   // Error state
   if (error || !analysis) {
     return (
-      <Layout>
-        <div className="container mx-auto px-4 py-12 max-w-2xl">
-          <Alert variant="destructive">
+      <WorkspaceLayout title="Error" onBack={() => setLocation("/planning")}>
+        <div className="container mx-auto px-4 py-12 max-w-2xl w-full">
+          <Alert variant="destructive" className="weavy-panel border-red-500/20 bg-red-500/10">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Error</AlertTitle>
             <AlertDescription>
@@ -265,13 +264,13 @@ export function PlanningViewer() {
             </AlertDescription>
           </Alert>
           <div className="mt-6 text-center">
-            <Button variant="outline" onClick={() => setLocation("/planning")}>
+            <Button variant="outline" onClick={() => setLocation("/planning")} className="border-white/10 text-white hover:bg-white/5">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Planning
             </Button>
           </div>
         </div>
-      </Layout>
+      </WorkspaceLayout>
     );
   }
 
@@ -323,411 +322,295 @@ export function PlanningViewer() {
 
   const steps = isExtendMode ? extendSteps : classicSteps;
 
-  return (
-    <Layout>
-      <PageTransition>
-      <div className="container mx-auto px-4 py-12 max-w-6xl">
-        {/* Header */}
-        <motion.div
-          className="mb-8"
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-        >
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mb-4 hover:bg-primary/10 transition-colors duration-200"
-            onClick={() => setLocation("/planning")}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Planning
-          </Button>
+  // Layout Panels Definition
 
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-display font-bold mb-2">
-                {isExtendMode ? "Smart Extension Advisor" : "Planning Analysis"}
-              </h1>
-              <div className="h-1 w-16 bg-gradient-to-r from-primary to-primary/40 rounded-full mb-3" />
-              <p className="text-muted-foreground">
-                {analysis.houseNumber && `${analysis.houseNumber} `}
-                {analysis.address && `${analysis.address} • `}
-                {analysis.postcode && `${analysis.postcode}`}
-                {!isExtendMode && analysis.propertyAnalysis?.propertyType &&
-                  ` • ${analysis.propertyAnalysis.propertyType.charAt(0).toUpperCase()}${analysis.propertyAnalysis.propertyType.slice(1).replace("-", " ")}`}
-              </p>
+  const leftPanelContent = (
+    <div className="space-y-6">
+      {/* Steps Tracking */}
+      <div className="flex flex-col gap-3">
+        {steps.map((step) => (
+          <div key={step.num} className="flex items-center gap-3">
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 ${currentStep >= step.num
+                  ? "bg-primary text-white shadow-[0_0_12px_rgba(var(--primary),0.6)] border border-primary/50"
+                  : "bg-white/5 text-white/30 border border-white/10"
+                }`}
+            >
+              {step.num}
             </div>
+            <span
+              className={`text-sm ${currentStep >= step.num ? "font-medium text-white/90 drop-shadow-md" : "text-white/40"
+                }`}
+            >
+              {step.label}
+            </span>
           </div>
-        </motion.div>
+        ))}
+      </div>
 
-        {/* Steps Progress */}
-        <motion.div
-          className="flex items-center justify-center gap-4 mb-12 flex-wrap"
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
-        >
-          {steps.map((step, idx) => (
-            <div key={step.num} className="flex items-center gap-2">
-              {idx > 0 && (
-                <div className="w-8 h-px bg-gradient-to-r from-primary/50 to-muted hidden sm:block" />
-              )}
-              <div className="flex items-center gap-2">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 ${
-                    currentStep >= step.num
-                      ? "bg-primary text-primary-foreground ring-2 ring-primary/30 ring-offset-2 ring-offset-background"
-                      : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {step.num}
-                </div>
-                <span
-                  className={`text-sm ${
-                    currentStep >= step.num ? "font-medium" : "text-muted-foreground"
-                  }`}
-                >
-                  {step.label}
-                </span>
-              </div>
-            </div>
-          ))}
-        </motion.div>
+      {(analysis.status === "options_ready" || analysis.status === "generating" || analysis.status === "completed") && (
+        <div className="pt-2">
+          <ConservationAreaBadge
+            isConservationArea={analysis.isConservationArea ?? false}
+            conservationAreaName={analysis.conservationAreaName ?? undefined}
+            isListedBuilding={analysis.isListedBuilding ?? false}
+            listedBuildingGrade={analysis.listedBuildingGrade ?? undefined}
+          />
+        </div>
+      )}
 
-        {/* Error State */}
-        {analysis.status === "failed" && (
-          <Alert variant="destructive" className="mb-8">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Analysis Failed</AlertTitle>
-            <AlertDescription>
-              {analysis.errorMessage || "Something went wrong during analysis."}
-            </AlertDescription>
-          </Alert>
-        )}
+      {isExtendMode ? (
+        <>
+          {analysis.epcData && <EPCDataCard epcData={analysis.epcData} />}
+          {analysis.pdrAssessment && <PDRSummaryCard pdrAssessment={analysis.pdrAssessment} />}
+        </>
+      ) : (
+        <>
+          {analysis.propertyAnalysis && <PropertyAnalysisCard analysis={analysis.propertyAnalysis} />}
+        </>
+      )}
+    </div>
+  );
 
-        {/* ====== EXTEND WORKFLOW ====== */}
-        {isExtendMode && (
-          <div className="space-y-8">
-            {/* Pending — Start Smart Analysis */}
-            {analysis.status === "pending" && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-                className="text-center py-12 dark-glass-card rounded-3xl"
-              >
-                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <Maximize2 className="w-8 h-8 text-primary floating-animation" />
-                </div>
-                <h3 className="text-xl font-medium mb-2">Ready for Smart Analysis</h3>
-                <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                  We'll look up your property data, calculate permitted development rights,
-                  search real planning approvals, and generate extension options.
-                </p>
-                <Button
-                  size="lg"
-                  className="gap-2 shadow-lg shadow-primary/20"
-                  onClick={() => extendMutation.mutate()}
-                  disabled={extendMutation.isPending}
-                >
-                  {extendMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Starting...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4" />
-                      Run Smart Analysis
-                    </>
-                  )}
-                </Button>
-              </motion.div>
-            )}
+  const rightPanelContent = (
+    <div className="space-y-6">
+      {isExtendMode ? (
+        <>
+          {analysis.extensionOptions && analysis.extensionOptions.length > 0 && analysis.status === "options_ready" && (
+            <ExtensionOptionsPanel
+              options={analysis.extensionOptions}
+              selectedTier={selectedExtendTier}
+              onSelect={handleSelectExtendOption}
+              isSelecting={selectOptionMutation.isPending}
+            />
+          )}
 
-            {/* Processing states */}
-            {(analysis.status === "epc_lookup" ||
-              analysis.status === "pdr_calculating" ||
-              analysis.status === "searching_real") && (
-              <ExtendProgressIndicator status={analysis.status} />
-            )}
-
-            {/* Options Ready — Show full analysis */}
-            {(analysis.status === "options_ready" || analysis.status === "generating" || analysis.status === "completed") && (
-              <>
-                {/* Conservation / Listed Building Alerts */}
-                <ConservationAreaBadge
-                  isConservationArea={analysis.isConservationArea ?? false}
-                  conservationAreaName={analysis.conservationAreaName ?? undefined}
-                  isListedBuilding={analysis.isListedBuilding ?? false}
-                  listedBuildingGrade={analysis.listedBuildingGrade ?? undefined}
-                />
-
-                {/* Property Data Cards */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {analysis.epcData && <EPCDataCard epcData={analysis.epcData} />}
-                  {analysis.pdrAssessment && <PDRSummaryCard pdrAssessment={analysis.pdrAssessment} />}
-                </div>
-
-                {/* Extension Options */}
-                {analysis.extensionOptions && analysis.extensionOptions.length > 0 && analysis.status === "options_ready" && (
-                  <ExtensionOptionsPanel
-                    options={analysis.extensionOptions}
-                    selectedTier={selectedExtendTier}
-                    onSelect={handleSelectExtendOption}
-                    isSelecting={selectOptionMutation.isPending}
-                  />
-                )}
-
-                {/* Detail cards for selected option */}
-                {selectedExtendTier && analysis.extensionOptions && (
-                  <>
-                    {(() => {
-                      const selectedOption = analysis.extensionOptions.find(
-                        (o) => o.tier === selectedExtendTier
-                      );
-                      if (!selectedOption) return null;
-                      return (
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                          <CostBreakdownCard option={selectedOption} />
-                          {analysis.partyWallAssessment && (
-                            <PartyWallCard assessment={analysis.partyWallAssessment} />
-                          )}
-                          {analysis.neighbourImpact && (
-                            <NeighbourImpactCard impact={analysis.neighbourImpact} />
-                          )}
-                        </div>
-                      );
-                    })()}
-
-                    {/* Generate button */}
-                    {analysis.status === "options_ready" && (
-                      <div className="flex justify-center pt-4">
-                        <Button
-                          size="lg"
-                          className="gap-2"
-                          onClick={() => generateMutation.mutate()}
-                          disabled={generateMutation.isPending}
-                        >
-                          {generateMutation.isPending ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                              Generating...
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles className="w-4 h-4" />
-                              Generate Extension Floorplan
-                            </>
-                          )}
-                        </Button>
-                      </div>
+          {selectedExtendTier && analysis.extensionOptions && (
+            <>
+              {(() => {
+                const selectedOption = analysis.extensionOptions.find(
+                  (o) => o.tier === selectedExtendTier
+                );
+                if (!selectedOption) return null;
+                return (
+                  <div className="space-y-6">
+                    <CostBreakdownCard option={selectedOption} />
+                    {analysis.partyWallAssessment && (
+                      <PartyWallCard assessment={analysis.partyWallAssessment} />
                     )}
-                  </>
-                )}
-
-                {/* Generating state */}
-                {analysis.status === "generating" && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.97 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.5, ease: "easeOut" }}
-                    className="text-center py-12 dark-glass-card rounded-2xl border-primary/20"
-                  >
-                    <div className="relative w-16 h-16 mx-auto mb-4">
-                      <div className="absolute inset-0 rounded-full border-2 border-primary/20" />
-                      <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary animate-spin" />
-                      <Loader2 className="w-8 h-8 absolute inset-0 m-auto text-primary animate-spin" />
-                    </div>
-                    <h3 className="text-xl font-medium mb-2">Generating Extension Floorplan...</h3>
-                    <p className="text-muted-foreground">
-                      Creating your extended property visualization. This may take a minute.
-                    </p>
-                  </motion.div>
-                )}
-
-                {/* Completed — Show results */}
-                {analysis.status === "completed" && analysis.generatedExteriorUrl && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.5, ease: "easeOut" }}
-                  >
-                    <VisualizationCompare analysis={analysis} />
-                  </motion.div>
-                )}
-
-                <DisclaimerBanner />
-              </>
-            )}
-          </div>
-        )}
-
-        {/* ====== CLASSIC WORKFLOW ====== */}
-        {!isExtendMode && (
-          <div className="space-y-8">
-            {/* Step 1: Pending - Start Analysis */}
-            {analysis.status === "pending" && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-                className="text-center py-12 dark-glass-card rounded-3xl"
-              >
-                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <Search className="w-8 h-8 text-primary floating-animation" />
-                </div>
-                <h3 className="text-xl font-medium mb-2">Ready to Analyze</h3>
-                <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                  We'll analyze your property photo to identify its type, style, and extension potential.
-                </p>
-                <Button
-                  size="lg"
-                  className="gap-2 shadow-lg shadow-primary/20"
-                  onClick={() => analyzeMutation.mutate()}
-                  disabled={analyzeMutation.isPending}
-                >
-                  {analyzeMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Analyzing...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4" />
-                      Start Analysis
-                    </>
-                  )}
-                </Button>
-              </motion.div>
-            )}
-
-            {/* Step 2: Analyzing or Searching */}
-            {(analysis.status === "analyzing" || analysis.status === "searching") && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.97 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-                className="text-center py-12 dark-glass-card rounded-2xl border-primary/20"
-              >
-                <div className="relative w-16 h-16 mx-auto mb-4">
-                  <div className="absolute inset-0 rounded-full border-2 border-primary/20" />
-                  <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary animate-spin" />
-                  <Loader2 className="w-8 h-8 absolute inset-0 m-auto text-primary animate-spin" />
-                </div>
-                <h3 className="text-xl font-medium mb-2">
-                  {analysis.status === "analyzing" ? "Analyzing Property..." : "Searching Planning Approvals..."}
-                </h3>
-                <p className="text-muted-foreground">
-                  {analysis.status === "analyzing"
-                    ? "Our AI is examining your property photo"
-                    : "Finding similar approved applications nearby"}
-                </p>
-              </motion.div>
-            )}
-
-            {/* Property Analysis Result */}
-            {analysis.propertyAnalysis && analysis.status !== "pending" && analysis.status !== "analyzing" && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-1">
-                  <PropertyAnalysisCard analysis={analysis.propertyAnalysis} />
-
-                  {/* Search button after analysis */}
-                  {!analysis.approvalSearchResults && analysis.status !== "searching" && (
-                    <div className="mt-4">
-                      <Button
-                        className="w-full gap-2"
-                        onClick={() => searchMutation.mutate()}
-                        disabled={searchMutation.isPending}
-                      >
-                        {searchMutation.isPending ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Searching...
-                          </>
-                        ) : (
-                          <>
-                            <Search className="w-4 h-4" />
-                            Search Planning Approvals
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Approvals List */}
-                {analysis.approvalSearchResults && (
-                  <div className="lg:col-span-2">
-                    <ApprovalsList
-                      results={analysis.approvalSearchResults}
-                      selectedModification={selectedMod}
-                      onSelectModification={handleSelectModification}
-                    />
-
-                    {/* Generate button */}
-                    {analysis.status === "awaiting_selection" && selectedMod && (
-                      <div className="mt-6 flex justify-center">
-                        <Button
-                          size="lg"
-                          className="gap-2"
-                          onClick={() => generateMutation.mutate()}
-                          disabled={generateMutation.isPending}
-                        >
-                          {generateMutation.isPending ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                              Generating...
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles className="w-4 h-4" />
-                              Generate Visualization
-                            </>
-                          )}
-                        </Button>
-                      </div>
+                    {analysis.neighbourImpact && (
+                      <NeighbourImpactCard impact={analysis.neighbourImpact} />
                     )}
                   </div>
-                )}
-              </div>
-            )}
+                );
+              })()}
 
-            {/* Generating State */}
-            {analysis.status === "generating" && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.97 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-                className="text-center py-12 dark-glass-card rounded-2xl border-primary/20"
-              >
-                <div className="relative w-16 h-16 mx-auto mb-4">
-                  <div className="absolute inset-0 rounded-full border-2 border-primary/20" />
-                  <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary animate-spin" />
-                  <Loader2 className="w-8 h-8 absolute inset-0 m-auto text-primary animate-spin" />
+              {analysis.status === "options_ready" && (
+                <div className="flex justify-center pt-4 pb-12">
+                  <Button
+                    size="lg"
+                    className="w-full gap-2 bg-primary hover:bg-primary/90 text-white shadow-[0_0_20px_rgba(var(--primary),0.3)] transition-all transform hover:scale-[1.02]"
+                    onClick={() => generateMutation.mutate()}
+                    disabled={generateMutation.isPending}
+                  >
+                    {generateMutation.isPending ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</>
+                    ) : (
+                      <><Sparkles className="w-4 h-4" /> Generate Extension</>
+                    )}
+                  </Button>
                 </div>
-                <h3 className="text-xl font-medium mb-2">Generating Visualization...</h3>
-                <p className="text-muted-foreground">
-                  Creating your property transformation. This may take a minute.
-                </p>
-              </motion.div>
-            )}
+              )}
+            </>
+          )}
+        </>
+      ) : (
+        <>
+          {analysis.propertyAnalysis && analysis.status !== "pending" && analysis.status !== "analyzing" && (
+            <>
+              {!analysis.approvalSearchResults && analysis.status !== "searching" && (
+                <Button
+                  className="w-full gap-2 mb-4 bg-primary text-white"
+                  onClick={() => searchMutation.mutate()}
+                  disabled={searchMutation.isPending}
+                >
+                  {searchMutation.isPending ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Searching...</>
+                  ) : (
+                    <><Search className="w-4 h-4" /> Search Approvals</>
+                  )}
+                </Button>
+              )}
+              {analysis.approvalSearchResults && (
+                <div className="space-y-6">
+                  <ApprovalsList
+                    results={analysis.approvalSearchResults}
+                    selectedModification={selectedMod}
+                    onSelectModification={handleSelectModification}
+                  />
 
-            {/* Completed - Show Visualization */}
-            {analysis.status === "completed" && analysis.generatedExteriorUrl && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-              >
-                <VisualizationCompare analysis={analysis} />
-              </motion.div>
+                  {analysis.status === "awaiting_selection" && selectedMod && (
+                    <Button
+                      size="lg"
+                      className="w-full gap-2 bg-primary text-white shadow-[0_0_20px_rgba(var(--primary),0.3)] transition-all transform hover:scale-[1.02]"
+                      onClick={() => generateMutation.mutate()}
+                      disabled={generateMutation.isPending}
+                    >
+                      {generateMutation.isPending ? (
+                        <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</>
+                      ) : (
+                        <><Sparkles className="w-4 h-4" /> Generate Visualization</>
+                      )}
+                    </Button>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </>
+      )}
+    </div>
+  );
+
+  const mainCanvas = (
+    <div className="w-full h-full flex flex-col items-center justify-center pointer-events-auto">
+      {analysis.status === "pending" && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="text-center py-12 weavy-panel rounded-3xl w-full max-w-lg border border-primary/20 bg-black/40 backdrop-blur-md"
+        >
+          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4 border border-primary/30 shadow-[0_0_30px_rgba(var(--primary),0.2)]">
+            {isExtendMode ? (
+              <Maximize2 className="w-8 h-8 text-primary floating-animation drop-shadow-[0_0_10px_rgba(var(--primary),0.8)]" />
+            ) : (
+              <Search className="w-8 h-8 text-primary floating-animation drop-shadow-[0_0_10px_rgba(var(--primary),0.8)]" />
             )}
           </div>
+          <h3 className="text-xl font-medium mb-2 text-white/90">
+            {isExtendMode ? "Ready for Smart Analysis" : "Ready to Analyze"}
+          </h3>
+          <p className="text-white/50 mb-8 max-w-sm mx-auto">
+            {isExtendMode
+              ? "We'll look up your property data, calculate permitted development rights, search real planning approvals, and generate extension options."
+              : "We'll analyze your property photo to identify its type, style, and extension potential."}
+          </p>
+          <Button
+            size="lg"
+            className="gap-2 bg-primary hover:bg-primary/90 text-white shadow-[0_0_20px_rgba(var(--primary),0.3)] transition-all transform hover:scale-[1.02]"
+            onClick={() => isExtendMode ? extendMutation.mutate() : analyzeMutation.mutate()}
+            disabled={isExtendMode ? extendMutation.isPending : analyzeMutation.isPending}
+          >
+            {isExtendMode ? (
+              extendMutation.isPending ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Starting...</>
+              ) : (
+                <><Sparkles className="w-4 h-4" /> Run Smart Analysis</>
+              )
+            ) : (
+              analyzeMutation.isPending ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing...</>
+              ) : (
+                <><Sparkles className="w-4 h-4" /> Start Analysis</>
+              )
+            )}
+          </Button>
+        </motion.div>
+      )}
+
+      {(analysis.status === "analyzing" || analysis.status === "searching") && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.97 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center py-12 weavy-panel rounded-2xl border-primary/20 w-full max-w-md bg-black/40 backdrop-blur-md"
+        >
+          <div className="relative w-16 h-16 mx-auto mb-4">
+            <div className="absolute inset-0 rounded-full border-2 border-primary/20" />
+            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary animate-spin" />
+            <Loader2 className="w-8 h-8 absolute inset-0 m-auto text-primary animate-spin" />
+          </div>
+          <h3 className="text-xl font-medium mb-2 text-white/90">
+            {analysis.status === "analyzing" ? "Analyzing Property..." : "Searching Planning Approvals..."}
+          </h3>
+          <p className="text-white/50">
+            {analysis.status === "analyzing"
+              ? "Our AI is examining your property photo"
+              : "Finding similar approved applications nearby"}
+          </p>
+        </motion.div>
+      )}
+
+      {(analysis.status === "epc_lookup" ||
+        analysis.status === "pdr_calculating" ||
+        analysis.status === "searching_real") && (
+          <div className="w-full max-w-lg bg-black/40 backdrop-blur-md rounded-3xl p-2 border border-white/5 shadow-2xl">
+            <ExtendProgressIndicator status={analysis.status} />
+          </div>
         )}
-      </div>
-      </PageTransition>
-    </Layout>
+
+      {analysis.status === "generating" && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.97 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center py-12 weavy-panel rounded-2xl border-primary/20 w-full max-w-md bg-black/40 backdrop-blur-md"
+        >
+          <div className="relative w-16 h-16 mx-auto mb-4">
+            <div className="absolute inset-0 rounded-full border-2 border-primary/20" />
+            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary animate-spin" />
+            <Loader2 className="w-8 h-8 absolute inset-0 m-auto text-primary animate-spin" />
+          </div>
+          <h3 className="text-xl font-medium mb-2 text-white/90">Generating Visualization...</h3>
+          <p className="text-white/50">
+            Creating your property transformation. This may take a minute.
+          </p>
+        </motion.div>
+      )}
+
+      {analysis.status === "completed" && analysis.generatedExteriorUrl && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full h-full flex items-center justify-center p-4 relative z-20 pointer-events-auto"
+        >
+          <VisualizationCompare analysis={analysis} />
+        </motion.div>
+      )}
+
+      {(analysis.status === "options_ready" || analysis.status === "completed") && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-full max-w-xl z-30 pointer-events-auto">
+          <DisclaimerBanner />
+        </div>
+      )}
+
+      {analysis.status === "failed" && (
+        <Alert variant="destructive" className="mb-8 weavy-panel border-red-500/20 bg-red-500/10 max-w-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Analysis Failed</AlertTitle>
+          <AlertDescription>
+            {analysis.errorMessage || "Something went wrong during analysis."}
+          </AlertDescription>
+        </Alert>
+      )}
+    </div>
+  );
+
+  const titleString = [
+    analysis.houseNumber,
+    analysis.address,
+    analysis.postcode
+  ].filter(Boolean).join(" • ");
+
+  return (
+    <PageTransition>
+      <WorkspaceLayout
+        title={titleString || (isExtendMode ? "Smart Extension" : "Planning Analysis")}
+        onBack={() => setLocation("/planning")}
+        leftPanel={leftPanelContent}
+        rightPanel={rightPanelContent}
+      >
+        {mainCanvas}
+      </WorkspaceLayout>
+    </PageTransition>
   );
 }

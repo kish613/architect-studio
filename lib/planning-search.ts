@@ -109,7 +109,7 @@ Be realistic about the assessments based on what's visible in the image.`;
           if (!response.ok) {
             const errorText = await response.text();
             console.error("Property analysis API error:", errorText);
-            
+
             if (response.status === 429 || isRateLimitError({ message: errorText })) {
               throw new Error("Rate limit exceeded");
             }
@@ -125,7 +125,7 @@ Be realistic about the assessments based on what's visible in the image.`;
 
           // Parse the JSON response
           const analysis = JSON.parse(textContent) as PropertyAnalysisData;
-          
+
           return {
             success: true,
             analysis
@@ -245,7 +245,7 @@ Include 8-12 approval entries, focusing on modifications that match the extensio
           if (!response.ok) {
             const errorText = await response.text();
             console.error("Planning search API error:", errorText);
-            
+
             if (response.status === 429 || isRateLimitError({ message: errorText })) {
               throw new Error("Rate limit exceeded");
             }
@@ -260,7 +260,7 @@ Include 8-12 approval entries, focusing on modifications that match the extensio
           }
 
           const results = JSON.parse(textContent) as ApprovalSearchResults;
-          
+
           return {
             success: true,
             results
@@ -340,7 +340,7 @@ REQUIREMENTS:
 
 Generate a photorealistic image showing this property with the ${modificationType.replace(/_/g, ' ')} added.`;
 
-          const modelName = "gemini-2.5-flash-image";
+          const modelName = "gemini-3.1-flash-image";
           const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
 
           console.log("=== PROPERTY VISUALIZATION API CALL ===");
@@ -379,7 +379,7 @@ Generate a photorealistic image showing this property with the ${modificationTyp
           if (!response.ok) {
             const errorText = await response.text();
             console.error("Visualization API error:", errorText);
-            
+
             if (response.status === 429 || isRateLimitError({ message: errorText })) {
               throw new Error("Rate limit exceeded");
             }
@@ -387,7 +387,7 @@ Generate a photorealistic image showing this property with the ${modificationTyp
           }
 
           const result = await response.json();
-          
+
           // Find the image part in the response
           const parts = result.candidates?.[0]?.content?.parts || [];
           let imageData: string | null = null;
@@ -489,7 +489,7 @@ REQUIREMENTS:
 
 Generate a modified floor plan image showing this extension incorporated.`;
 
-          const modelName = "gemini-2.5-flash-image";
+          const modelName = "gemini-3.1-flash-image";
           const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
 
           console.log("=== FLOORPLAN MODIFICATION API CALL ===");
@@ -527,7 +527,7 @@ Generate a modified floor plan image showing this extension incorporated.`;
           if (!response.ok) {
             const errorText = await response.text();
             console.error("Floorplan modification API error:", errorText);
-            
+
             if (response.status === 429 || isRateLimitError({ message: errorText })) {
               throw new Error("Rate limit exceeded");
             }
@@ -535,7 +535,7 @@ Generate a modified floor plan image showing this extension incorporated.`;
           }
 
           const result = await response.json();
-          
+
           const parts = result.candidates?.[0]?.content?.parts || [];
           let imageData: string | null = null;
           let imageMimeType = "image/png";

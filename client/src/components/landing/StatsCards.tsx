@@ -10,17 +10,17 @@ interface StatCardProps {
 
 function StatCard({ icon, iconColor, value, label, delay = "0s" }: StatCardProps) {
   return (
-    <div 
-      className="glass-card rounded-2xl p-5 text-center floating-animation bg-white/70"
+    <div
+      className="weavy-panel rounded-2xl p-5 text-center floating-animation"
       style={{ animationDelay: delay }}
     >
       <div className={`flex justify-center mb-2 ${iconColor}`}>
         {icon}
       </div>
-      <div className="text-2xl font-bold text-slate-900 tracking-tight font-[var(--font-poppins)]">
+      <div className="text-2xl font-bold text-white/90 tracking-tight font-[var(--font-poppins)]">
         {value}
       </div>
-      <div className="text-xs font-medium text-slate-500 uppercase tracking-wide font-[var(--font-poppins)]">
+      <div className="text-xs font-medium text-white/50 uppercase tracking-wide font-[var(--font-poppins)]">
         {label}
       </div>
     </div>

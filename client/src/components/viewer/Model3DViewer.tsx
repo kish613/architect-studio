@@ -1,7 +1,7 @@
-import { Suspense, useRef, useState } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Suspense, useRef, useState, useEffect } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, useGLTF, Environment, Center, ContactShadows, Html, useProgress } from "@react-three/drei";
-import { Box, Download, ExternalLink, AlertCircle, Smartphone, Image, Cuboid } from "lucide-react";
+import { Box, Download, ExternalLink, AlertCircle, Smartphone, Image, Cuboid, ZoomIn, ZoomOut, Expand } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isMobileDevice } from "@/lib/utils";
 import * as THREE from "three";
@@ -40,6 +40,29 @@ function Model({ url, onError }: ModelProps) {
       </group>
     </Center>
   );
+}
+
+function CameraController() {
+  const { camera } = useThree();
+
+  useEffect(() => {
+    const handleZoom = (e: any) => {
+      const action = e.detail;
+      if (action === 'in') {
+        camera.translateZ(-1.5);
+      } else if (action === 'out') {
+        camera.translateZ(1.5);
+      } else if (action === 'reset') {
+        camera.position.set(5, 5, 5);
+        camera.lookAt(0, 0, 0);
+        camera.updateProjectionMatrix();
+      }
+    };
+    window.addEventListener('3d-zoom', handleZoom);
+    return () => window.removeEventListener('3d-zoom', handleZoom);
+  }, [camera]);
+
+  return null;
 }
 
 interface Model3DViewerProps {
@@ -99,9 +122,9 @@ function MobileModel3DView({ modelUrl, isometricUrl }: MobileModel3DViewProps) {
       <div className="flex-1 flex flex-col items-center justify-center p-6">
         {isometricUrl ? (
           <div className="relative w-full max-w-sm mb-6">
-            <img 
-              src={isometricUrl} 
-              alt="Isometric Preview" 
+            <img
+              src={isometricUrl}
+              alt="Isometric Preview"
               className="w-full rounded-lg shadow-2xl border border-white/10"
               data-testid="img-isometric-preview-mobile"
             />
@@ -118,31 +141,31 @@ function MobileModel3DView({ modelUrl, isometricUrl }: MobileModel3DViewProps) {
 
         {/* Download Actions */}
         <div className="w-full max-w-sm space-y-3">
-          <a 
-            href={modelUrl} 
-            download 
-            target="_blank" 
+          <a
+            href={modelUrl}
+            download
+            target="_blank"
             rel="noopener noreferrer"
             className="block"
           >
-            <Button 
-              className="w-full bg-primary hover:bg-primary/90 h-12 text-base" 
+            <Button
+              className="w-full bg-primary hover:bg-primary/90 h-12 text-base"
               data-testid="button-download-glb-mobile"
             >
               <Download className="w-5 h-5 mr-2" />
               Download 3D Model
             </Button>
           </a>
-          
-          <a 
-            href={modelUrl} 
-            target="_blank" 
+
+          <a
+            href={modelUrl}
+            target="_blank"
             rel="noopener noreferrer"
             className="block"
           >
-            <Button 
-              variant="outline" 
-              className="w-full h-12 text-base" 
+            <Button
+              variant="outline"
+              className="w-full h-12 text-base"
               data-testid="button-open-external-mobile"
             >
               <ExternalLink className="w-5 h-5 mr-2" />
@@ -215,26 +238,54 @@ export function Model3DViewer({ modelUrl, isometricUrl, className = "" }: Model3
         <ambientLight intensity={0.5} />
         <directionalLight position={[10, 10, 5]} intensity={1} castShadow />
         <pointLight position={[-10, -10, -5]} intensity={0.5} />
-        
+
         <Suspense fallback={<Loader />}>
           <Model url={proxiedUrl} onError={() => setHasError(true)} />
           <Environment preset="city" />
         </Suspense>
-        
+
         <ContactShadows position={[0, -1.5, 0]} opacity={0.5} blur={2} />
-        <OrbitControls 
+        <OrbitControls
           enablePan={true}
           enableZoom={true}
           enableRotate={true}
-          minDistance={2}
-          maxDistance={20}
+          minDistance={1}
+          maxDistance={30}
         />
+        <CameraController />
       </Canvas>
 
       {/* Controls overlay */}
       <div className="absolute bottom-4 right-4 flex gap-2">
+        <div className="flex gap-1 bg-black/60 backdrop-blur-md p-1 rounded-lg border border-white/10 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-white hover:bg-white/20"
+            onClick={() => window.dispatchEvent(new CustomEvent('3d-zoom', { detail: 'in' }))}
+          >
+            <ZoomIn className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-white hover:bg-white/20"
+            onClick={() => window.dispatchEvent(new CustomEvent('3d-zoom', { detail: 'out' }))}
+          >
+            <ZoomOut className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-white hover:bg-white/20"
+            onClick={() => window.dispatchEvent(new CustomEvent('3d-zoom', { detail: 'reset' }))}
+          >
+            <Expand className="w-4 h-4" />
+          </Button>
+        </div>
+
         <a href={modelUrl} download target="_blank" rel="noopener noreferrer">
-          <Button size="sm" variant="secondary" className="backdrop-blur-md bg-black/40" data-testid="button-download-glb-desktop">
+          <Button size="sm" variant="secondary" className="backdrop-blur-md bg-black/40 h-10 px-4 rounded-lg" data-testid="button-download-glb-desktop">
             <Download className="w-4 h-4 mr-2" />
             Download GLB
           </Button>

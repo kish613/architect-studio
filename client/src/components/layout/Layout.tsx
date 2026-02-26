@@ -10,11 +10,11 @@ export function Layout({ children }: LayoutProps) {
   const { isAuthenticated } = useAuth();
 
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-primary/30 relative overflow-hidden dark-dot-grid">
-      {/* Decorative gradient blobs */}
+    <div className="min-h-screen bg-[#0A0A0A] text-foreground selection:bg-primary/30 relative overflow-hidden workspace-canvas-bg">
+      {/* Decorative gradient blobs for dark theme */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-b from-primary/[0.03] to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gradient-to-t from-primary/[0.02] to-transparent rounded-full blur-3xl translate-y-1/2 -translate-x-1/3" />
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/3" />
       </div>
       <Header />
       {isAuthenticated && (

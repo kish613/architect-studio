@@ -9,9 +9,9 @@ import { UsageDisplay } from "@/components/subscription/UsageDisplay";
 
 function Logo({ className }: { className?: string }) {
   return (
-    <svg 
-      version="1.1" 
-      xmlns="http://www.w3.org/2000/svg" 
+    <svg
+      version="1.1"
+      xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 900 150"
       className={`header-logo ${className || ''}`}
     >
@@ -75,9 +75,9 @@ function Logo({ className }: { className?: string }) {
           <stop offset="0%" style={{ stopColor: '#003087' }} />
           <stop offset="100%" style={{ stopColor: '#00AEEF' }} />
         </linearGradient>
-        
+
         <pattern id="headerGrid" width="10" height="10" patternUnits="userSpaceOnUse">
-          <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#f0f0f0" strokeWidth="1"/>
+          <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#f0f0f0" strokeWidth="1" />
         </pattern>
       </defs>
 
@@ -85,18 +85,18 @@ function Logo({ className }: { className?: string }) {
         {/* Logo Icon Outlines */}
         <g stroke="#003087" strokeWidth="2.5" fill="none" strokeLinecap="square" strokeLinejoin="miter">
           <rect x="0" y="0" width="100" height="100" rx="4" strokeWidth="3" className="stroke-animate" />
-          
+
           {/* Room 1: Top Left */}
           <path d="M10,10 H45 V40 H30 V25 H10 V10 Z" className="stroke-animate" style={{ animationDelay: '0.1s' }} />
           <rect x="18" y="15" width="8" height="8" strokeWidth="1" className="stroke-animate-fast" />
-  
+
           {/* Room 2: Bottom Left */}
           <path d="M10,50 H45 V90 H10 V50 Z" className="stroke-animate" style={{ animationDelay: '0.2s' }} />
           <line x1="10" y1="70" x2="45" y2="70" strokeWidth="1" className="stroke-animate-fast" />
-          
+
           {/* Room 3: Right Side */}
           <path d="M55,10 H90 V90 H55 V60 H65 V40 H55 V10 Z" className="stroke-animate" style={{ animationDelay: '0.3s' }} />
-          
+
           {/* Staircase Detail */}
           <g strokeWidth="1.5" className="stroke-animate-fast">
             <line x1="60" y1="15" x2="85" y2="15" />
@@ -104,14 +104,14 @@ function Logo({ className }: { className?: string }) {
             <line x1="60" y1="25" x2="85" y2="25" />
             <line x1="60" y1="30" x2="85" y2="30" />
           </g>
-          
+
           {/* Structural Columns */}
           <rect x="52" y="52" width="6" height="6" fill="none" className="stroke-animate-fast" />
           <rect x="52" y="32" width="6" height="6" fill="none" className="stroke-animate-fast" />
 
           {/* Door Swing */}
           <path d="M45,40 Q55,40 55,30" strokeWidth="1.5" strokeDasharray="2,2" className="stroke-animate-fast" />
-          
+
           {/* Window */}
           <line x1="90" y1="50" x2="90" y2="80" stroke="#00AEEF" strokeWidth="4" className="stroke-animate" style={{ animationDelay: '0.4s' }} />
         </g>
@@ -125,13 +125,13 @@ function Logo({ className }: { className?: string }) {
           <rect x="52" y="32" width="6" height="6" fill="#003087" />
           <rect x="18" y="15" width="8" height="8" fill="white" opacity="0.3" />
           <rect x="25" y="60" width="10" height="5" fill="white" opacity="0.3" />
-          <rect x="0" y="0" width="100" height="100" rx="4" fill="url(#headerGrid)" opacity="0.3" style={{ pointerEvents: 'none' }}/>
+          <rect x="0" y="0" width="100" height="100" rx="4" fill="url(#headerGrid)" opacity="0.3" style={{ pointerEvents: 'none' }} />
         </g>
-        
+
         {/* Text */}
         <g className="text-animate">
           <text x="130" y="50" dominantBaseline="middle" fontFamily="'Montserrat', sans-serif" fontSize="65" letterSpacing="-1">
-            <tspan fill="#003087" fontWeight="700">Architect</tspan>
+            <tspan fill="#ffffff" fontWeight="700">Architect</tspan>
             <tspan dx="10" fill="#00AEEF" fontWeight="400">Studio</tspan>
           </text>
         </g>
@@ -146,10 +146,10 @@ export function Header() {
   const { subscription } = useSubscription();
 
   return (
-    <header className="fixed top-4 left-4 right-4 z-50 border border-white/20 bg-gradient-to-b from-white/15 to-white/5 backdrop-blur-xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.2),inset_0_-1px_0_rgba(0,0,0,0.2)] transition-all duration-300">
+    <header className="fixed top-4 left-4 right-4 z-50 border border-white/5 bg-[#14151a]/80 backdrop-blur-xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.6)] transition-all duration-300">
       <div className="w-full px-4 h-20 flex items-center justify-between">
         <Link href="/">
-          <Logo 
+          <Logo
             className="h-14 w-auto transition-transform hover:scale-105 cursor-pointer"
           />
         </Link>
@@ -247,25 +247,25 @@ export function Header() {
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 {user?.profileImageUrl ? (
-                  <img 
-                    src={user.profileImageUrl} 
-                    alt={user.firstName || 'User'} 
-                    className="w-8 h-8 rounded-full border border-white/20"
+                  <img
+                    src={user.profileImageUrl}
+                    alt={user.firstName || 'User'}
+                    className="w-8 h-8 rounded-full border border-white/10"
                     data-testid="img-user-avatar"
                   />
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                    <User className="w-4 h-4 text-primary" />
+                    <User className="w-4 h-4 text-primary drop-shadow-[0_0_8px_rgba(var(--primary),0.8)]" />
                   </div>
                 )}
-                <span className="text-sm font-medium text-foreground hidden md:inline" data-testid="text-user-name">
+                <span className="text-sm font-medium text-white/90 hidden md:inline" data-testid="text-user-name">
                   {user?.firstName || 'User'}
                 </span>
               </div>
               <a href="/api/auth/logout">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="gap-2 text-muted-foreground hover:text-foreground"
                   data-testid="button-logout"
                 >
@@ -277,9 +277,9 @@ export function Header() {
           ) : (
             <div className="flex items-center gap-2">
               <a href="/api/auth/login">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="gap-2 text-muted-foreground hover:text-foreground"
                   data-testid="button-signin"
                 >
@@ -288,8 +288,8 @@ export function Header() {
                 </Button>
               </a>
               <a href="/api/auth/login">
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   className="gap-2 bg-primary hover:bg-primary/90 text-white border-0 shadow-lg shadow-primary/20"
                   data-testid="button-signup"
                 >

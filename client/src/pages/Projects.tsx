@@ -53,11 +53,11 @@ export function Projects() {
     <Layout>
       <PageTransition>
         <div className="container mx-auto px-4 py-12">
-          <div className="flex items-center justify-between mb-12">
+          <div className="flex items-center justify-between mb-12 relative z-10">
             <div>
-              <h1 className="text-4xl font-display font-bold mb-2">My Projects</h1>
-              <div className="h-1 w-16 bg-gradient-to-r from-primary to-primary/40 rounded-full mb-3" />
-              <p className="text-muted-foreground">Manage and view your architectural generations.</p>
+              <h1 className="text-4xl font-display font-bold mb-2 text-white/90">My Projects</h1>
+              <div className="h-1 w-16 bg-primary rounded-full mb-3 shadow-[0_0_15px_rgba(var(--primary),0.5)]" />
+              <p className="text-white/50">Manage and view your architectural generations.</p>
             </div>
             <Link href="/upload">
               <Button className="gap-2 bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20" data-testid="button-new-project">
@@ -95,13 +95,13 @@ export function Projects() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5, ease: "easeOut" }}
-              className="text-center py-24 dark-glass-card rounded-3xl"
+              className="text-center py-24 weavy-panel rounded-3xl"
             >
-              <div className="w-16 h-16 mx-auto mb-6 bg-primary/10 rounded-2xl flex items-center justify-center">
-                <FolderOpen className="w-8 h-8 text-primary floating-animation" />
+              <div className="w-16 h-16 mx-auto mb-6 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 shadow-[0_0_20px_rgba(var(--primary),0.1)]">
+                <FolderOpen className="w-8 h-8 text-primary floating-animation drop-shadow-[0_0_10px_rgba(var(--primary),0.8)]" />
               </div>
-              <h3 className="text-xl font-medium mb-2">No projects yet</h3>
-              <p className="text-muted-foreground mb-6">Upload your first floorplan to get started.</p>
+              <h3 className="text-xl font-medium mb-2 text-white/90">No projects yet</h3>
+              <p className="text-white/50 mb-6">Upload your first floorplan to get started.</p>
               <Link href="/upload">
                 <Button className="shadow-lg shadow-primary/20" data-testid="button-start-creating">Start Creating</Button>
               </Link>

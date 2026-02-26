@@ -198,6 +198,32 @@
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
+  /* Weavy Workspace Layout */
+  .weavy-panel {
+    background: #111111;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+  }
+
+  .weavy-node {
+    background: #1a1a1a;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: all 0.2s ease;
+  }
+  .weavy-node:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+    background: #222222;
+  }
+  .weavy-node.active {
+    border-color: hsl(var(--primary) / 0.5);
+    background: hsl(var(--primary) / 0.1);
+  }
+
+  .workspace-canvas-bg {
+    background-color: #0A0A0A;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
   /* Section Glow Effect */
   .section-glow {
     position: relative;

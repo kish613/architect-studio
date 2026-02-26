@@ -6,11 +6,11 @@ import { FeaturedProjects } from "@/components/landing/FeaturedProjects";
 
 export function Home() {
   return (
-    <div className="bg-[#F8FAFC] text-slate-800 antialiased selection:bg-cyan-100 selection:text-cyan-900">
+    <div className="bg-[#0A0A0A] text-white/90 antialiased selection:bg-primary/30 selection:text-white workspace-canvas-bg min-h-screen">
       {/* Hero Section */}
-      <div className="hero-bg min-h-screen relative overflow-hidden blueprint-grid">
+      <div className="relative overflow-hidden w-full h-full">
         {/* Abstract Decoration */}
-        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-to-b from-cyan-100/40 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
+        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3" />
 
         {/* Navigation */}
         <LandingNav />
@@ -37,7 +37,7 @@ export function Home() {
       </div>
 
       {/* Footer */}
-      <footer className="py-12 border-t border-slate-200 bg-white text-center text-slate-500 text-sm font-[var(--font-poppins)]">
+      <footer className="py-12 border-t border-white/10 bg-[#0f1115] text-center text-white/40 text-sm font-[var(--font-poppins)]">
         <div className="container mx-auto px-4">
           <p>&copy; {new Date().getFullYear()} Architect Studio. All rights reserved.</p>
         </div>

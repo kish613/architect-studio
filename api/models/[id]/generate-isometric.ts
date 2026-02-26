@@ -174,7 +174,7 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
 - 4K QUALITY, photorealistic materials, ultra-high resolution textures`;
 
           // Use Gemini Flash Image REST API (more widely available)
-          const modelName = "gemini-2.5-flash-image";
+          const modelName = "gemini-3.1-flash-image";
           const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
 
           console.log("=== GEMINI API CALL START ===");

@@ -2,8 +2,26 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, ZoomIn, Home, FileText, ArrowLeftRight } from "lucide-react";
+import { Download, ZoomIn, ZoomOut, Expand, Home, FileText, ArrowLeftRight } from "lucide-react";
+import { TransformWrapper, TransformComponent, useControls } from "react-zoom-pan-pinch";
 import type { PlanningAnalysis } from "@/lib/api";
+
+const ViewZoomControls = () => {
+  const { zoomIn, zoomOut, resetTransform } = useControls();
+  return (
+    <div className="absolute top-2 right-2 flex gap-1 z-50 bg-black/60 backdrop-blur-md p-1 rounded-lg border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity">
+      <Button variant="ghost" size="icon" className="h-6 w-6 text-white hover:bg-white/20" onClick={() => zoomIn()}>
+        <ZoomIn className="w-3 h-3" />
+      </Button>
+      <Button variant="ghost" size="icon" className="h-6 w-6 text-white hover:bg-white/20" onClick={() => zoomOut()}>
+        <ZoomOut className="w-3 h-3" />
+      </Button>
+      <Button variant="ghost" size="icon" className="h-6 w-6 text-white hover:bg-white/20" onClick={() => resetTransform()}>
+        <Expand className="w-3 h-3" />
+      </Button>
+    </div>
+  );
+};
 
 interface VisualizationCompareProps {
   analysis: PlanningAnalysis;
@@ -68,12 +86,17 @@ export function VisualizationCompare({ analysis }: VisualizationCompareProps) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                <div className="relative aspect-[4/3]">
-                  <img
-                    src={analysis.propertyImageUrl}
-                    alt="Original property"
-                    className="w-full h-full object-cover"
-                  />
+                <div className="relative aspect-[4/3] group">
+                  <TransformWrapper centerOnInit minScale={0.5} maxScale={4}>
+                    <ViewZoomControls />
+                    <TransformComponent wrapperClass="w-full h-full" contentClass="w-full h-full">
+                      <img
+                        src={analysis.propertyImageUrl}
+                        alt="Original property"
+                        className="w-full h-full object-cover cursor-grab active:cursor-grabbing"
+                      />
+                    </TransformComponent>
+                  </TransformWrapper>
                 </div>
               </CardContent>
             </Card>
@@ -87,15 +110,20 @@ export function VisualizationCompare({ analysis }: VisualizationCompareProps) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                <div className="relative aspect-[4/3]">
+                <div className="relative aspect-[4/3] group">
                   {analysis.generatedExteriorUrl ? (
                     <>
-                      <img
-                        src={analysis.generatedExteriorUrl}
-                        alt="Modified property visualization"
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute bottom-3 right-3 flex gap-2">
+                      <TransformWrapper centerOnInit minScale={0.5} maxScale={4}>
+                        <ViewZoomControls />
+                        <TransformComponent wrapperClass="w-full h-full" contentClass="w-full h-full">
+                          <img
+                            src={analysis.generatedExteriorUrl}
+                            alt="Modified property visualization"
+                            className="w-full h-full object-cover cursor-grab active:cursor-grabbing"
+                          />
+                        </TransformComponent>
+                      </TransformWrapper>
+                      <div className="absolute bottom-3 right-3 flex gap-2 z-50">
                         <Button
                           size="sm"
                           variant="secondary"
@@ -178,12 +206,17 @@ export function VisualizationCompare({ analysis }: VisualizationCompareProps) {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <div className="relative aspect-[4/3]">
-                    <img
-                      src={analysis.floorplanUrl}
-                      alt="Original floor plan"
-                      className="w-full h-full object-contain bg-white/5 p-4"
-                    />
+                  <div className="relative aspect-[4/3] bg-white/5 border-t border-white/5 group">
+                    <TransformWrapper centerOnInit minScale={0.5} maxScale={4}>
+                      <ViewZoomControls />
+                      <TransformComponent wrapperClass="w-full h-full" contentClass="w-full h-full p-4">
+                        <img
+                          src={analysis.floorplanUrl}
+                          alt="Original floor plan"
+                          className="w-full h-full object-contain cursor-grab active:cursor-grabbing"
+                        />
+                      </TransformComponent>
+                    </TransformWrapper>
                   </div>
                 </CardContent>
               </Card>
@@ -197,15 +230,20 @@ export function VisualizationCompare({ analysis }: VisualizationCompareProps) {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <div className="relative aspect-[4/3]">
+                  <div className="relative aspect-[4/3] bg-white/5 border-t border-white/5 group">
                     {analysis.generatedFloorplanUrl ? (
                       <>
-                        <img
-                          src={analysis.generatedFloorplanUrl}
-                          alt="Modified floor plan"
-                          className="w-full h-full object-contain bg-white/5 p-4"
-                        />
-                        <div className="absolute bottom-3 right-3 flex gap-2">
+                        <TransformWrapper centerOnInit minScale={0.5} maxScale={4}>
+                          <ViewZoomControls />
+                          <TransformComponent wrapperClass="w-full h-full" contentClass="w-full h-full p-4">
+                            <img
+                              src={analysis.generatedFloorplanUrl}
+                              alt="Modified floor plan"
+                              className="w-full h-full object-contain cursor-grab active:cursor-grabbing"
+                            />
+                          </TransformComponent>
+                        </TransformWrapper>
+                        <div className="absolute bottom-3 right-3 flex gap-2 z-50">
                           <Button
                             size="sm"
                             variant="secondary"

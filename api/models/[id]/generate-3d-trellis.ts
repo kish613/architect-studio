@@ -10,7 +10,7 @@ import { jwtVerify } from "jose";
 // Allow up to 5 minutes for TRELLIS generation
 export const maxDuration = 300;
 
-const TRELLIS_SPACE = "trellis-community/TRELLIS";
+const TRELLIS_SPACE = process.env.TRELLIS_SPACE || "trellis-community/TRELLIS";
 
 // Inline schema
 const users = pgTable("users", {

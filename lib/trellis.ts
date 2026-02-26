@@ -1,6 +1,6 @@
 import { Client, handle_file } from "@gradio/client";
 
-const TRELLIS_SPACE = "trellis-community/TRELLIS";
+const TRELLIS_SPACE = process.env.TRELLIS_SPACE || "trellis-community/TRELLIS";
 
 export interface TrellisResult {
   success: boolean;

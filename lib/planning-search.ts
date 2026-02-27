@@ -340,7 +340,7 @@ REQUIREMENTS:
 
 Generate a photorealistic image showing this property with the ${modificationType.replace(/_/g, ' ')} added.`;
 
-          const modelName = "gemini-3.1-flash-image";
+          const modelName = "gemini-3.1-flash-image-preview";
           const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
 
           console.log("=== PROPERTY VISUALIZATION API CALL ===");
@@ -359,10 +359,10 @@ Generate a photorealistic image showing this property with the ${modificationTyp
               ]
             }],
             generationConfig: {
-              response_modalities: ["TEXT", "IMAGE"],
-              image_config: {
-                aspect_ratio: "16:9",
-                image_size: "2K"
+              responseModalities: ["TEXT", "IMAGE"],
+              imageConfig: {
+                aspectRatio: "16:9",
+                imageSize: "2K"
               }
             }
           };
@@ -402,7 +402,8 @@ Generate a photorealistic image showing this property with the ${modificationTyp
           }
 
           if (!imageData) {
-            throw new Error("No image generated in response");
+            // Known Gemini issue - complex prompts sometimes get text-only responses
+            throw new Error("NO_IMAGE_DATA: Model returned text-only response, retrying...");
           }
 
           // Upload to Vercel Blob
@@ -421,7 +422,8 @@ Generate a photorealistic image showing this property with the ${modificationTyp
           };
         } catch (error: any) {
           if (error instanceof AbortError) throw error;
-          if (isRateLimitError(error)) {
+          // Retry on rate limits and "no image data" responses (known Gemini issue)
+          if (isRateLimitError(error) || error?.message?.includes("NO_IMAGE_DATA")) {
             throw error;
           }
           console.error("Visualization error:", error);
@@ -432,11 +434,12 @@ Generate a photorealistic image showing this property with the ${modificationTyp
         }
       },
       {
-        retries: 3,
-        minTimeout: 2000,
-        maxTimeout: 30000,
-        onFailedAttempt: (error) => {
-          console.log(`Visualization attempt ${error.attemptNumber} failed. Retries left: ${error.retriesLeft}`);
+        retries: 5,
+        minTimeout: 3000,
+        maxTimeout: 45000,
+        factor: 2,
+        onFailedAttempt: (error: any) => {
+          console.log(`Visualization attempt ${error.attemptNumber} failed. ${error.retriesLeft} retries left.`);
         }
       }
     )
@@ -489,7 +492,7 @@ REQUIREMENTS:
 
 Generate a modified floor plan image showing this extension incorporated.`;
 
-          const modelName = "gemini-3.1-flash-image";
+          const modelName = "gemini-3.1-flash-image-preview";
           const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
 
           console.log("=== FLOORPLAN MODIFICATION API CALL ===");
@@ -507,10 +510,10 @@ Generate a modified floor plan image showing this extension incorporated.`;
               ]
             }],
             generationConfig: {
-              response_modalities: ["TEXT", "IMAGE"],
-              image_config: {
-                aspect_ratio: "4:3",
-                image_size: "2K"
+              responseModalities: ["TEXT", "IMAGE"],
+              imageConfig: {
+                aspectRatio: "4:3",
+                imageSize: "2K"
               }
             }
           };
@@ -549,7 +552,8 @@ Generate a modified floor plan image showing this extension incorporated.`;
           }
 
           if (!imageData) {
-            throw new Error("No floor plan image generated");
+            // Known Gemini issue - complex prompts sometimes get text-only responses
+            throw new Error("NO_IMAGE_DATA: Model returned text-only response, retrying...");
           }
 
           const imageBuffer = Buffer.from(imageData, "base64");
@@ -567,7 +571,8 @@ Generate a modified floor plan image showing this extension incorporated.`;
           };
         } catch (error: any) {
           if (error instanceof AbortError) throw error;
-          if (isRateLimitError(error)) {
+          // Retry on rate limits and "no image data" responses (known Gemini issue)
+          if (isRateLimitError(error) || error?.message?.includes("NO_IMAGE_DATA")) {
             throw error;
           }
           console.error("Floorplan modification error:", error);
@@ -578,11 +583,12 @@ Generate a modified floor plan image showing this extension incorporated.`;
         }
       },
       {
-        retries: 3,
-        minTimeout: 2000,
-        maxTimeout: 30000,
-        onFailedAttempt: (error) => {
-          console.log(`Floorplan modification attempt ${error.attemptNumber} failed. Retries left: ${error.retriesLeft}`);
+        retries: 5,
+        minTimeout: 3000,
+        maxTimeout: 45000,
+        factor: 2,
+        onFailedAttempt: (error: any) => {
+          console.log(`Floorplan modification attempt ${error.attemptNumber} failed. ${error.retriesLeft} retries left.`);
         }
       }
     )

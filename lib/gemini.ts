@@ -95,7 +95,7 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
 - 4K QUALITY, photorealistic materials, ultra-high resolution textures`;
 
           // Use Gemini Flash Image REST API (more widely available)
-          const modelName = "gemini-3.1-flash-image";
+          const modelName = "gemini-3.1-flash-image-preview";
           const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
 
           console.log("=== GEMINI API CALL START ===");
@@ -120,18 +120,18 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
               ]
             }],
             generationConfig: {
-              response_modalities: ["TEXT", "IMAGE"],
-              image_config: {
-                aspect_ratio: "16:9",
-                image_size: "2K"
+              responseModalities: ["TEXT", "IMAGE"],
+              imageConfig: {
+                aspectRatio: "16:9",
+                imageSize: "2K"
               }
             }
           };
 
           console.log("Request config:", JSON.stringify({
-            aspectRatio: requestBody.generationConfig.image_config.aspect_ratio,
-            imageSize: requestBody.generationConfig.image_config.image_size,
-            responseModalities: requestBody.generationConfig.response_modalities,
+            aspectRatio: requestBody.generationConfig.imageConfig.aspectRatio,
+            imageSize: requestBody.generationConfig.imageConfig.imageSize,
+            responseModalities: requestBody.generationConfig.responseModalities,
             promptLength: prompt.length
           }, null, 2));
 
@@ -245,8 +245,9 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
               hasInlineData: !!p.inline_data,
               inlineDataKeys: p.inline_data ? Object.keys(p.inline_data) : []
             })));
-            console.error("Full candidate:", JSON.stringify(candidate, null, 2));
-            throw new Error("No image data in API response - model may not support image generation");
+            // This is a known Gemini issue - complex prompts sometimes get text-only responses.
+            // Throw a retryable error (NOT AbortError) so p-retry will attempt again.
+            throw new Error("NO_IMAGE_DATA: Model returned text-only response, retrying...");
           }
 
           console.log("=== IMAGE DATA FOUND ===");
@@ -293,19 +294,24 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
             status: error?.status
           }, null, 2));
 
-          if (isRateLimitError(error)) {
-            console.error("Rate limit error detected, will retry...");
-            throw error;
+          // Retry on rate limits and "no image data" responses (known Gemini issue)
+          if (isRateLimitError(error) || error?.message?.includes("NO_IMAGE_DATA")) {
+            console.log("Retryable error detected:", error?.message);
+            throw error; // p-retry will retry this
           }
           console.error("Non-retryable error, aborting...");
           throw new AbortError(error.message || "Generation failed");
         }
       },
       {
-        retries: 3,
-        minTimeout: 2000,
-        maxTimeout: 30000,
+        retries: 5,
+        minTimeout: 3000,
+        maxTimeout: 45000,
         factor: 2,
+        onFailedAttempt: (error: any) => {
+          console.log(`Attempt ${error.attemptNumber} failed. ${error.retriesLeft} retries left.`);
+          console.log(`Error: ${error.message}`);
+        },
       }
     )
   );

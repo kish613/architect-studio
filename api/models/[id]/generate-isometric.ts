@@ -375,8 +375,9 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
               hasInlineData: !!p.inline_data,
               inlineDataKeys: p.inline_data ? Object.keys(p.inline_data) : []
             })));
-            console.error("Full candidate:", JSON.stringify(candidate, null, 2));
-            throw new Error("No image data in API response - model may not support image generation");
+            // This is a known Gemini issue - complex prompts sometimes get text-only responses.
+            // Throw a retryable error (NOT AbortError) so p-retry will attempt again.
+            throw new Error("NO_IMAGE_DATA: Model returned text-only response, retrying...");
           }
 
           console.log("=== IMAGE DATA FOUND ===");
@@ -412,17 +413,23 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
             imageUrl: blob.url,
           };
         } catch (error: any) {
-          if (isRateLimitError(error)) {
-            throw error;
+          // Retry on rate limits and "no image data" responses (known Gemini issue)
+          if (isRateLimitError(error) || error?.message?.includes("NO_IMAGE_DATA")) {
+            console.log("Retryable error detected:", error?.message);
+            throw error; // p-retry will retry this
           }
           throw new AbortError(error.message || "Generation failed");
         }
       },
       {
-        retries: 3,
-        minTimeout: 2000,
-        maxTimeout: 30000,
+        retries: 5,
+        minTimeout: 3000,
+        maxTimeout: 45000,
         factor: 2,
+        onFailedAttempt: (error: any) => {
+          console.log(`Attempt ${error.attemptNumber} failed. ${error.retriesLeft} retries left.`);
+          console.log(`Error: ${error.message}`);
+        },
       }
     )
   );
@@ -651,9 +658,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         details: errorMessage
       });
     }
-    if (errorMessage.includes("No image data in API response")) {
+    if (errorMessage.includes("NO_IMAGE_DATA") || errorMessage.includes("No image data")) {
       return res.status(500).json({
-        error: "The AI model failed to generate an image. This might be a temporary issue - please try again.",
+        error: "The AI model returned a text-only response after multiple retries. This is a known intermittent issue. Please try again.",
         details: errorMessage
       });
     }

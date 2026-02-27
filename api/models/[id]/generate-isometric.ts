@@ -173,8 +173,8 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
 - CONSISTENT LIGHTING: Even, studio-style lighting without harsh shadows on the model
 - 4K QUALITY, photorealistic materials, ultra-high resolution textures`;
 
-          // Use Gemini Flash Image REST API (more widely available)
-          const modelName = "gemini-3.1-flash-image";
+          // Use Gemini 3.1 Flash Image REST API (preview)
+          const modelName = "gemini-3.1-flash-image-preview";
           const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
 
           console.log("=== GEMINI API CALL START ===");
@@ -199,10 +199,10 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
               ]
             }],
             generationConfig: {
-              response_modalities: ["TEXT", "IMAGE"],
-              image_config: {
-                aspect_ratio: "16:9",
-                image_size: "2K"
+              responseModalities: ["TEXT", "IMAGE"],
+              imageConfig: {
+                aspectRatio: "16:9",
+                imageSize: "2K"
               }
             }
           };

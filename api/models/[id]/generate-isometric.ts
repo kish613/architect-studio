@@ -191,13 +191,20 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
               parts: [
                 { text: prompt },
                 {
-                  inlineData: {
-                    mimeType: mimeType,
+                  inline_data: {
+                    mime_type: mimeType,
                     data: base64Image
                   }
                 }
               ]
-            }]
+            }],
+            generationConfig: {
+              response_modalities: ["TEXT", "IMAGE"],
+              image_config: {
+                aspect_ratio: "16:9",
+                image_size: "2K"
+              }
+            }
           };
 
           console.log("Request config:", JSON.stringify({
@@ -213,13 +220,14 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
               parts: [
                 { text: `[PROMPT: ${prompt.substring(0, 100)}...]` },
                 {
-                  inlineData: {
-                    mimeType: imagePartData?.inlineData?.mimeType || mimeType,
-                    data: `[BASE64 DATA: ${imagePartData?.inlineData?.data?.length || 0} chars]`
+                  inline_data: {
+                    mime_type: imagePartData?.inline_data?.mime_type || mimeType,
+                    data: `[BASE64 DATA: ${imagePartData?.inline_data?.data?.length || 0} chars]`
                   }
                 }
               ]
-            }]
+            }],
+            generationConfig: requestBody.generationConfig
           }, null, 2));
 
           const startTime = Date.now();
@@ -347,36 +355,36 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
             console.log(`Part ${idx}:`, JSON.stringify({
               hasText: !!part.text,
               textLength: part.text?.length || 0,
-              hasInlineData: !!part.inlineData,
-              hasMimeType: !!part.inlineData?.mimeType,
-              mimeType: part.inlineData?.mimeType,
-              hasData: !!part.inlineData?.data,
-              dataLength: part.inlineData?.data?.length || 0
+              hasInlineData: !!part.inline_data,
+              hasMimeType: !!part.inline_data?.mime_type,
+              mimeType: part.inline_data?.mime_type,
+              hasData: !!part.inline_data?.data,
+              dataLength: part.inline_data?.data?.length || 0
             }, null, 2));
           });
 
-          const imagePart = parts.find((part: any) => part.inlineData);
+          const imagePart = parts.find((part: any) => part.inline_data);
 
-          if (!imagePart?.inlineData?.data) {
+          if (!imagePart?.inline_data?.data) {
             console.error("=== NO IMAGE DATA FOUND ===");
             console.error("Total parts:", parts.length);
             console.error("Parts breakdown:", parts.map((p: any, idx: number) => ({
               index: idx,
               hasText: !!p.text,
               textPreview: p.text?.substring(0, 100),
-              hasInlineData: !!p.inlineData,
-              inlineDataKeys: p.inlineData ? Object.keys(p.inlineData) : []
+              hasInlineData: !!p.inline_data,
+              inlineDataKeys: p.inline_data ? Object.keys(p.inline_data) : []
             })));
             console.error("Full candidate:", JSON.stringify(candidate, null, 2));
             throw new Error("No image data in API response - model may not support image generation");
           }
 
           console.log("=== IMAGE DATA FOUND ===");
-          console.log("MIME Type:", imagePart.inlineData.mimeType);
-          console.log("Data length:", imagePart.inlineData.data.length, "chars");
-          console.log("Estimated image size:", Math.round(imagePart.inlineData.data.length * 0.75 / 1024), "KB");
+          console.log("MIME Type:", imagePart.inline_data.mime_type);
+          console.log("Data length:", imagePart.inline_data.data.length, "chars");
+          console.log("Estimated image size:", Math.round(imagePart.inline_data.data.length * 0.75 / 1024), "KB");
 
-          const outputMimeType = imagePart.inlineData.mimeType || "image/png";
+          const outputMimeType = imagePart.inline_data.mime_type || "image/png";
           const ext = outputMimeType.includes("png") ? "png" : "jpg";
           const filename = `isometric-${Date.now()}.${ext}`;
 
@@ -385,7 +393,7 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
           console.log("File extension:", ext);
           console.log("Filename:", filename);
 
-          const imageData = Buffer.from(imagePart.inlineData.data, "base64");
+          const imageData = Buffer.from(imagePart.inline_data.data, "base64");
           console.log("Buffer created, size:", imageData.length, "bytes");
 
           // Upload to Vercel Blob

@@ -240,7 +240,8 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
                 "x-goog-api-key": apiKey,
                 "Content-Type": "application/json"
               },
-              body: JSON.stringify(requestBody)
+              body: JSON.stringify(requestBody),
+              signal: AbortSignal.timeout(50000), // 50s timeout per request
             });
 
             const requestDuration = Date.now() - startTime;
@@ -422,9 +423,9 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
         }
       },
       {
-        retries: 5,
-        minTimeout: 3000,
-        maxTimeout: 45000,
+        retries: 2,
+        minTimeout: 2000,
+        maxTimeout: 5000,
         factor: 2,
         onFailedAttempt: (error: any) => {
           console.log(`Attempt ${error.attemptNumber} failed. ${error.retriesLeft} retries left.`);

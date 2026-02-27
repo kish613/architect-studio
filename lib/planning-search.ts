@@ -373,7 +373,8 @@ Generate a photorealistic image showing this property with the ${modificationTyp
               "x-goog-api-key": apiKey,
               "Content-Type": "application/json"
             },
-            body: JSON.stringify(requestBody)
+            body: JSON.stringify(requestBody),
+            signal: AbortSignal.timeout(50000), // 50s timeout per request
           });
 
           if (!response.ok) {
@@ -434,9 +435,9 @@ Generate a photorealistic image showing this property with the ${modificationTyp
         }
       },
       {
-        retries: 5,
-        minTimeout: 3000,
-        maxTimeout: 45000,
+        retries: 2,
+        minTimeout: 2000,
+        maxTimeout: 5000,
         factor: 2,
         onFailedAttempt: (error: any) => {
           console.log(`Visualization attempt ${error.attemptNumber} failed. ${error.retriesLeft} retries left.`);
@@ -524,7 +525,8 @@ Generate a modified floor plan image showing this extension incorporated.`;
               "x-goog-api-key": apiKey,
               "Content-Type": "application/json"
             },
-            body: JSON.stringify(requestBody)
+            body: JSON.stringify(requestBody),
+            signal: AbortSignal.timeout(50000), // 50s timeout per request
           });
 
           if (!response.ok) {
@@ -583,9 +585,9 @@ Generate a modified floor plan image showing this extension incorporated.`;
         }
       },
       {
-        retries: 5,
-        minTimeout: 3000,
-        maxTimeout: 45000,
+        retries: 2,
+        minTimeout: 2000,
+        maxTimeout: 5000,
         factor: 2,
         onFailedAttempt: (error: any) => {
           console.log(`Floorplan modification attempt ${error.attemptNumber} failed. ${error.retriesLeft} retries left.`);

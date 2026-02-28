@@ -41,6 +41,7 @@ import {
   Scale,
   FileSearch,
   Layers,
+  Cuboid,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -406,7 +407,7 @@ export function PlanningViewer() {
               })()}
 
               {analysis.status === "options_ready" && (
-                <div className="flex justify-center pt-4 pb-12">
+                <div className="flex flex-col gap-3 pt-4 pb-12">
                   <Button
                     size="lg"
                     className="w-full gap-2 bg-primary hover:bg-primary/90 text-white shadow-[0_0_20px_rgba(var(--primary),0.3)] transition-all transform hover:scale-[1.02]"
@@ -418,6 +419,14 @@ export function PlanningViewer() {
                     ) : (
                       <><Sparkles className="w-4 h-4" /> Generate Extension</>
                     )}
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/10 transition-all"
+                    onClick={() => setLocation(`/planning/${analysis.id}/cad`)}
+                  >
+                    <Cuboid className="w-4 h-4" /> View 3D CAD Model
                   </Button>
                 </div>
               )}

@@ -215,6 +215,9 @@ export interface ExtensionDetail {
   type: ExtensionType;
   description: string;
   additionalSqM: number;
+  depthM?: number;
+  widthM?: number;
+  heightM?: number;
   requiresPlanningPermission: boolean;
   pdrCompliant: boolean;
 }
@@ -222,11 +225,22 @@ export interface ExtensionDetail {
 export interface ExtensionOption {
   tier: ExtensionOptionTier;
   label: string;
+  description: string;
+  requiresPlanningPermission: boolean;
   extensions: ExtensionDetail[];
   totalAdditionalSqM: number;
+  estimatedCostGBP: {
+    low: number;
+    mid: number;
+    high: number;
+  };
   costRange?: { min: number; max: number };
-  approvalLikelihood: 'very_high' | 'high' | 'medium' | 'low';
+  approvalLikelihood: 'very_high' | 'high' | 'medium' | 'low' | 'moderate';
+  planningNotes: string[];
   estimatedTimeline: string;
+  partyWallRequired: boolean;
+  buildingRegsRequired: boolean;
+  timelineWeeks: { min: number; max: number };
   requiresPartyWall: boolean;
 }
 

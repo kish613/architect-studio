@@ -1,6 +1,6 @@
 import { Client, handle_file } from "@gradio/client";
 
-const TRELLIS_SPACE = "trellis-community/TRELLIS";
+const TRELLIS_SPACE = process.env.TRELLIS_SPACE || "trellis-community/TRELLIS";
 
 export interface TrellisResult {
   success: boolean;
@@ -43,20 +43,30 @@ export async function generateTrellis3D(
 
   try {
     const hfToken = process.env.HF_TOKEN;
+
+    // Download the image first so we can upload it directly to the Gradio Space.
+    // Passing a URL via handle_file relies on the Space server fetching the image,
+    // which fails for external URLs (e.g. Vercel Blob) with a "file not found" error.
+    const imageResponse = await fetch(imageUrl);
+    if (!imageResponse.ok) {
+      throw new Error(`Failed to fetch image for TRELLIS: ${imageResponse.status}`);
+    }
+    const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+
     const client = await Client.connect(TRELLIS_SPACE, {
       hf_token: hfToken as `hf_${string}` | undefined,
     });
 
     const result = await client.predict("/generate_and_extract_glb", [
-      handle_file(imageUrl),  // image
-      null,                    // multiimages (not used for single image)
-      false,                   // is_multiimage
+      handle_file(imageBuffer), // image — uploaded as blob to the Space
+      null,                      // multiimages (not used for single image)
+      false,                     // is_multiimage
       opts.seed,
       opts.ssGuidanceStrength,
       opts.ssSamplingSteps,
       opts.slatGuidanceStrength,
       opts.slatSamplingSteps,
-      "stochastic",            // multiimage_algo
+      "stochastic",              // multiimage_algo
       opts.meshSimplify,
       opts.textureSize,
     ]);

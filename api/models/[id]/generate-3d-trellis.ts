@@ -10,7 +10,7 @@ import { jwtVerify } from "jose";
 // Allow up to 5 minutes for TRELLIS generation
 export const maxDuration = 300;
 
-const TRELLIS_SPACE = "trellis-community/TRELLIS";
+const TRELLIS_SPACE = process.env.TRELLIS_SPACE || "trellis-community/TRELLIS";
 
 // Inline schema
 const users = pgTable("users", {
@@ -80,22 +80,31 @@ async function verifySession(token: string): Promise<{ userId: string } | null> 
 async function generateWithTrellis(imageUrl: string) {
   const hfToken = process.env.HF_TOKEN;
 
+  // Download the image first so we can upload it directly to the Gradio Space.
+  // Passing a URL via handle_file relies on the Space server fetching the image,
+  // which fails for external URLs (e.g. Vercel Blob) with a "file not found" error.
+  const imageResponse = await fetch(imageUrl);
+  if (!imageResponse.ok) {
+    throw new Error(`Failed to fetch isometric image for TRELLIS: ${imageResponse.status}`);
+  }
+  const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+
   const client = await Client.connect(TRELLIS_SPACE, {
     hf_token: hfToken as `hf_${string}` | undefined,
   });
 
   const result = await client.predict("/generate_and_extract_glb", [
-    handle_file(imageUrl), // image
-    null,                   // multiimages
-    false,                  // is_multiimage
-    0,                      // seed
-    7.5,                    // ss_guidance_strength
-    12,                     // ss_sampling_steps
-    3.0,                    // slat_guidance_strength
-    12,                     // slat_sampling_steps
-    "stochastic",           // multiimage_algo
-    0.95,                   // mesh_simplify
-    1024,                   // texture_size
+    handle_file(imageBuffer), // image — uploaded as blob to the Space
+    null,                      // multiimages
+    false,                     // is_multiimage
+    0,                         // seed
+    7.5,                       // ss_guidance_strength
+    12,                        // ss_sampling_steps
+    3.0,                       // slat_guidance_strength
+    12,                        // slat_sampling_steps
+    "stochastic",              // multiimage_algo
+    0.95,                      // mesh_simplify
+    1024,                      // texture_size
   ]);
 
   // Result: [state_dict, video_url, glb_display, glb_download]

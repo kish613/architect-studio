@@ -1,0 +1,206 @@
+import { useMemo } from "react";
+import * as THREE from "three";
+import { useScene } from "@/stores/use-scene";
+import { useViewer } from "@/stores/use-viewer";
+import { sceneRegistry } from "@/lib/pascal/scene-registry";
+import { createWallGeometry, getWallTransform, getWallMaterial } from "./systems/wall-system";
+import { createDoorGeometries, getDoorPositionOnWall, getDoorMaterials } from "./systems/door-system";
+import { createWindowGeometries, getWindowPositionOnWall, getWindowMaterials } from "./systems/window-system";
+import { createSlabGeometry, getSlabMaterial } from "./systems/slab-system";
+import { createRoofGeometry, getRoofMaterial } from "./systems/roof-system";
+import { createItemGeometry, getItemTransform, getItemMaterial } from "./systems/item-system";
+import type { WallNode, DoorNode, WindowNode, SlabNode, RoofNode, ItemNode } from "@/lib/pascal/schemas";
+
+function WallMesh({ node }: { node: WallNode }) {
+  const { selectedIds, hoveredId } = useViewer();
+  const isSelected = selectedIds.includes(node.id);
+  const isHovered = hoveredId === node.id;
+  const { position, rotationY } = getWallTransform(node);
+  const geometry = useMemo(() => createWallGeometry(node), [node]);
+  const material = useMemo(() => getWallMaterial(node, isSelected, isHovered), [node, isSelected, isHovered]);
+
+  return (
+    <mesh
+      geometry={geometry}
+      material={material}
+      position={position}
+      rotation={[0, rotationY, 0]}
+      castShadow
+      receiveShadow
+      ref={(mesh) => {
+        if (mesh) sceneRegistry.register(node.id, mesh);
+        else sceneRegistry.unregister(node.id);
+      }}
+      userData={{ nodeId: node.id }}
+    />
+  );
+}
+
+function DoorMesh({ node, walls }: { node: DoorNode; walls: Record<string, WallNode> }) {
+  const { selectedIds } = useViewer();
+  const isSelected = selectedIds.includes(node.id);
+  const wall = walls[node.wallId];
+  if (!wall) return null;
+  const position = getDoorPositionOnWall(node, wall);
+  const { frame, panel } = useMemo(() => createDoorGeometries(node), [node]);
+  const materials = useMemo(() => getDoorMaterials(isSelected), [isSelected]);
+  const dx = wall.end.x - wall.start.x;
+  const dz = wall.end.z - wall.start.z;
+  const rotationY = -Math.atan2(dz, dx);
+
+  return (
+    <group
+      position={position}
+      rotation={[0, rotationY, 0]}
+      ref={(g) => {
+        if (g) sceneRegistry.register(node.id, g);
+        else sceneRegistry.unregister(node.id);
+      }}
+      userData={{ nodeId: node.id }}
+    >
+      <mesh geometry={frame} material={materials.frame} castShadow />
+      <mesh geometry={panel} material={materials.panel} castShadow />
+    </group>
+  );
+}
+
+function WindowMesh({ node, walls }: { node: WindowNode; walls: Record<string, WallNode> }) {
+  const { selectedIds } = useViewer();
+  const isSelected = selectedIds.includes(node.id);
+  const wall = walls[node.wallId];
+  if (!wall) return null;
+  const position = getWindowPositionOnWall(node, wall);
+  const { frame, glass } = useMemo(() => createWindowGeometries(node), [node]);
+  const materials = useMemo(() => getWindowMaterials(isSelected), [isSelected]);
+  const dx = wall.end.x - wall.start.x;
+  const dz = wall.end.z - wall.start.z;
+  const rotationY = -Math.atan2(dz, dx);
+
+  return (
+    <group
+      position={position}
+      rotation={[0, rotationY, 0]}
+      ref={(g) => {
+        if (g) sceneRegistry.register(node.id, g);
+        else sceneRegistry.unregister(node.id);
+      }}
+      userData={{ nodeId: node.id }}
+    >
+      <mesh geometry={frame} material={materials.frame} />
+      <mesh geometry={glass} material={materials.glass} />
+    </group>
+  );
+}
+
+function SlabMesh({ node }: { node: SlabNode }) {
+  const { selectedIds } = useViewer();
+  const isSelected = selectedIds.includes(node.id);
+  const geometry = useMemo(() => createSlabGeometry(node), [node]);
+  const material = useMemo(() => getSlabMaterial(isSelected), [isSelected]);
+  if (!geometry) return null;
+  const pos = node.transform?.position ?? { x: 0, y: 0, z: 0 };
+
+  return (
+    <mesh
+      geometry={geometry}
+      material={material}
+      position={[pos.x, pos.y, pos.z]}
+      receiveShadow
+      ref={(mesh) => {
+        if (mesh) sceneRegistry.register(node.id, mesh);
+        else sceneRegistry.unregister(node.id);
+      }}
+      userData={{ nodeId: node.id }}
+    />
+  );
+}
+
+function RoofMesh({ node }: { node: RoofNode }) {
+  const { selectedIds } = useViewer();
+  const isSelected = selectedIds.includes(node.id);
+  const geometry = useMemo(() => createRoofGeometry(node), [node]);
+  const material = useMemo(() => getRoofMaterial(isSelected), [isSelected]);
+  const pos = node.transform?.position ?? { x: 0, y: 0, z: 0 };
+
+  return (
+    <mesh
+      geometry={geometry}
+      material={material}
+      position={[pos.x, pos.y, pos.z]}
+      castShadow
+      ref={(mesh) => {
+        if (mesh) sceneRegistry.register(node.id, mesh);
+        else sceneRegistry.unregister(node.id);
+      }}
+      userData={{ nodeId: node.id }}
+    />
+  );
+}
+
+function ItemMesh({ node }: { node: ItemNode }) {
+  const { selectedIds } = useViewer();
+  const isSelected = selectedIds.includes(node.id);
+  const geometry = useMemo(() => createItemGeometry(node), [node]);
+  const material = useMemo(() => getItemMaterial(node, isSelected), [node, isSelected]);
+  const { position } = getItemTransform(node);
+
+  return (
+    <mesh
+      geometry={geometry}
+      material={material}
+      position={position}
+      castShadow
+      receiveShadow
+      ref={(mesh) => {
+        if (mesh) sceneRegistry.register(node.id, mesh);
+        else sceneRegistry.unregister(node.id);
+      }}
+      userData={{ nodeId: node.id }}
+    />
+  );
+}
+
+export function SceneRenderer() {
+  const { nodes } = useScene();
+  const { showWalls, showSlabs, showRoofs, showItems } = useViewer();
+
+  const walls = useMemo(
+    () => Object.values(nodes).filter((n): n is WallNode => n.type === "wall"),
+    [nodes]
+  );
+  const wallMap = useMemo(
+    () => Object.fromEntries(walls.map((w) => [w.id, w])) as Record<string, WallNode>,
+    [walls]
+  );
+  const doors = useMemo(
+    () => Object.values(nodes).filter((n): n is DoorNode => n.type === "door"),
+    [nodes]
+  );
+  const windows = useMemo(
+    () => Object.values(nodes).filter((n): n is WindowNode => n.type === "window"),
+    [nodes]
+  );
+  const slabs = useMemo(
+    () => Object.values(nodes).filter((n): n is SlabNode => n.type === "slab"),
+    [nodes]
+  );
+  const roofs = useMemo(
+    () => Object.values(nodes).filter((n): n is RoofNode => n.type === "roof"),
+    [nodes]
+  );
+  const items = useMemo(
+    () => Object.values(nodes).filter((n): n is ItemNode => n.type === "item"),
+    [nodes]
+  );
+
+  return (
+    <group>
+      {showWalls && walls.map((w) => <WallMesh key={w.id} node={w} />)}
+      {showWalls && doors.map((d) => <DoorMesh key={d.id} node={d} walls={wallMap} />)}
+      {showWalls && windows.map((w) => <WindowMesh key={w.id} node={w} walls={wallMap} />)}
+      {showSlabs && slabs.map((s) => <SlabMesh key={s.id} node={s} />)}
+      {showRoofs && roofs.map((r) => <RoofMesh key={r.id} node={r} />)}
+      {showItems && items.map((i) => <ItemMesh key={i.id} node={i} />)}
+    </group>
+  );
+}

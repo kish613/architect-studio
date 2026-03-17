@@ -1,9 +1,10 @@
-import { Suspense } from "react";
-import { Canvas } from "@react-three/fiber";
+import { Suspense, useEffect } from "react";
+import { Canvas, useThree } from "@react-three/fiber";
 import { Environment, Grid, Html, useProgress } from "@react-three/drei";
 import { SceneRenderer } from "./SceneRenderer";
 import { CameraController } from "./CameraController";
 import { useViewer } from "@/stores/use-viewer";
+import { useSelectionClick } from "./SelectionManager";
 
 function Loader() {
   const { progress } = useProgress();
@@ -15,6 +16,23 @@ function Loader() {
       </div>
     </Html>
   );
+}
+
+function SelectionHandler() {
+  const { handlePointerDown } = useSelectionClick();
+  const { gl } = useThree();
+
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const handler = (e: PointerEvent) => {
+      // Native PointerEvent has the same properties as React.PointerEvent
+      handlePointerDown(e as unknown as React.PointerEvent<HTMLDivElement>);
+    };
+    canvas.addEventListener("pointerdown", handler);
+    return () => canvas.removeEventListener("pointerdown", handler);
+  }, [handlePointerDown, gl]);
+
+  return null;
 }
 
 function SceneContent() {
@@ -63,6 +81,7 @@ export function FloorplanCanvas({ className = "" }: FloorplanCanvasProps) {
 
         <Suspense fallback={<Loader />}>
           <SceneContent />
+          <SelectionHandler />
           <Environment preset="apartment" />
         </Suspense>
       </Canvas>

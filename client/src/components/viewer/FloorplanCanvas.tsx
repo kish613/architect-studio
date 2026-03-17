@@ -5,6 +5,7 @@ import { SceneRenderer } from "./SceneRenderer";
 import { CameraController } from "./CameraController";
 import { useViewer } from "@/stores/use-viewer";
 import { useSelectionClick } from "./SelectionManager";
+import { DrawingInteraction } from "./DrawingInteraction";
 
 function Loader() {
   const { progress } = useProgress();
@@ -82,6 +83,7 @@ export function FloorplanCanvas({ className = "" }: FloorplanCanvasProps) {
         <Suspense fallback={<Loader />}>
           <SceneContent />
           <SelectionHandler />
+          <DrawingInteraction />
           <Environment preset="apartment" />
         </Suspense>
       </Canvas>

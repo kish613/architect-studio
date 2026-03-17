@@ -188,6 +188,27 @@ export const insertPlanningAnalysisSchema = createInsertSchema(planningAnalyses)
 export type InsertPlanningAnalysis = z.infer<typeof insertPlanningAnalysisSchema>;
 export type PlanningAnalysis = typeof planningAnalyses.$inferSelect;
 
+// 3D Floorplan Editor designs
+export const floorplanDesigns = pgTable("floorplan_designs", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => projects.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull(),
+  name: text("name").notNull().default("Untitled Floorplan"),
+  sceneData: text("scene_data").notNull().default('{"nodes":{},"rootNodeIds":[]}'),
+  thumbnailUrl: text("thumbnail_url"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertFloorplanDesignSchema = createInsertSchema(floorplanDesigns).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertFloorplanDesign = z.infer<typeof insertFloorplanDesignSchema>;
+export type FloorplanDesign = typeof floorplanDesigns.$inferSelect;
+
 // Type for property analysis JSON
 export interface PropertyAnalysisData {
   propertyType: 'terraced' | 'semi-detached' | 'detached' | 'flat' | 'bungalow' | 'other';

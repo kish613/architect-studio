@@ -13,7 +13,7 @@ import Settings from "@/pages/Settings";
 import { Planning } from "@/pages/Planning";
 import { PlanningUpload } from "@/pages/PlanningUpload";
 import { PlanningViewer } from "@/pages/PlanningViewer";
-import { CADViewerPage } from "@/pages/CADViewerPage";
+import { FloorplanEditorPage } from "@/pages/FloorplanEditorPage";
 
 function Router() {
   return (
@@ -26,7 +26,7 @@ function Router() {
       <Route path="/settings" component={Settings} />
       <Route path="/planning" component={Planning} />
       <Route path="/planning/new" component={PlanningUpload} />
-      <Route path="/planning/:id/cad" component={CADViewerPage} />
+      <Route path="/planning/:id/editor" component={FloorplanEditorPage} />
       <Route path="/planning/:id" component={PlanningViewer} />
       <Route component={NotFound} />
     </Switch>

@@ -424,9 +424,9 @@ export function PlanningViewer() {
                     size="lg"
                     variant="outline"
                     className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/10 transition-all"
-                    onClick={() => setLocation(`/planning/${analysis.id}/cad`)}
+                    onClick={() => setLocation(`/planning/${analysis.id}/editor`)}
                   >
-                    <Cuboid className="w-4 h-4" /> View 3D CAD Model
+                    <Cuboid className="w-4 h-4" /> Open Floorplan Editor
                   </Button>
                 </div>
               )}

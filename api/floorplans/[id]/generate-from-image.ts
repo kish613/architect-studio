@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { eq, and } from "drizzle-orm";
 import { put } from "@vercel/blob";
-import { canUserGenerate, getSubscriptionStatus, deductCredit } from "../../lib/subscription-manager.js";
+import { getSubscriptionStatus, deductCredit } from "../../lib/subscription-manager.js";
 import { requireAuth } from "../../lib/auth.js";
 import { db } from "../../lib/db.js";
 import { floorplanDesigns } from "../../../shared/schema.js";
@@ -414,9 +414,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(404).json({ error: "Floorplan not found" });
     }
 
-    // Credit check
-    const hasCredits = await canUserGenerate(userId);
-    if (!hasCredits) {
+    // Deduct credit upfront to prevent race conditions. Credit consumed for attempt, not success.
+    const deducted = await deductCredit(userId);
+    if (!deducted) {
       const status = await getSubscriptionStatus(userId);
       return res.status(403).json({
         error: "Credit limit reached",
@@ -430,6 +430,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         redirectTo: "/pricing",
       });
     }
+    console.log("Deducted 1 credit from user", userId);
 
     // Read raw image body
     const imageBuffer = await readRawBody(req);
@@ -478,14 +479,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log(
       `SceneData built: ${Object.keys(sceneData.nodes).length} nodes, rootNodeIds: [${sceneData.rootNodeIds.join(", ")}]`
     );
-
-    // Deduct credit
-    const deducted = await deductCredit(userId);
-    if (!deducted) {
-      console.error("Failed to deduct credit — possible race condition, continuing anyway");
-    } else {
-      console.log("Deducted 1 credit from user", userId);
-    }
 
     return res.status(200).json({ sceneData: JSON.stringify(sceneData) });
   } catch (error: any) {

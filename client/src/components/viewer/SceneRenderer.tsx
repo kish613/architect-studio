@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { useScene } from "@/stores/use-scene";
 import { useViewer } from "@/stores/use-viewer";
@@ -18,6 +18,9 @@ function WallMesh({ node }: { node: WallNode }) {
   const { position, rotationY } = getWallTransform(node);
   const geometry = useMemo(() => createWallGeometry(node), [node]);
   const material = useMemo(() => getWallMaterial(node, isSelected, isHovered), [node, isSelected, isHovered]);
+
+  useEffect(() => { return () => { geometry.dispose(); }; }, [geometry]);
+  useEffect(() => { return () => { material.dispose(); }; }, [material]);
 
   return (
     <mesh
@@ -44,6 +47,10 @@ function DoorMesh({ node, walls }: { node: DoorNode; walls: Record<string, WallN
   const position = getDoorPositionOnWall(node, wall);
   const { frame, panel } = useMemo(() => createDoorGeometries(node), [node]);
   const materials = useMemo(() => getDoorMaterials(isSelected), [isSelected]);
+
+  useEffect(() => { return () => { frame.dispose(); panel.dispose(); }; }, [frame, panel]);
+  useEffect(() => { return () => { materials.frame.dispose(); materials.panel.dispose(); }; }, [materials]);
+
   const dx = wall.end.x - wall.start.x;
   const dz = wall.end.z - wall.start.z;
   const rotationY = -Math.atan2(dz, dx);
@@ -72,6 +79,10 @@ function WindowMesh({ node, walls }: { node: WindowNode; walls: Record<string, W
   const position = getWindowPositionOnWall(node, wall);
   const { frame, glass } = useMemo(() => createWindowGeometries(node), [node]);
   const materials = useMemo(() => getWindowMaterials(isSelected), [isSelected]);
+
+  useEffect(() => { return () => { frame.dispose(); glass.dispose(); }; }, [frame, glass]);
+  useEffect(() => { return () => { materials.frame.dispose(); materials.glass.dispose(); }; }, [materials]);
+
   const dx = wall.end.x - wall.start.x;
   const dz = wall.end.z - wall.start.z;
   const rotationY = -Math.atan2(dz, dx);
@@ -97,6 +108,10 @@ function SlabMesh({ node }: { node: SlabNode }) {
   const isSelected = selectedIds.includes(node.id);
   const geometry = useMemo(() => createSlabGeometry(node), [node]);
   const material = useMemo(() => getSlabMaterial(isSelected), [isSelected]);
+
+  useEffect(() => { return () => { geometry?.dispose(); }; }, [geometry]);
+  useEffect(() => { return () => { material.dispose(); }; }, [material]);
+
   if (!geometry) return null;
   const pos = node.transform?.position ?? { x: 0, y: 0, z: 0 };
 
@@ -120,6 +135,10 @@ function RoofMesh({ node }: { node: RoofNode }) {
   const isSelected = selectedIds.includes(node.id);
   const geometry = useMemo(() => createRoofGeometry(node), [node]);
   const material = useMemo(() => getRoofMaterial(isSelected), [isSelected]);
+
+  useEffect(() => { return () => { geometry.dispose(); }; }, [geometry]);
+  useEffect(() => { return () => { material.dispose(); }; }, [material]);
+
   const pos = node.transform?.position ?? { x: 0, y: 0, z: 0 };
 
   return (
@@ -142,6 +161,10 @@ function ItemMesh({ node }: { node: ItemNode }) {
   const isSelected = selectedIds.includes(node.id);
   const geometry = useMemo(() => createItemGeometry(node), [node]);
   const material = useMemo(() => getItemMaterial(node, isSelected), [node, isSelected]);
+
+  useEffect(() => { return () => { geometry.dispose(); }; }, [geometry]);
+  useEffect(() => { return () => { material.dispose(); }; }, [material]);
+
   const { position } = getItemTransform(node);
 
   return (

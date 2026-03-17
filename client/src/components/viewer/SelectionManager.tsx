@@ -5,39 +5,49 @@ import { useViewer } from "@/stores/use-viewer";
 import { sceneRegistry } from "@/lib/pascal/scene-registry";
 
 export function SelectionManager() {
-  // Selection is handled via onClick on mesh refs via sceneRegistry.
-  // This component doesn't render anything — click handling is done
-  // via the onPointerDown on the Canvas in FloorplanCanvas.
   return null;
 }
 
 export function useSelectionClick() {
-  const { camera, raycaster, scene } = useThree();
+  const { camera, gl, size } = useThree();
   const { select, addToSelection, clearSelection } = useViewer();
 
-  const handleClick = useCallback(
-    (event: MouseEvent, shiftKey: boolean) => {
+  const handlePointerDown = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      const rect = gl.domElement.getBoundingClientRect();
+      const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(new THREE.Vector2(x, y), camera);
+
       const objects = Array.from(sceneRegistry.getAllObjects().values());
       if (objects.length === 0) {
         clearSelection();
         return;
       }
 
-      // Find clicked node via userData
-      const clickedNodeId = (event.target as any)?.userData?.nodeId as string | undefined;
-      if (!clickedNodeId) {
+      const intersects = raycaster.intersectObjects(objects, true);
+      if (intersects.length === 0) {
         clearSelection();
         return;
       }
 
-      if (shiftKey) {
-        addToSelection(clickedNodeId);
+      // Walk up from intersected object to find registered node
+      const nodeId = sceneRegistry.getNodeId(intersects[0].object);
+      if (!nodeId) {
+        clearSelection();
+        return;
+      }
+
+      if (event.shiftKey) {
+        addToSelection(nodeId);
       } else {
-        select([clickedNodeId]);
+        select([nodeId]);
       }
     },
-    [select, addToSelection, clearSelection]
+    [camera, gl, select, addToSelection, clearSelection]
   );
 
-  return { handleClick };
+  return { handlePointerDown };
 }

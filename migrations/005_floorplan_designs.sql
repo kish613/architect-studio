@@ -1,5 +1,5 @@
 -- Migration: 3D Floorplan Editor - floorplan_designs table
--- Stores Pascal Editor scene data as JSONB for the 3D floorplan editor
+-- Stores Pascal Editor scene graph as JSON (TEXT) for the 3D floorplan editor
 
 CREATE TABLE IF NOT EXISTS floorplan_designs (
   id SERIAL PRIMARY KEY,

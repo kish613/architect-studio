@@ -585,7 +585,6 @@ export function assessNeighbourImpact(
   // Overall risk
   let overallRisk: NeighbourImpactAnalysis["overallRisk"] = "low";
   if (fortyFiveFailed || shadowSeverity === "moderate" || overlookRisk === "moderate") overallRisk = "moderate";
-  if (shadowSeverity === "significant" || overlookRisk === "high") overallRisk = "high";
 
   const recommendations: string[] = [];
   if (overallRisk !== "low") {

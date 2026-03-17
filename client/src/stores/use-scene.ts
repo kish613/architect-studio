@@ -68,10 +68,13 @@ export const useScene = create<SceneState>()(
 
             eventBus.emit("node:created", { node });
 
+            const dirtyNodeIds = new Set(state.dirtyNodeIds);
+            dirtyNodeIds.add(node.id);
+
             return {
               nodes,
               rootNodeIds,
-              dirtyNodeIds: new Set([...state.dirtyNodeIds, node.id]),
+              dirtyNodeIds,
               hasUnsavedChanges: true,
             };
           });
@@ -85,9 +88,12 @@ export const useScene = create<SceneState>()(
             const updated = { ...existing, ...changes, type: existing.type } as AnyNode;
             eventBus.emit("node:updated", { nodeId, changes });
 
+            const dirtyNodeIds = new Set(state.dirtyNodeIds);
+            dirtyNodeIds.add(nodeId);
+
             return {
               nodes: { ...state.nodes, [nodeId]: updated },
-              dirtyNodeIds: new Set([...state.dirtyNodeIds, nodeId]),
+              dirtyNodeIds,
               hasUnsavedChanges: true,
             };
           });
@@ -124,10 +130,15 @@ export const useScene = create<SceneState>()(
             const rootNodeIds = state.rootNodeIds.filter((id) => !toDelete.has(id));
             eventBus.emit("node:deleted", { nodeId, type: node.type });
 
+            const dirtyNodeIds = new Set(state.dirtyNodeIds);
+            for (const id of toDelete) {
+              dirtyNodeIds.add(id);
+            }
+
             return {
               nodes,
               rootNodeIds,
-              dirtyNodeIds: new Set([...state.dirtyNodeIds, ...toDelete]),
+              dirtyNodeIds,
               hasUnsavedChanges: true,
             };
           });
@@ -154,10 +165,14 @@ export const useScene = create<SceneState>()(
             const updatedNode = { ...node, parentId: newParentId };
             nodes[nodeId] = updatedNode as AnyNode;
 
+            const dirtyNodeIds = new Set(state.dirtyNodeIds);
+            dirtyNodeIds.add(nodeId);
+            dirtyNodeIds.add(newParentId);
+
             return {
               nodes,
               rootNodeIds: state.rootNodeIds.filter((id) => id !== nodeId),
-              dirtyNodeIds: new Set([...state.dirtyNodeIds, nodeId, newParentId]),
+              dirtyNodeIds,
               hasUnsavedChanges: true,
             };
           });
@@ -190,10 +205,14 @@ export const useScene = create<SceneState>()(
         }),
 
         markDirty: (nodeId) => {
-          set((state) => ({
-            dirtyNodeIds: new Set([...state.dirtyNodeIds, nodeId]),
-            hasUnsavedChanges: true,
-          }));
+          set((state) => {
+            const dirtyNodeIds = new Set(state.dirtyNodeIds);
+            dirtyNodeIds.add(nodeId);
+            return {
+              dirtyNodeIds,
+              hasUnsavedChanges: true,
+            };
+          });
         },
 
         clearDirty: () => {
@@ -208,7 +227,7 @@ export const useScene = create<SceneState>()(
     {
       limit: 50,
       equality: (pastState, currentState) =>
-        JSON.stringify(pastState.nodes) === JSON.stringify(currentState.nodes),
+        pastState.nodes === currentState.nodes,
     }
   )
 );

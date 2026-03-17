@@ -12,7 +12,8 @@ import { createItemGeometry, getItemTransform, getItemMaterial } from "./systems
 import type { WallNode, DoorNode, WindowNode, SlabNode, RoofNode, ItemNode } from "@/lib/pascal/schemas";
 
 function WallMesh({ node }: { node: WallNode }) {
-  const { selectedIds, hoveredId } = useViewer();
+  const selectedIds = useViewer((s) => s.selectedIds);
+  const hoveredId = useViewer((s) => s.hoveredId);
   const isSelected = selectedIds.includes(node.id);
   const isHovered = hoveredId === node.id;
   const { position, rotationY } = getWallTransform(node);
@@ -40,7 +41,7 @@ function WallMesh({ node }: { node: WallNode }) {
 }
 
 function DoorMesh({ node, walls }: { node: DoorNode; walls: Record<string, WallNode> }) {
-  const { selectedIds } = useViewer();
+  const selectedIds = useViewer((s) => s.selectedIds);
   const isSelected = selectedIds.includes(node.id);
   const wall = walls[node.wallId];
   if (!wall) return null;
@@ -72,7 +73,7 @@ function DoorMesh({ node, walls }: { node: DoorNode; walls: Record<string, WallN
 }
 
 function WindowMesh({ node, walls }: { node: WindowNode; walls: Record<string, WallNode> }) {
-  const { selectedIds } = useViewer();
+  const selectedIds = useViewer((s) => s.selectedIds);
   const isSelected = selectedIds.includes(node.id);
   const wall = walls[node.wallId];
   if (!wall) return null;
@@ -104,7 +105,7 @@ function WindowMesh({ node, walls }: { node: WindowNode; walls: Record<string, W
 }
 
 function SlabMesh({ node }: { node: SlabNode }) {
-  const { selectedIds } = useViewer();
+  const selectedIds = useViewer((s) => s.selectedIds);
   const isSelected = selectedIds.includes(node.id);
   const geometry = useMemo(() => createSlabGeometry(node), [node]);
   const material = useMemo(() => getSlabMaterial(isSelected), [isSelected]);
@@ -131,7 +132,7 @@ function SlabMesh({ node }: { node: SlabNode }) {
 }
 
 function RoofMesh({ node }: { node: RoofNode }) {
-  const { selectedIds } = useViewer();
+  const selectedIds = useViewer((s) => s.selectedIds);
   const isSelected = selectedIds.includes(node.id);
   const geometry = useMemo(() => createRoofGeometry(node), [node]);
   const material = useMemo(() => getRoofMaterial(isSelected), [isSelected]);
@@ -157,7 +158,7 @@ function RoofMesh({ node }: { node: RoofNode }) {
 }
 
 function ItemMesh({ node }: { node: ItemNode }) {
-  const { selectedIds } = useViewer();
+  const selectedIds = useViewer((s) => s.selectedIds);
   const isSelected = selectedIds.includes(node.id);
   const geometry = useMemo(() => createItemGeometry(node), [node]);
   const material = useMemo(() => getItemMaterial(node, isSelected), [node, isSelected]);
@@ -184,8 +185,11 @@ function ItemMesh({ node }: { node: ItemNode }) {
 }
 
 export function SceneRenderer() {
-  const { nodes } = useScene();
-  const { showWalls, showSlabs, showRoofs, showItems } = useViewer();
+  const nodes = useScene((s) => s.nodes);
+  const showWalls = useViewer((s) => s.showWalls);
+  const showSlabs = useViewer((s) => s.showSlabs);
+  const showRoofs = useViewer((s) => s.showRoofs);
+  const showItems = useViewer((s) => s.showItems);
 
   const walls = useMemo(
     () => Object.values(nodes).filter((n): n is WallNode => n.type === "wall"),

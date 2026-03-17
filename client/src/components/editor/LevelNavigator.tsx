@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useScene } from "@/stores/use-scene";
 import { useViewer } from "@/stores/use-viewer";
 import { createNode } from "@/lib/pascal/schemas";
@@ -7,12 +8,20 @@ import { cn } from "@/lib/utils";
 import { Plus, Layers } from "lucide-react";
 
 export function LevelNavigator() {
-  const { nodes, addNode } = useScene();
-  const { activeBuildingId, activeLevelId, setActiveLevel, levelMode, setLevelMode } = useViewer();
+  const nodes = useScene((s) => s.nodes);
+  const addNode = useScene((s) => s.addNode);
+  const activeBuildingId = useViewer((s) => s.activeBuildingId);
+  const activeLevelId = useViewer((s) => s.activeLevelId);
+  const setActiveLevel = useViewer((s) => s.setActiveLevel);
+  const levelMode = useViewer((s) => s.levelMode);
+  const setLevelMode = useViewer((s) => s.setLevelMode);
 
-  const levels = Object.values(nodes)
-    .filter((n): n is LevelNode => n.type === "level" && (activeBuildingId ? n.parentId === activeBuildingId : true))
-    .sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+  const levels = useMemo(
+    () => Object.values(nodes)
+      .filter((n): n is LevelNode => n.type === "level" && (activeBuildingId ? n.parentId === activeBuildingId : true))
+      .sort((a, b) => (a.index ?? 0) - (b.index ?? 0)),
+    [nodes, activeBuildingId]
+  );
 
   const handleAddLevel = () => {
     const nextIndex = levels.length;

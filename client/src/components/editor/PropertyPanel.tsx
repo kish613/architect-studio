@@ -8,7 +8,7 @@ function safeParseFloat(value: string, fallback: number): number {
 }
 
 function WallProperties({ node }: { node: WallNode }) {
-  const { updateNode } = useScene();
+  const updateNode = useScene((s) => s.updateNode);
   return (
     <div className="space-y-3">
       <h4 className="text-xs font-medium text-white/50 uppercase tracking-wider">Wall</h4>
@@ -53,7 +53,7 @@ function WallProperties({ node }: { node: WallNode }) {
 }
 
 function DoorProperties({ node }: { node: DoorNode }) {
-  const { updateNode } = useScene();
+  const updateNode = useScene((s) => s.updateNode);
   return (
     <div className="space-y-3">
       <h4 className="text-xs font-medium text-white/50 uppercase tracking-wider">Door</h4>
@@ -86,7 +86,7 @@ function DoorProperties({ node }: { node: DoorNode }) {
 }
 
 function WindowProperties({ node }: { node: WindowNode }) {
-  const { updateNode } = useScene();
+  const updateNode = useScene((s) => s.updateNode);
   return (
     <div className="space-y-3">
       <h4 className="text-xs font-medium text-white/50 uppercase tracking-wider">Window</h4>
@@ -115,7 +115,7 @@ function WindowProperties({ node }: { node: WindowNode }) {
 }
 
 function LevelProperties({ node }: { node: LevelNode }) {
-  const { updateNode } = useScene();
+  const updateNode = useScene((s) => s.updateNode);
   return (
     <div className="space-y-3">
       <h4 className="text-xs font-medium text-white/50 uppercase tracking-wider">Level</h4>
@@ -138,7 +138,7 @@ function LevelProperties({ node }: { node: LevelNode }) {
 }
 
 function NodeName({ node }: { node: AnyNode }) {
-  const { updateNode } = useScene();
+  const updateNode = useScene((s) => s.updateNode);
   return (
     <div>
       <label className="text-xs text-white/50 block mb-1">Name</label>
@@ -150,8 +150,8 @@ function NodeName({ node }: { node: AnyNode }) {
 }
 
 export function PropertyPanel() {
-  const { selectedIds } = useViewer();
-  const { nodes } = useScene();
+  const selectedIds = useViewer((s) => s.selectedIds);
+  const nodes = useScene((s) => s.nodes);
 
   if (selectedIds.length === 0) {
     return (

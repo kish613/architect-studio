@@ -26,7 +26,8 @@ const TOOLS: Array<{ tool: EditorTool; icon: React.ComponentType<{ className?: s
 ];
 
 export function EditorToolbar() {
-  const { activeTool, setTool } = useEditor();
+  const activeTool = useEditor((s) => s.activeTool);
+  const setTool = useEditor((s) => s.setTool);
 
   return (
     <div className="flex flex-col gap-1 p-2 bg-white/5 border border-white/10 rounded-lg w-10">

@@ -9,6 +9,7 @@ interface WorkspaceLayoutProps {
   title?: string;
   onBack?: () => void;
   backHref?: string;
+  headerExtra?: ReactNode;
 }
 
 export function WorkspaceLayout({
@@ -18,6 +19,7 @@ export function WorkspaceLayout({
   title,
   onBack,
   backHref = "/projects",
+  headerExtra,
 }: WorkspaceLayoutProps) {
   return (
     <div className="flex flex-col lg:flex-row h-[calc(100vh-96px)] w-full overflow-hidden bg-[#0A0A0A] border-y border-white/[0.04] shadow-2xl relative z-10">
@@ -35,6 +37,7 @@ export function WorkspaceLayout({
               </Link>
             ) : null}
             {title && <span className="font-medium text-sm text-white/90 truncate tracking-wide" data-testid="text-project-name">{title}</span>}
+            {headerExtra && <div className="ml-auto">{headerExtra}</div>}
           </div>
           <div className="p-4 overflow-y-auto flex-1 custom-scrollbar">
             {leftPanel}

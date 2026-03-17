@@ -14,7 +14,6 @@ interface FloorplanEditorProps {
 export function FloorplanEditor({ floorplanId: _floorplanId, floorplanName }: FloorplanEditorProps) {
   const leftPanel = (
     <div className="space-y-4">
-      <SaveIndicator />
       <EditorToolbar />
       <LevelNavigator />
       <AIGeneratePanel />
@@ -29,6 +28,7 @@ export function FloorplanEditor({ floorplanId: _floorplanId, floorplanName }: Fl
       rightPanel={rightPanel}
       title={floorplanName}
       backHref="/projects"
+      headerExtra={<SaveIndicator />}
     >
       <div className="w-full h-full">
         <FloorplanCanvas />

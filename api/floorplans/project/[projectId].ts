@@ -16,7 +16,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const designs = await db
-      .select()
+      .select({
+        id: floorplanDesigns.id,
+        name: floorplanDesigns.name,
+        projectId: floorplanDesigns.projectId,
+        userId: floorplanDesigns.userId,
+        thumbnailUrl: floorplanDesigns.thumbnailUrl,
+        createdAt: floorplanDesigns.createdAt,
+        updatedAt: floorplanDesigns.updatedAt,
+      })
       .from(floorplanDesigns)
       .where(and(eq(floorplanDesigns.projectId, pid), eq(floorplanDesigns.userId, session.userId)))
       .orderBy(desc(floorplanDesigns.updatedAt));

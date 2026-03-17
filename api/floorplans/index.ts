@@ -38,7 +38,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === "GET") {
     try {
       const designs = await db
-        .select()
+        .select({
+          id: floorplanDesigns.id,
+          name: floorplanDesigns.name,
+          projectId: floorplanDesigns.projectId,
+          userId: floorplanDesigns.userId,
+          thumbnailUrl: floorplanDesigns.thumbnailUrl,
+          createdAt: floorplanDesigns.createdAt,
+          updatedAt: floorplanDesigns.updatedAt,
+        })
         .from(floorplanDesigns)
         .where(eq(floorplanDesigns.userId, session.userId))
         .orderBy(desc(floorplanDesigns.updatedAt));

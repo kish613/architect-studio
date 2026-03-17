@@ -194,7 +194,7 @@ export function createNode<T extends AnyNode["type"]>(
   overrides: Partial<Extract<AnyNode, { type: T }>> = {} as any
 ): Extract<AnyNode, { type: T }> {
   const id = crypto.randomUUID();
-  const base = {
+  const raw = {
     id,
     parentId: null,
     childIds: [],
@@ -204,7 +204,7 @@ export function createNode<T extends AnyNode["type"]>(
     ...overrides,
     type,
   };
-  return base as unknown as Extract<AnyNode, { type: T }>;
+  return anyNodeSchema.parse(raw) as Extract<AnyNode, { type: T }>;
 }
 
 /** Create an empty scene with site + building + level */

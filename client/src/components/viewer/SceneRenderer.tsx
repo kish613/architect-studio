@@ -185,6 +185,10 @@ function ItemMesh({ node }: { node: ItemNode }) {
 }
 
 export function SceneRenderer() {
+  useEffect(() => {
+    return () => { sceneRegistry.clear(); };
+  }, []);
+
   const nodes = useScene((s) => s.nodes);
   const showWalls = useViewer((s) => s.showWalls);
   const showSlabs = useViewer((s) => s.showSlabs);

@@ -45,5 +45,10 @@ class EventBus {
   }
 }
 
+/**
+ * Typed event bus for cross-cutting concerns in the floorplan editor.
+ * Events are emitted from useScene store mutations (node:created, node:updated, etc.).
+ * Subscribe in components or plugins as needed via `eventBus.on('event', handler)`.
+ */
 export const eventBus = new EventBus();
 export type { EventMap };

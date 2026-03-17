@@ -2,6 +2,11 @@ import { useViewer } from "@/stores/use-viewer";
 import { useScene } from "@/stores/use-scene";
 import type { AnyNode, WallNode, DoorNode, WindowNode, LevelNode } from "@/lib/pascal/schemas";
 
+function safeParseFloat(value: string, fallback: number): number {
+  const parsed = parseFloat(value);
+  return isNaN(parsed) ? fallback : parsed;
+}
+
 function WallProperties({ node }: { node: WallNode }) {
   const { updateNode } = useScene();
   return (
@@ -15,7 +20,7 @@ function WallProperties({ node }: { node: WallNode }) {
             value={node.height ?? 2.7}
             step={0.1}
             min={0.5}
-            onChange={(e) => updateNode(node.id, { height: parseFloat(e.target.value) })}
+            onChange={(e) => updateNode(node.id, { height: safeParseFloat(e.target.value, 2.7) })}
             className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-sm text-white"
           />
         </div>
@@ -26,7 +31,7 @@ function WallProperties({ node }: { node: WallNode }) {
             value={node.thickness ?? 0.15}
             step={0.01}
             min={0.05}
-            onChange={(e) => updateNode(node.id, { thickness: parseFloat(e.target.value) })}
+            onChange={(e) => updateNode(node.id, { thickness: safeParseFloat(e.target.value, 0.15) })}
             className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-sm text-white"
           />
         </div>
@@ -56,13 +61,13 @@ function DoorProperties({ node }: { node: DoorNode }) {
         <div>
           <label className="text-xs text-white/50 block mb-1">Width (m)</label>
           <input type="number" value={node.width ?? 0.9} step={0.05} min={0.6} max={2.4}
-            onChange={(e) => updateNode(node.id, { width: parseFloat(e.target.value) })}
+            onChange={(e) => updateNode(node.id, { width: safeParseFloat(e.target.value, 0.9) })}
             className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-sm text-white" />
         </div>
         <div>
           <label className="text-xs text-white/50 block mb-1">Height (m)</label>
           <input type="number" value={node.height ?? 2.1} step={0.1} min={1.8} max={3}
-            onChange={(e) => updateNode(node.id, { height: parseFloat(e.target.value) })}
+            onChange={(e) => updateNode(node.id, { height: safeParseFloat(e.target.value, 2.1) })}
             className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-sm text-white" />
         </div>
         <div>
@@ -89,19 +94,19 @@ function WindowProperties({ node }: { node: WindowNode }) {
         <div>
           <label className="text-xs text-white/50 block mb-1">Width (m)</label>
           <input type="number" value={node.width ?? 1.2} step={0.1} min={0.3}
-            onChange={(e) => updateNode(node.id, { width: parseFloat(e.target.value) })}
+            onChange={(e) => updateNode(node.id, { width: safeParseFloat(e.target.value, 1.2) })}
             className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-sm text-white" />
         </div>
         <div>
           <label className="text-xs text-white/50 block mb-1">Height (m)</label>
           <input type="number" value={node.height ?? 1.2} step={0.1} min={0.3}
-            onChange={(e) => updateNode(node.id, { height: parseFloat(e.target.value) })}
+            onChange={(e) => updateNode(node.id, { height: safeParseFloat(e.target.value, 1.2) })}
             className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-sm text-white" />
         </div>
         <div>
           <label className="text-xs text-white/50 block mb-1">Sill Height (m)</label>
           <input type="number" value={node.sillHeight ?? 0.9} step={0.1} min={0}
-            onChange={(e) => updateNode(node.id, { sillHeight: parseFloat(e.target.value) })}
+            onChange={(e) => updateNode(node.id, { sillHeight: safeParseFloat(e.target.value, 0.9) })}
             className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-sm text-white" />
         </div>
       </div>
@@ -124,7 +129,7 @@ function LevelProperties({ node }: { node: LevelNode }) {
         <div>
           <label className="text-xs text-white/50 block mb-1">Height (m)</label>
           <input type="number" value={node.height ?? 2.7} step={0.1} min={2}
-            onChange={(e) => updateNode(node.id, { height: parseFloat(e.target.value) })}
+            onChange={(e) => updateNode(node.id, { height: safeParseFloat(e.target.value, 2.7) })}
             className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-sm text-white" />
         </div>
       </div>

@@ -4,7 +4,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Re-export auth models
-export * from "./models/auth.js";
+export * from "./models/auth";
 
 // Subscription plans
 export type SubscriptionPlan = 'free' | 'starter' | 'pro' | 'studio';
@@ -48,6 +48,7 @@ export const floorplanModels = pgTable("floorplan_models", {
   texturePrompt: text("texture_prompt"),
   retextureTaskId: text("retexture_task_id"),
   retextureUsed: boolean("retexture_used").notNull().default(false),
+  pascalData: text("pascal_data"),
   status: text("status").notNull().default("uploaded"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

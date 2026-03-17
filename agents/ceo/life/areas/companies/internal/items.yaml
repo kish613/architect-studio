@@ -1,0 +1,49 @@
+- id: company-active-workspace
+  type: operating_fact
+  status: active
+  created_at: 2026-03-17
+  updated_at: 2026-03-17
+  last_accessed: 2026-03-17
+  access_count: 4
+  confidence: high
+  tags:
+    - workspace
+    - operations
+  statement: Architect Studio at /Users/kivateit/Documents/Documents/GitHub/architect-studio is the active workspace for the live CEO agent.
+- id: company-stale-bootstrap
+  type: operating_fact
+  status: active
+  created_at: 2026-03-17
+  updated_at: 2026-03-17
+  last_accessed: 2026-03-17
+  access_count: 4
+  confidence: high
+  tags:
+    - approvals
+    - workspace
+  statement: Earlier CEO bootstrap work and a pending Founding Engineer hire exist for /Users/kivateit/Desktop/Paperclip and should be treated as historical context rather than the active execution path.
+- id: company-current-product-focus
+  type: strategy_fact
+  status: active
+  created_at: 2026-03-17
+  updated_at: 2026-03-17
+  last_accessed: 2026-03-17
+  access_count: 4
+  confidence: high
+  tags:
+    - strategy
+    - product
+  statement: The current product focus is shipping the first vertical slice of the 3D floorplan editor inside the existing Architect Studio application.
+- id: company-active-bootstrap-blocker
+  type: operating_fact
+  status: active
+  created_at: 2026-03-17
+  updated_at: 2026-03-17
+  last_accessed: 2026-03-17
+  access_count: 2
+  confidence: high
+  tags:
+    - approvals
+    - hiring
+    - blocker
+  statement: Active bootstrap execution is blocked until board approval lands for CEO strategy approval 9a63f3e1-09a4-400f-8b32-f114d22639a8 and Founding Engineer Studio hire approval 037899b3-f049-4339-b6b4-59d54ef4cfcc.

@@ -483,6 +483,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: "No image data in request body" });
     }
 
+    // Size limit: 10 MB
+    if (imageBuffer.length > 10 * 1024 * 1024) {
+      return res.status(413).json({ error: "Image too large. Maximum 10MB." });
+    }
+
     const contentType = (req.headers["content-type"] as string) || "image/png";
     const mimeType = contentType.split(";")[0].trim();
 

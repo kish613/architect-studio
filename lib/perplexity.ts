@@ -5,7 +5,7 @@
  */
 
 import pLimit from "p-limit";
-import pRetry from "p-retry";
+import pRetry, { AbortError } from "p-retry";
 import type { RealApprovalData } from "../shared/schema.js";
 
 const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
@@ -37,7 +37,7 @@ async function callPerplexity(systemPrompt: string, userPrompt: string): Promise
 
   if (res.status === 429) throw new Error("Perplexity rate limited");
   if (res.status === 401 || res.status === 403) {
-    throw new pRetry.AbortError("Perplexity API authentication failed. Check PERPLEXITY_API_KEY.");
+    throw new AbortError("Perplexity API authentication failed. Check PERPLEXITY_API_KEY.");
   }
   if (!res.ok) {
     const text = await res.text();
@@ -132,7 +132,7 @@ Find recent (last 3 years) planning applications for residential extensions in t
         maxTimeout: 15000,
         factor: 2,
         onFailedAttempt: (err) => {
-          console.warn(`[Perplexity] Search attempt ${err.attemptNumber} failed: ${err.message}`);
+          console.warn(`[Perplexity] Search attempt ${err.attemptNumber} failed: ${err.error.message}`);
         },
       },
     ),
@@ -198,7 +198,7 @@ Check the National Heritage List for England, the local council's conservation a
         maxTimeout: 10000,
         factor: 2,
         onFailedAttempt: (err) => {
-          console.warn(`[Perplexity] Conservation check attempt ${err.attemptNumber} failed: ${err.message}`);
+          console.warn(`[Perplexity] Conservation check attempt ${err.attemptNumber} failed: ${err.error.message}`);
         },
       },
     ),

@@ -44,7 +44,7 @@ export async function generateTrellis3D(
   try {
     const hfToken = process.env.HF_TOKEN;
     const client = await Client.connect(TRELLIS_SPACE, {
-      hf_token: hfToken as `hf_${string}` | undefined,
+      token: hfToken as `hf_${string}` | undefined,
     });
 
     const result = await client.predict("/generate_and_extract_glb", [

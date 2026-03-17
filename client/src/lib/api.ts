@@ -215,6 +215,9 @@ export interface ExtensionDetail {
   type: ExtensionType;
   description: string;
   additionalSqM: number;
+  depthM?: number;
+  widthM?: number;
+  heightM?: number;
   requiresPlanningPermission: boolean;
   pdrCompliant: boolean;
 }
@@ -222,11 +225,22 @@ export interface ExtensionDetail {
 export interface ExtensionOption {
   tier: ExtensionOptionTier;
   label: string;
+  description: string;
+  requiresPlanningPermission: boolean;
   extensions: ExtensionDetail[];
   totalAdditionalSqM: number;
+  estimatedCostGBP: {
+    low: number;
+    mid: number;
+    high: number;
+  };
   costRange?: { min: number; max: number };
-  approvalLikelihood: 'very_high' | 'high' | 'medium' | 'low';
+  approvalLikelihood: 'very_high' | 'high' | 'medium' | 'low' | 'moderate';
+  planningNotes: string[];
   estimatedTimeline: string;
+  partyWallRequired: boolean;
+  buildingRegsRequired: boolean;
+  timelineWeeks: { min: number; max: number };
   requiresPartyWall: boolean;
 }
 
@@ -552,5 +566,104 @@ export async function selectExtensionOption(
     }
     throw new Error(errorMessage);
   }
+  return response.json();
+}
+
+// ==========================================
+// Floorplan Editor API Functions
+// ==========================================
+
+export interface FloorplanDesign {
+  id: number;
+  projectId: number | null;
+  userId: string;
+  name: string;
+  sceneData: string; // JSON string of SceneData
+  thumbnailUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+async function handleApiError(response: Response, fallback: string): Promise<never> {
+  const text = await response.text();
+  let errorMessage = fallback;
+  try {
+    const error = JSON.parse(text);
+    errorMessage = error.error || error.message || fallback;
+  } catch {
+    if (text && text.length < 200) errorMessage = text;
+  }
+  throw new Error(errorMessage);
+}
+
+export async function createFloorplan(data: {
+  name: string;
+  projectId?: number;
+  sceneData?: string;
+}): Promise<FloorplanDesign> {
+  const response = await fetch("/api/floorplans", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) await handleApiError(response, "Failed to create floorplan");
+  return response.json();
+}
+
+export async function fetchFloorplan(id: number): Promise<FloorplanDesign> {
+  const response = await fetch(`/api/floorplans/${id}`);
+  if (!response.ok) throw new Error("Failed to fetch floorplan");
+  return response.json();
+}
+
+export async function saveFloorplan(
+  id: number,
+  data: { sceneData: string; thumbnail?: string; name?: string }
+): Promise<FloorplanDesign> {
+  const response = await fetch(`/api/floorplans/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) await handleApiError(response, "Failed to save floorplan");
+  return response.json();
+}
+
+export async function deleteFloorplan(id: number): Promise<void> {
+  const response = await fetch(`/api/floorplans/${id}`, { method: "DELETE" });
+  if (!response.ok) throw new Error("Failed to delete floorplan");
+}
+
+export async function fetchProjectFloorplans(projectId: number): Promise<FloorplanDesign[]> {
+  const response = await fetch(`/api/floorplans/project/${projectId}`);
+  if (!response.ok) throw new Error("Failed to fetch project floorplans");
+  return response.json();
+}
+
+export async function uploadFloorplanAsset(
+  floorplanId: number,
+  file: File
+): Promise<{ url: string }> {
+  const formData = new FormData();
+  formData.append("asset", file);
+  const response = await fetch(`/api/floorplans/${floorplanId}/assets`, {
+    method: "POST",
+    body: formData,
+  });
+  if (!response.ok) throw new Error("Failed to upload asset");
+  return response.json();
+}
+
+export async function generateFloorplanFromImage(
+  floorplanId: number,
+  imageFile: File
+): Promise<{ sceneData: string }> {
+  const formData = new FormData();
+  formData.append("image", imageFile);
+  const response = await fetch(`/api/floorplans/${floorplanId}/generate-from-image`, {
+    method: "POST",
+    body: formData,
+  });
+  if (!response.ok) await handleApiError(response, "Failed to generate floorplan from image");
   return response.json();
 }

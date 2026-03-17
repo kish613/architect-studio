@@ -189,11 +189,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         )
       : {
           propertyType: "semi_detached" as const,
-          builtForm: "Semi-Detached",
           isConservationArea: conservationResult.isConservationArea,
           isListedBuilding: conservationResult.isListedBuilding,
           totalFloorAreaSqM: 80,
           stories: 2,
+          previouslyExtended: false,
         };
 
     const pdrAssessment = calculatePDR(pdrInput);
@@ -214,7 +214,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const realApprovalResult = await searchRealPlanningApprovals({
       postcode: analysis.postcode,
       address: analysis.address || "",
-      propertyType: epcData?.propertyType || pdrInput.builtForm,
+      propertyType: epcData?.propertyType || pdrInput.propertyType,
     });
 
     if (realApprovalResult.success && realApprovalResult.data) {
@@ -229,9 +229,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // ── Step 5: Generate Extension Options ───────────────────
     const extensionOptions = generateExtensionOptions(
       pdrAssessment,
-      epcData || undefined,
-      realApprovalResult.data || undefined,
-      analysis.orientation || undefined
+      epcData || null,
+      realApprovalResult.data || null,
+      analysis.orientation || null
     );
 
     // ── Step 6: Estimate Costs ───────────────────────────────
@@ -249,7 +249,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const neighbourImpact = assessNeighbourImpact(
       pdrInput.propertyType,
       moderateOption?.extensions || [],
-      analysis.orientation || undefined
+      analysis.orientation || null
     );
 
     // ── Save Everything & Set Status ─────────────────────────

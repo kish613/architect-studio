@@ -105,7 +105,7 @@ export async function lookupEPC(
         maxTimeout: 15000,
         factor: 2,
         onFailedAttempt: (err) => {
-          console.warn(`[EPC] Attempt ${err.attemptNumber} failed: ${err.message}`);
+          console.warn(`[EPC] Attempt ${err.attemptNumber} failed: ${err.error.message}`);
         },
       },
     ),

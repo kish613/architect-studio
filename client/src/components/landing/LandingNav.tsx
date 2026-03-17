@@ -1,7 +1,8 @@
 import { Link } from "wouter";
-import { PlusCircle, UserCircle, LogIn, LogOut, User } from "lucide-react";
+import { PlusCircle, UserCircle, LogIn, LogOut, User, Mail } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { AuthModal } from "@/components/auth/AuthModal";
 
 function AnimatedLogo({ className }: { className?: string }) {
   return (
@@ -223,9 +224,16 @@ export function LandingNav() {
           </>
         ) : (
           <>
-            {/* Sign In */}
+            {/* Sign In with Email */}
+            <AuthModal>
+              <button className="text-white/50 hover:text-white transition-colors" title="Sign in with email">
+                <Mail className="w-5 h-5" />
+              </button>
+            </AuthModal>
+
+            {/* Sign In with Google */}
             <a href="/api/auth/login">
-              <button className="text-white/50 hover:text-white transition-colors">
+              <button className="text-white/50 hover:text-white transition-colors" title="Sign in with Google">
                 <UserCircle className="w-6 h-6" />
               </button>
             </a>

@@ -39,7 +39,10 @@ function getSessionFromCookies(cookieHeader: string | null): string | null {
 
 async function verifySession(token: string): Promise<{ userId: string } | null> {
   try {
-    const secret = new TextEncoder().encode(process.env.SESSION_SECRET || "fallback-secret");
+    if (!process.env.SESSION_SECRET) {
+      throw new Error("SESSION_SECRET environment variable is required");
+    }
+    const secret = new TextEncoder().encode(process.env.SESSION_SECRET);
     const { payload } = await jwtVerify(token, secret);
     if (typeof payload.userId === "string") return { userId: payload.userId };
     return null;

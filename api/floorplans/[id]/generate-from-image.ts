@@ -5,6 +5,7 @@ import { getSubscriptionStatus, deductCredit } from "../../lib/subscription-mana
 import { requireAuth } from "../../lib/auth.js";
 import { db } from "../../lib/db.js";
 import { floorplanDesigns } from "../../../shared/schema.js";
+import { isPdfBuffer, processPdf } from "../../../lib/pdf-utils.js";
 
 export const config = { api: { bodyParser: false } };
 
@@ -63,8 +64,23 @@ interface WindowNode extends BaseNode, DefaultTransform {
   sillHeight: number;
   windowType: "fixed" | "casement" | "sash" | "sliding" | "bay" | "skylight";
 }
+interface ZoneNode extends BaseNode, DefaultTransform {
+  type: "zone";
+  zoneType: "room" | "hallway" | "bathroom" | "kitchen" | "bedroom" | "living" | "garage" | "utility" | "other";
+  label: string;
+  color: string;
+  points: Vec3[];
+}
+interface ItemNode extends BaseNode, DefaultTransform {
+  type: "item";
+  itemType: "furniture" | "appliance" | "fixture" | "light" | "custom";
+  catalogId?: string;
+  dimensions: Vec3;
+  material: string;
+  modelUrl?: string;
+}
 
-type AnyNode = SiteNode | BuildingNode | LevelNode | WallNode | DoorNode | WindowNode;
+type AnyNode = SiteNode | BuildingNode | LevelNode | WallNode | DoorNode | WindowNode | ZoneNode | ItemNode;
 
 interface SceneData {
   nodes: Record<string, AnyNode>;
@@ -94,33 +110,114 @@ function makeBase(type: string, name?: string): BaseNode & { type: string } {
   };
 }
 
-function buildSceneFromGemini(geminiData: {
-  walls: Array<{
-    id?: string;
-    startX: number;
-    startZ: number;
-    endX: number;
-    endZ: number;
-    height?: number;
-    thickness?: number;
-  }>;
-  doors: Array<{
-    wallIndex: number;
-    position?: number;
-    width?: number;
-    height?: number;
-    doorType?: string;
-    swing?: string;
-  }>;
-  windows: Array<{
-    wallIndex: number;
-    position?: number;
-    width?: number;
-    height?: number;
-    sillHeight?: number;
-    windowType?: string;
-  }>;
-}): SceneData {
+const ZONE_DEFAULT_COLORS: Record<string, string> = {
+  room: "#4A90D9",
+  hallway: "#B0B0B0",
+  bathroom: "#5DADE2",
+  kitchen: "#F4D03F",
+  bedroom: "#82E0AA",
+  living: "#AF7AC5",
+  garage: "#AAB7B8",
+  utility: "#F0B27A",
+  other: "#D5DBDB",
+};
+
+interface GeminiWall {
+  id?: string;
+  startX: number;
+  startZ: number;
+  endX: number;
+  endZ: number;
+  height?: number;
+  thickness?: number;
+}
+
+interface GeminiDoor {
+  wallIndex: number;
+  position?: number;
+  width?: number;
+  height?: number;
+  doorType?: string;
+  swing?: string;
+}
+
+interface GeminiWindow {
+  wallIndex: number;
+  position?: number;
+  width?: number;
+  height?: number;
+  sillHeight?: number;
+  windowType?: string;
+}
+
+interface GeminiRoom {
+  name: string;
+  zoneType: string;
+  points: Array<{ x: number; z: number }>;
+  color?: string;
+}
+
+interface GeminiItem {
+  name: string;
+  itemType?: "furniture" | "appliance" | "fixture";
+  position: { x: number; z: number };
+  dimensions?: { x: number; y: number; z: number };
+}
+
+interface GeminiLevel {
+  name: string;
+  index: number;
+  elevation: number;
+  walls: GeminiWall[];
+  doors: GeminiDoor[];
+  windows: GeminiWindow[];
+  rooms?: GeminiRoom[];
+  items?: GeminiItem[];
+}
+
+/** Normalised Gemini output — always has a levels array */
+interface NormalisedGeminiData {
+  levels: GeminiLevel[];
+}
+
+/**
+ * Backward-compatible normaliser: if Gemini returns the old flat format
+ * (walls/doors/windows at top level without a levels wrapper), wrap it
+ * into a single-level structure so downstream code always works with levels.
+ */
+function normaliseGeminiData(raw: any): NormalisedGeminiData {
+  if (Array.isArray(raw.levels) && raw.levels.length > 0) {
+    // New multi-level format — ensure per-level arrays exist
+    const levels: GeminiLevel[] = raw.levels.map((lvl: any, i: number) => ({
+      name: lvl.name ?? `Level ${i}`,
+      index: typeof lvl.index === "number" ? lvl.index : i,
+      elevation: typeof lvl.elevation === "number" ? lvl.elevation : i * 2.7,
+      walls: Array.isArray(lvl.walls) ? lvl.walls : [],
+      doors: Array.isArray(lvl.doors) ? lvl.doors : [],
+      windows: Array.isArray(lvl.windows) ? lvl.windows : [],
+      rooms: Array.isArray(lvl.rooms) ? lvl.rooms : [],
+      items: Array.isArray(lvl.items) ? lvl.items : [],
+    }));
+    return { levels };
+  }
+
+  // Old flat format — wrap in a single level for backward compatibility
+  return {
+    levels: [{
+      name: "Ground Floor",
+      index: 0,
+      elevation: 0,
+      walls: Array.isArray(raw.walls) ? raw.walls : [],
+      doors: Array.isArray(raw.doors) ? raw.doors : [],
+      windows: Array.isArray(raw.windows) ? raw.windows : [],
+      rooms: Array.isArray(raw.rooms) ? raw.rooms : [],
+      items: Array.isArray(raw.items) ? raw.items : [],
+    }],
+  };
+}
+
+function buildSceneFromGemini(geminiData: any): SceneData {
+  const normalised = normaliseGeminiData(geminiData);
   const nodes: Record<string, AnyNode> = {};
 
   // Site
@@ -138,84 +235,126 @@ function buildSceneFromGemini(geminiData: {
     transform: { ...defaultTransform },
   };
 
-  // Level (Ground Floor)
-  const level: LevelNode = {
-    ...(makeBase("level", "Ground Floor") as BaseNode),
-    type: "level",
-    parentId: building.id,
-    elevation: 0,
-    height: 2.7,
-    index: 0,
-    transform: { ...defaultTransform },
-  };
-
   site.childIds = [building.id];
-  building.childIds = [level.id];
+  building.childIds = [];
 
   nodes[site.id] = site;
   nodes[building.id] = building;
-  nodes[level.id] = level;
 
-  const wallIds: string[] = [];
-
-  // Create walls
-  for (const w of geminiData.walls ?? []) {
-    const wall: WallNode = {
-      ...(makeBase("wall") as BaseNode),
-      type: "wall",
-      parentId: level.id,
-      start: { x: w.startX, y: 0, z: w.startZ },
-      end: { x: w.endX, y: 0, z: w.endZ },
-      height: w.height ?? 2.7,
-      thickness: w.thickness ?? 0.15,
-      material: "plaster",
+  // Create one LevelNode per detected level
+  for (const lvl of normalised.levels) {
+    const level: LevelNode = {
+      ...(makeBase("level", lvl.name) as BaseNode),
+      type: "level",
+      parentId: building.id,
+      elevation: lvl.elevation,
+      height: 2.7,
+      index: lvl.index,
       transform: { ...defaultTransform },
     };
-    nodes[wall.id] = wall;
-    wallIds.push(wall.id);
-    level.childIds.push(wall.id);
-  }
 
-  // Create doors — attach to parent wall
-  for (const d of geminiData.doors ?? []) {
-    const wallId = wallIds[d.wallIndex];
-    if (!wallId) continue;
+    building.childIds.push(level.id);
+    nodes[level.id] = level;
 
-    const door: DoorNode = {
-      ...(makeBase("door") as BaseNode),
-      type: "door",
-      parentId: wallId,
-      wallId,
-      position: d.position ?? 0.5,
-      width: d.width ?? 0.9,
-      height: d.height ?? 2.1,
-      doorType: (d.doorType as DoorNode["doorType"]) ?? "single",
-      swing: (d.swing as DoorNode["swing"]) ?? "left",
-      transform: { ...defaultTransform },
-    };
-    nodes[door.id] = door;
-    (nodes[wallId] as WallNode).childIds.push(door.id);
-  }
+    const wallIds: string[] = [];
 
-  // Create windows — attach to parent wall
-  for (const w of geminiData.windows ?? []) {
-    const wallId = wallIds[w.wallIndex];
-    if (!wallId) continue;
+    // Create walls
+    for (const w of lvl.walls) {
+      const wall: WallNode = {
+        ...(makeBase("wall") as BaseNode),
+        type: "wall",
+        parentId: level.id,
+        start: { x: w.startX, y: 0, z: w.startZ },
+        end: { x: w.endX, y: 0, z: w.endZ },
+        height: w.height ?? 2.7,
+        thickness: w.thickness ?? 0.15,
+        material: "plaster",
+        transform: { ...defaultTransform },
+      };
+      nodes[wall.id] = wall;
+      wallIds.push(wall.id);
+      level.childIds.push(wall.id);
+    }
 
-    const win: WindowNode = {
-      ...(makeBase("window") as BaseNode),
-      type: "window",
-      parentId: wallId,
-      wallId,
-      position: w.position ?? 0.5,
-      width: w.width ?? 1.2,
-      height: w.height ?? 1.2,
-      sillHeight: w.sillHeight ?? 0.9,
-      windowType: (w.windowType as WindowNode["windowType"]) ?? "casement",
-      transform: { ...defaultTransform },
-    };
-    nodes[win.id] = win;
-    (nodes[wallId] as WallNode).childIds.push(win.id);
+    // Create doors — attach to parent wall
+    for (const d of lvl.doors) {
+      const wallId = wallIds[d.wallIndex];
+      if (!wallId) continue;
+
+      const door: DoorNode = {
+        ...(makeBase("door") as BaseNode),
+        type: "door",
+        parentId: wallId,
+        wallId,
+        position: d.position ?? 0.5,
+        width: d.width ?? 0.9,
+        height: d.height ?? 2.1,
+        doorType: (d.doorType as DoorNode["doorType"]) ?? "single",
+        swing: (d.swing as DoorNode["swing"]) ?? "left",
+        transform: { ...defaultTransform },
+      };
+      nodes[door.id] = door;
+      (nodes[wallId] as WallNode).childIds.push(door.id);
+    }
+
+    // Create windows — attach to parent wall
+    for (const w of lvl.windows) {
+      const wallId = wallIds[w.wallIndex];
+      if (!wallId) continue;
+
+      const win: WindowNode = {
+        ...(makeBase("window") as BaseNode),
+        type: "window",
+        parentId: wallId,
+        wallId,
+        position: w.position ?? 0.5,
+        width: w.width ?? 1.2,
+        height: w.height ?? 1.2,
+        sillHeight: w.sillHeight ?? 0.9,
+        windowType: (w.windowType as WindowNode["windowType"]) ?? "casement",
+        transform: { ...defaultTransform },
+      };
+      nodes[win.id] = win;
+      (nodes[wallId] as WallNode).childIds.push(win.id);
+    }
+
+    // Create zones (rooms) — children of level
+    for (const r of lvl.rooms ?? []) {
+      const zt = (r.zoneType ?? "room") as ZoneNode["zoneType"];
+      const zone: ZoneNode = {
+        ...(makeBase("zone", r.name) as BaseNode),
+        type: "zone",
+        parentId: level.id,
+        zoneType: zt,
+        label: r.name,
+        color: r.color ?? ZONE_DEFAULT_COLORS[zt] ?? ZONE_DEFAULT_COLORS.other,
+        points: (r.points ?? []).map((p) => ({ x: p.x, y: 0, z: p.z })),
+        transform: { ...defaultTransform },
+      };
+      nodes[zone.id] = zone;
+      level.childIds.push(zone.id);
+    }
+
+    // Create items (furniture / appliances / fixtures) — children of level
+    for (const item of lvl.items ?? []) {
+      const itemNode: ItemNode = {
+        ...(makeBase("item", item.name) as BaseNode),
+        type: "item",
+        parentId: level.id,
+        itemType: item.itemType ?? "furniture",
+        dimensions: item.dimensions
+          ? { x: item.dimensions.x, y: item.dimensions.y, z: item.dimensions.z }
+          : { x: 1, y: 1, z: 1 },
+        material: "wood",
+        transform: {
+          position: { x: item.position.x, y: 0, z: item.position.z },
+          rotation: { x: 0, y: 0, z: 0 },
+          scale: { x: 1, y: 1, z: 1 },
+        },
+      };
+      nodes[itemNode.id] = itemNode;
+      level.childIds.push(itemNode.id);
+    }
   }
 
   return { nodes, rootNodeIds: [site.id] };
@@ -229,22 +368,42 @@ async function parseFloorplanWithGemini(imageBuffer: Buffer, mimeType: string) {
 
   const base64Image = imageBuffer.toString("base64");
 
-  const prompt = `Analyze this 2D architectural floor plan image and extract all structural elements as JSON.
+  const prompt = `Analyze this 2D architectural floor plan image and extract all structural elements, rooms/zones, and visible furniture as JSON.
 
 Return ONLY a valid JSON object with no markdown, no code fences, no explanation text — just the raw JSON object.
 
 The JSON must have this exact structure:
 {
-  "walls": [
-    { "startX": number, "startZ": number, "endX": number, "endZ": number, "height": number, "thickness": number }
-  ],
-  "doors": [
-    { "wallIndex": number, "position": number, "width": number, "height": number, "doorType": "single"|"double"|"sliding"|"french"|"bifold", "swing": "left"|"right" }
-  ],
-  "windows": [
-    { "wallIndex": number, "position": number, "width": number, "height": number, "sillHeight": number, "windowType": "fixed"|"casement"|"sash"|"sliding"|"bay"|"skylight" }
+  "levels": [
+    {
+      "name": "Ground Floor",
+      "index": 0,
+      "elevation": 0,
+      "walls": [
+        { "startX": number, "startZ": number, "endX": number, "endZ": number, "height": number, "thickness": number }
+      ],
+      "doors": [
+        { "wallIndex": number, "position": number, "width": number, "height": number, "doorType": "single"|"double"|"sliding"|"french"|"bifold", "swing": "left"|"right" }
+      ],
+      "windows": [
+        { "wallIndex": number, "position": number, "width": number, "height": number, "sillHeight": number, "windowType": "fixed"|"casement"|"sash"|"sliding"|"bay"|"skylight" }
+      ],
+      "rooms": [
+        { "name": "Living Room", "zoneType": "room"|"hallway"|"bathroom"|"kitchen"|"bedroom"|"living"|"garage"|"utility"|"other", "points": [{"x": number, "z": number}], "color": null }
+      ],
+      "items": [
+        { "name": "Sofa", "itemType": "furniture"|"appliance"|"fixture", "position": { "x": number, "z": number }, "dimensions": { "x": number, "y": number, "z": number } }
+      ]
+    }
   ]
 }
+
+Multi-floor detection:
+- If the image shows multiple floors (e.g. ground floor and first floor side by side, or labeled sections for different levels), create a separate entry in the "levels" array for each floor.
+- Use index 0 for ground floor, 1 for first floor, -1 for basement, etc.
+- Set elevation in meters: 0 for ground, 2.7 for first floor, 5.4 for second, -2.7 for basement.
+- Each level has its own independent walls, doors, windows, rooms, and items arrays. The wallIndex references are local to that level's walls array.
+- If only one floor is visible, return a single level with index 0 and elevation 0.
 
 Rules:
 - Coordinates are in meters. Normalise so the floor plan fits roughly within a 20x20 metre bounding box.
@@ -258,7 +417,21 @@ Rules:
 - Default window width: 1.2, window height: 1.2, sill height: 0.9.
 - Include ALL visible walls, doors, and windows.
 - If a value cannot be determined, use the default.
-- Do NOT include any rooms, furniture, or annotations — only walls, doors, and windows.`;
+
+Room/zone rules:
+- Identify every distinct room or space visible in the floor plan (labelled or inferred from layout).
+- "name" is the room label (e.g. "Living Room", "Kitchen", "Bedroom 1", "Hallway").
+- "zoneType" classifies the room: use "kitchen" for kitchens, "bathroom" for bathrooms/WCs/ensuites, "bedroom" for bedrooms, "living" for living/family/lounge rooms, "hallway" for corridors/hallways/entries, "garage" for garages, "utility" for laundry/storage/utility rooms, "room" for generic rooms, "other" for anything else.
+- "points" is an array of polygon vertices (in clockwise order) that define the room boundary in the XZ plane, using the same coordinate system as walls. The polygon should follow the inner edges of the enclosing walls.
+- "color" should be null (a default will be assigned based on zoneType).
+- Include ALL rooms/spaces, even small ones like closets or pantries.
+
+Furniture / items:
+- Only include items that are clearly visible or labeled in the floor plan (e.g. sofas, beds, tables, kitchen appliances, bathroom fixtures).
+- "itemType" must be one of: "furniture" (sofas, beds, tables, chairs, desks), "appliance" (ovens, fridges, washing machines), or "fixture" (toilets, sinks, bathtubs, showers).
+- "position" is the centre point of the item in the same coordinate system as walls.
+- "dimensions" is width (x), height (y), and depth (z) in meters. Use reasonable estimates if exact sizes are not clear.
+- If no furniture is visible, return an empty items array.`;
 
   const modelName = "gemini-2.0-flash";
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
@@ -346,12 +519,27 @@ Rules:
     throw new Error("Gemini response is not a JSON object");
   }
 
-  // Ensure arrays exist even if Gemini omits them
-  parsed.walls = Array.isArray(parsed.walls) ? parsed.walls : [];
-  parsed.doors = Array.isArray(parsed.doors) ? parsed.doors : [];
-  parsed.windows = Array.isArray(parsed.windows) ? parsed.windows : [];
-
-  console.log(`Parsed: ${parsed.walls.length} walls, ${parsed.doors.length} doors, ${parsed.windows.length} windows`);
+  // Log summary — handle both multi-level and flat formats
+  if (Array.isArray(parsed.levels)) {
+    console.log(`Parsed: ${parsed.levels.length} level(s)`);
+    for (const lvl of parsed.levels) {
+      const walls = Array.isArray(lvl.walls) ? lvl.walls.length : 0;
+      const doors = Array.isArray(lvl.doors) ? lvl.doors.length : 0;
+      const windows = Array.isArray(lvl.windows) ? lvl.windows.length : 0;
+      const rooms = Array.isArray(lvl.rooms) ? lvl.rooms.length : 0;
+      const items = Array.isArray(lvl.items) ? lvl.items.length : 0;
+      console.log(`  Level "${lvl.name ?? "?"}" (index ${lvl.index ?? "?"}): ${walls} walls, ${doors} doors, ${windows} windows, ${rooms} rooms, ${items} items`);
+    }
+  } else {
+    // Flat format — ensure arrays exist even if Gemini omits them
+    parsed.walls = Array.isArray(parsed.walls) ? parsed.walls : [];
+    parsed.doors = Array.isArray(parsed.doors) ? parsed.doors : [];
+    parsed.windows = Array.isArray(parsed.windows) ? parsed.windows : [];
+    parsed.rooms = Array.isArray(parsed.rooms) ? parsed.rooms : [];
+    const rooms = parsed.rooms.length;
+    const items = Array.isArray(parsed.items) ? parsed.items.length : 0;
+    console.log(`Parsed (flat): ${parsed.walls.length} walls, ${parsed.doors.length} doors, ${parsed.windows.length} windows, ${rooms} rooms, ${items} items`);
+  }
 
   return parsed;
 }
@@ -444,27 +632,58 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const contentType = (req.headers["content-type"] as string) || "image/png";
-    const mimeType = contentType.split(";")[0].trim();
+    let mimeType = contentType.split(";")[0].trim();
 
-    console.log(`Image buffer size: ${imageBuffer.length} bytes`);
-    console.log(`MIME type: ${mimeType}`);
+    console.log(`Raw buffer size: ${imageBuffer.length} bytes`);
+    console.log(`Content-Type header: ${mimeType}`);
 
-    // Upload original image to Vercel Blob for reference
-    const ext = mimeType.includes("jpeg") || mimeType.includes("jpg") ? "jpg" : "png";
+    // Detect PDF uploads via content-type header or magic bytes and convert to PNG
+    let geminiBuffer = imageBuffer;
+    const detectedPdf =
+      mimeType === "application/pdf" || isPdfBuffer(imageBuffer);
+
+    if (detectedPdf) {
+      console.log("PDF detected — converting first page to PNG...");
+      try {
+        const result = await processPdf(imageBuffer);
+        geminiBuffer = result.imageBuffer;
+        mimeType = result.mimeType;
+        console.log(
+          `PDF converted: ${result.width}x${result.height} px, ${result.pageCount} page(s), ` +
+            `PNG size ${Math.round(geminiBuffer.length / 1024)} KB`
+        );
+      } catch (pdfError: any) {
+        console.error("PDF conversion error:", pdfError.message);
+        return res.status(422).json({
+          error: "Failed to process PDF file",
+          details: pdfError.message,
+        });
+      }
+    }
+
+    console.log(`Gemini buffer size: ${geminiBuffer.length} bytes`);
+    console.log(`MIME type for Gemini: ${mimeType}`);
+
+    // Upload original file to Vercel Blob for reference
+    const ext = detectedPdf
+      ? "pdf"
+      : mimeType.includes("jpeg") || mimeType.includes("jpg")
+        ? "jpg"
+        : "png";
     const blobFilename = `floorplans/${floorplanId}/source-${Date.now()}.${ext}`;
-    console.log("Uploading source image to Vercel Blob:", blobFilename);
+    console.log("Uploading source file to Vercel Blob:", blobFilename);
 
     const blob = await put(blobFilename, imageBuffer, {
       access: "public",
-      contentType: mimeType,
+      contentType: detectedPdf ? "application/pdf" : mimeType,
     });
-    console.log("Uploaded source image:", blob.url);
+    console.log("Uploaded source file:", blob.url);
 
-    // Call Gemini to parse the floor plan
+    // Call Gemini to parse the floor plan (always send the PNG / image buffer)
     console.log("Calling Gemini to parse floor plan...");
     let geminiData: any;
     try {
-      geminiData = await parseFloorplanWithGemini(imageBuffer, mimeType);
+      geminiData = await parseFloorplanWithGemini(geminiBuffer, mimeType);
     } catch (parseError: any) {
       console.error("Gemini parse error:", parseError.message);
       return res.status(422).json({

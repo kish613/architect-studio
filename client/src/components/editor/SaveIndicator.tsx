@@ -1,9 +1,18 @@
+import { useState, useEffect } from "react";
 import { useScene } from "@/stores/use-scene";
 import { CheckCircle, Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function SaveIndicator() {
   const { isSaving, hasUnsavedChanges, lastSavedAt } = useScene();
+
+  // Re-render periodically so "saved X minutes ago" stays current
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!lastSavedAt) return;
+    const interval = setInterval(() => setTick((t) => t + 1), 30000);
+    return () => clearInterval(interval);
+  }, [lastSavedAt]);
 
   if (isSaving) {
     return (

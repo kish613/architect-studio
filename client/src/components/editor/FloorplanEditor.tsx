@@ -7,7 +7,9 @@ import { LevelNavigator } from "@/components/editor/LevelNavigator";
 import { SaveIndicator } from "@/components/editor/SaveIndicator";
 import { AIGeneratePanel } from "@/components/editor/AIGeneratePanel";
 import { useAutoSave } from "@/hooks/use-auto-save";
-import { useScene } from "@/stores/use-scene";
+import { useScene, useSceneHistory } from "@/stores/use-scene";
+import { useEditor } from "@/stores/use-editor";
+import { useViewer } from "@/stores/use-viewer";
 
 interface FloorplanEditorProps {
   floorplanId: number;
@@ -30,6 +32,44 @@ export function FloorplanEditor({ floorplanId: _floorplanId, floorplanName }: Fl
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, [hasUnsavedChanges]);
+
+  // Keyboard shortcuts
+  const setTool = useEditor((s) => s.setTool);
+  const cancelAction = useEditor((s) => s.cancelAction);
+  const selectedIds = useViewer((s) => s.selectedIds);
+  const clearSelection = useViewer((s) => s.clearSelection);
+  const deleteNode = useScene((s) => s.deleteNode);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      // Don't capture when typing in inputs
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return;
+
+      const key = e.key.toLowerCase();
+
+      if (key === "v") { setTool("select"); return; }
+      if (key === "w") { setTool("wall"); return; }
+      if (key === "d") { setTool("door"); return; }
+      if (key === "escape") { cancelAction(); clearSelection(); return; }
+      if ((key === "delete" || key === "backspace") && selectedIds.length > 0) {
+        selectedIds.forEach((id) => deleteNode(id));
+        clearSelection();
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        useSceneHistory.getState().undo();
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && key === "z" && e.shiftKey) {
+        e.preventDefault();
+        useSceneHistory.getState().redo();
+        return;
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [setTool, cancelAction, selectedIds, clearSelection, deleteNode]);
 
   const leftPanel = (
     <div className="space-y-4">

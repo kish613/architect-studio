@@ -1,48 +1,9 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
-import { pgTable, text, varchar, serial, timestamp, integer } from "drizzle-orm/pg-core";
 import { eq, desc } from "drizzle-orm";
-import { jwtVerify } from "jose";
 import { z } from "zod";
-
-const floorplanDesigns = pgTable("floorplan_designs", {
-  id: serial("id").primaryKey(),
-  projectId: integer("project_id"),
-  userId: varchar("user_id").notNull(),
-  name: text("name").notNull().default("Untitled Floorplan"),
-  sceneData: text("scene_data").notNull(),
-  thumbnailUrl: text("thumbnail_url"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
-
-function getSessionFromCookies(cookieHeader: string | null): string | null {
-  if (!cookieHeader) return null;
-  const cookies = cookieHeader.split(";").map((c) => c.trim());
-  const sessionCookie = cookies.find((c) => c.startsWith("auth_session="));
-  return sessionCookie ? sessionCookie.split("=")[1] : null;
-}
-
-async function verifySession(token: string): Promise<{ userId: string } | null> {
-  try {
-    if (!process.env.SESSION_SECRET) {
-      throw new Error("SESSION_SECRET environment variable is required");
-    }
-    const secret = new TextEncoder().encode(process.env.SESSION_SECRET);
-    const { payload } = await jwtVerify(token, secret);
-    if (typeof payload.userId === "string") return { userId: payload.userId };
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-function getDb() {
-  if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL must be set");
-  const sql = neon(process.env.DATABASE_URL);
-  return drizzle(sql);
-}
+import { requireAuth } from "../lib/auth.js";
+import { db } from "../lib/db.js";
+import { floorplanDesigns } from "../../shared/schema.js";
 
 const createSchema = z.object({
   name: z.string().min(1).default("Untitled Floorplan"),
@@ -51,16 +12,12 @@ const createSchema = z.object({
 });
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const cookieHeader = req.headers.cookie || null;
-  const token = getSessionFromCookies(cookieHeader);
-  if (!token) return res.status(401).json({ error: "Not authenticated" });
-  const session = await verifySession(token);
-  if (!session) return res.status(401).json({ error: "Not authenticated" });
+  const session = await requireAuth(req, res);
+  if (!session) return;
 
   if (req.method === "POST") {
     try {
       const data = createSchema.parse(req.body);
-      const db = getDb();
       const [floorplan] = await db
         .insert(floorplanDesigns)
         .values({
@@ -80,7 +37,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method === "GET") {
     try {
-      const db = getDb();
       const designs = await db
         .select()
         .from(floorplanDesigns)

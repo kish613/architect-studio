@@ -6,6 +6,7 @@ import { PropertyPanel } from "@/components/editor/PropertyPanel";
 import { LevelNavigator } from "@/components/editor/LevelNavigator";
 import { SaveIndicator } from "@/components/editor/SaveIndicator";
 import { AIGeneratePanel } from "@/components/editor/AIGeneratePanel";
+import { FurnitureCatalogPanel } from "@/components/editor/FurnitureCatalogPanel";
 import { useAutoSave } from "@/hooks/use-auto-save";
 import { useScene, useSceneHistory } from "@/stores/use-scene";
 import { useEditor } from "@/stores/use-editor";
@@ -76,6 +77,7 @@ export function FloorplanEditor({ floorplanId: _floorplanId, floorplanName }: Fl
       <EditorToolbar />
       <LevelNavigator />
       <AIGeneratePanel />
+      <FurnitureCatalogPanel />
     </div>
   );
 

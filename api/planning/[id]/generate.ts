@@ -93,7 +93,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const canGenerate = await canUserGenerate(session.userId);
     if (!canGenerate) {
       return res.status(403).json({ 
-        error: "No credits remaining. Please upgrade your plan to continue generating.",
+        error: "No credits remaining. Please purchase more credits to continue generating.",
         code: "NO_CREDITS"
       });
     }

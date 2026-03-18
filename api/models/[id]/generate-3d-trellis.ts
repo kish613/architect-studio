@@ -170,7 +170,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!hasCredits) {
       return res.status(403).json({
         error: "Generation limit reached",
-        message: "Please upgrade your plan or purchase additional generations",
+        message: "No credits remaining. Please purchase more credits to continue generating.",
         redirectTo: "/pricing",
       });
     }

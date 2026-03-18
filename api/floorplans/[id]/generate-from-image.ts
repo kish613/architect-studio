@@ -614,7 +614,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           limit: status.generationsLimit,
           plan: status.plan,
         },
-        message: "Please upgrade your plan or purchase additional generations",
+        message: "No credits remaining. Please purchase more credits to continue generating.",
         redirectTo: "/pricing",
       });
     }

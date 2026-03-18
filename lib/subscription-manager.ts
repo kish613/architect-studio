@@ -55,35 +55,18 @@ export async function getSubscriptionStatus(userId: string) {
 
 /**
  * Check if user can generate (has credits available)
- * Considers grace period for past_due subscriptions
+ * Uses actual credit balance as the source of truth — if a user has
+ * remaining credits (from any source: plan allocation or pay-per-use
+ * purchases), they are allowed to generate regardless of subscription status.
  */
 export async function canUserGenerate(userId: string): Promise<boolean> {
-  const subscription = await getSubscription(userId);
-
   // Check if billing period needs reset first
   await checkAndResetBillingPeriod(userId);
 
   // Refetch after potential reset
   const updatedSubscription = await getSubscription(userId);
 
-  // If subscription is past_due, check grace period
-  if (updatedSubscription.subscriptionStatus === 'past_due') {
-    const now = new Date();
-    if (updatedSubscription.gracePeriodEndsAt && now < updatedSubscription.gracePeriodEndsAt) {
-      // Still in grace period - allow generations with warning
-      return updatedSubscription.generationsUsed < updatedSubscription.generationsLimit;
-    } else {
-      // Grace period expired - no generations allowed
-      return false;
-    }
-  }
-
-  // If subscription is canceled or unpaid, no generations
-  if (updatedSubscription.subscriptionStatus === 'canceled' ||
-      updatedSubscription.subscriptionStatus === 'unpaid') {
-    return false;
-  }
-
+  // Credit balance is the sole gate: if remaining credits > 0, allow generation
   return updatedSubscription.generationsUsed < updatedSubscription.generationsLimit;
 }
 

@@ -68,9 +68,6 @@ export function Viewer() {
 
   const generatePascalMutation = useMutation({
     mutationFn: async (modelId: number) => {
-      if (!subscription?.canGenerate) {
-        throw new Error("INSUFFICIENT_CREDITS");
-      }
       return generatePascalModel(modelId);
     },
     onSuccess: () => {
@@ -80,8 +77,9 @@ export function Viewer() {
       setActiveTool('3d');
     },
     onError: (error: Error) => {
-      if (error.message === "INSUFFICIENT_CREDITS" || error.message.includes("limit")) {
+      if (error.message.includes("Credit limit") || error.message.includes("No credits") || error.message.includes("403")) {
         setShowPaywall(true);
+        invalidateSubscription();
         return;
       }
       toast({ title: "Pascal Generation failed", description: error.message, variant: "destructive" });
@@ -90,9 +88,6 @@ export function Viewer() {
 
   const generateIsometricMutation = useMutation({
     mutationFn: async ({ modelId, prompt }: { modelId: number; prompt?: string }) => {
-      if (!subscription?.canGenerate) {
-        throw new Error("INSUFFICIENT_CREDITS");
-      }
       return generateIsometric(modelId, prompt);
     },
     onSuccess: () => {
@@ -103,11 +98,7 @@ export function Viewer() {
       setActiveTool('3d');
     },
     onError: (error: Error) => {
-      if (error.message === "INSUFFICIENT_CREDITS" || error.message.includes("limit")) {
-        setShowPaywall(true);
-        return;
-      }
-      if (error.message.includes("403") || error.message.includes("Credit limit")) {
+      if (error.message.includes("Credit limit") || error.message.includes("No credits") || error.message.includes("403")) {
         setShowPaywall(true);
         invalidateSubscription();
         return;
@@ -118,9 +109,6 @@ export function Viewer() {
 
   const generate3DMutation = useMutation({
     mutationFn: async (modelId: number) => {
-      if (!subscription?.canGenerate) {
-        throw new Error("INSUFFICIENT_CREDITS");
-      }
       return provider3D === 'trellis' ? generate3DTrellis(modelId) : generate3D(modelId);
     },
     onSuccess: () => {
@@ -135,11 +123,7 @@ export function Viewer() {
       }
     },
     onError: (error: Error) => {
-      if (error.message === "INSUFFICIENT_CREDITS" || error.message.includes("limit")) {
-        setShowPaywall(true);
-        return;
-      }
-      if (error.message.includes("403") || error.message.includes("Credit limit")) {
+      if (error.message.includes("Credit limit") || error.message.includes("No credits") || error.message.includes("403")) {
         setShowPaywall(true);
         invalidateSubscription();
         return;
@@ -150,9 +134,6 @@ export function Viewer() {
 
   const retextureMutation = useMutation({
     mutationFn: async ({ modelId, prompt }: { modelId: number; prompt: string }) => {
-      if (!subscription?.canGenerate) {
-        throw new Error("INSUFFICIENT_CREDITS");
-      }
       return retextureModel(modelId, prompt);
     },
     onSuccess: () => {
@@ -161,11 +142,7 @@ export function Viewer() {
       toast({ title: "Retexturing started!", description: "AI is enhancing textures..." });
     },
     onError: (error: Error) => {
-      if (error.message === "INSUFFICIENT_CREDITS" || error.message.includes("limit")) {
-        setShowPaywall(true);
-        return;
-      }
-      if (error.message.includes("403") || error.message.includes("Credit limit") || error.message.includes("limit reached")) {
+      if (error.message.includes("Credit limit") || error.message.includes("No credits") || error.message.includes("403")) {
         setShowPaywall(true);
         invalidateSubscription();
         return;

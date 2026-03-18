@@ -72,18 +72,18 @@ export function PaywallModal({ isOpen, onClose, trigger = "limit_reached" }: Pay
   const getTitle = () => {
     switch (trigger) {
       case "limit_reached":
-        return "You've reached your generation limit";
+        return "No credits remaining";
       case "feature_locked":
         return "Upgrade to unlock this feature";
       default:
-        return "Upgrade your plan";
+        return "Get more credits";
     }
   };
 
   const getDescription = () => {
     switch (trigger) {
       case "limit_reached":
-        return "Upgrade your plan or purchase additional credits to continue generating.";
+        return "Purchase more credits or upgrade your plan to continue generating.";
       case "feature_locked":
         return "This feature is available on paid plans.";
       default:

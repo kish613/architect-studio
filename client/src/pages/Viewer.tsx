@@ -77,7 +77,7 @@ export function Viewer() {
       setActiveTool('3d');
     },
     onError: (error: Error) => {
-      if (error.message.includes("Credit limit") || error.message.includes("No credits") || error.message.includes("403")) {
+      if (error.message.includes("Credit limit") || error.message.includes("No credits") || error.message.includes("purchase more credits")) {
         setShowPaywall(true);
         invalidateSubscription();
         return;
@@ -98,7 +98,7 @@ export function Viewer() {
       setActiveTool('3d');
     },
     onError: (error: Error) => {
-      if (error.message.includes("Credit limit") || error.message.includes("No credits") || error.message.includes("403")) {
+      if (error.message.includes("Credit limit") || error.message.includes("No credits") || error.message.includes("purchase more credits")) {
         setShowPaywall(true);
         invalidateSubscription();
         return;
@@ -123,7 +123,7 @@ export function Viewer() {
       }
     },
     onError: (error: Error) => {
-      if (error.message.includes("Credit limit") || error.message.includes("No credits") || error.message.includes("403")) {
+      if (error.message.includes("Credit limit") || error.message.includes("No credits") || error.message.includes("purchase more credits")) {
         setShowPaywall(true);
         invalidateSubscription();
         return;
@@ -142,7 +142,7 @@ export function Viewer() {
       toast({ title: "Retexturing started!", description: "AI is enhancing textures..." });
     },
     onError: (error: Error) => {
-      if (error.message.includes("Credit limit") || error.message.includes("No credits") || error.message.includes("403")) {
+      if (error.message.includes("Credit limit") || error.message.includes("No credits") || error.message.includes("purchase more credits")) {
         setShowPaywall(true);
         invalidateSubscription();
         return;

@@ -8,11 +8,25 @@
       "maxDuration": 120,
       "includeFiles": "lib/**,shared/**"
     },
+    "api/models/*/generate-pascal.ts": {
+      "maxDuration": 120,
+      "includeFiles": "lib/**,shared/**"
+    },
     "api/models/*/generate-3d.ts": {
-      "maxDuration": 120
+      "maxDuration": 120,
+      "includeFiles": "lib/**,shared/**"
+    },
+    "api/models/*/generate-3d-trellis.ts": {
+      "maxDuration": 120,
+      "includeFiles": "lib/**,shared/**"
     },
     "api/models/*/retexture.ts": {
-      "maxDuration": 120
+      "maxDuration": 120,
+      "includeFiles": "lib/**,shared/**"
+    },
+    "api/floorplans/*/generate-from-image.ts": {
+      "maxDuration": 120,
+      "includeFiles": "lib/**,shared/**"
     },
     "api/**/*.ts": {
       "maxDuration": 60,

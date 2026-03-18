@@ -140,7 +140,7 @@ function normaliseGeminiData(raw: any): { levels: GeminiLevel[] } {
 
 // ─── Server-side catalog matching ───────────────────────────
 
-const ASSET_BASE = "https://architect-studio-assets.vercel-storage.com/furniture";
+const ASSET_BASE = "/assets/furniture";
 
 interface CatalogMatch {
   id: string;

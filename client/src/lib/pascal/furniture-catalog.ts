@@ -3,7 +3,7 @@
 // Used by the client for rendering and by matchCatalogItem() for
 // fuzzy-matching Gemini-detected item names to known catalog entries.
 
-const ASSET_BASE = "https://architect-studio-assets.vercel-storage.com/furniture";
+const ASSET_BASE = "/assets/furniture";
 
 export interface CatalogItem {
   id: string;

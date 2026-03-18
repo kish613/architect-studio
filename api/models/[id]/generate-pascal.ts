@@ -270,7 +270,7 @@ Rules:
 - If a value cannot be determined, use the default.
 - Include ALL rooms/spaces, even small ones like closets or pantries.`;
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`;
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-preview:generateContent`;
 
   const requestBody = {
     contents: [{

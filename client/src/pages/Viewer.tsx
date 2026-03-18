@@ -2,15 +2,16 @@ import { useParams, Link } from "wouter";
 import { Layout } from "@/components/layout/Layout";
 import { WorkspaceLayout } from "@/components/layout/WorkspaceLayout";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Share2, Loader2, Sparkles, Box, RotateCw, Check, Paintbrush, Undo2, ZoomIn, ZoomOut, Expand } from "lucide-react";
+import { ArrowLeft, Download, Share2, Loader2, Sparkles, Box, RotateCw, Check, Paintbrush, Undo2, ZoomIn, ZoomOut, Expand, Layers } from "lucide-react";
 import { TransformWrapper, TransformComponent, useControls } from "react-zoom-pan-pinch";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchProject, generateIsometric, generate3D, generate3DTrellis, checkModelStatus, retextureModel, checkRetextureStatus, revertTexture } from "@/lib/api";
+import { fetchProject, generateIsometric, generate3D, generate3DTrellis, generatePascalModel, checkModelStatus, retextureModel, checkRetextureStatus, revertTexture } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { Model3DViewer, Model3DPlaceholder } from "@/components/viewer/Model3DViewer";
 import { PaywallModal } from "@/components/subscription";
@@ -19,7 +20,7 @@ import { PageTransition } from "@/components/ui/page-transition";
 
 type ViewMode = 'original' | 'isometric' | '3d' | 'split';
 type Provider3D = 'meshy' | 'trellis';
-type ToolMode = 'isometric' | '3d' | 'texture';
+type ToolMode = 'pascal' | 'isometric' | '3d' | 'texture';
 
 const ViewZoomControls = () => {
   const { zoomIn, zoomOut, resetTransform } = useControls();
@@ -41,11 +42,12 @@ const ViewZoomControls = () => {
 export function Viewer() {
   const { id } = useParams();
   const [viewMode, setViewMode] = useState<ViewMode>('original');
-  const [activeTool, setActiveTool] = useState<ToolMode>('isometric');
+  const [activeTool, setActiveTool] = useState<ToolMode>('pascal');
   const [customPrompt, setCustomPrompt] = useState("");
   const [texturePrompt, setTexturePrompt] = useState("");
   const [showPaywall, setShowPaywall] = useState(false);
   const [provider3D, setProvider3D] = useState<Provider3D>('trellis');
+  const [progress, setProgress] = useState(0);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { subscription, invalidate: invalidateSubscription } = useSubscription();
@@ -57,10 +59,32 @@ export function Viewer() {
     refetchInterval: (query) => {
       const data = query.state.data;
       const model = data?.models[0];
-      if (model?.status === 'generating_isometric' || model?.status === 'generating_3d' || model?.status === 'retexturing') {
+      if (model?.status === 'generating_pascal' || model?.status === 'generating_isometric' || model?.status === 'generating_3d' || model?.status === 'retexturing') {
         return 3000;
       }
       return false;
+    },
+  });
+
+  const generatePascalMutation = useMutation({
+    mutationFn: async (modelId: number) => {
+      if (!subscription?.canGenerate) {
+        throw new Error("INSUFFICIENT_CREDITS");
+      }
+      return generatePascalModel(modelId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
+      invalidateSubscription();
+      toast({ title: "Pascal model generated!", description: "Geometric nodes are ready." });
+      setActiveTool('3d');
+    },
+    onError: (error: Error) => {
+      if (error.message === "INSUFFICIENT_CREDITS" || error.message.includes("limit")) {
+        setShowPaywall(true);
+        return;
+      }
+      toast({ title: "Pascal Generation failed", description: error.message, variant: "destructive" });
     },
   });
 
@@ -168,6 +192,24 @@ export function Viewer() {
     }
   }, [project?.models[0]?.status, project?.models[0]?.meshyTaskId, project?.models[0]?.retextureTaskId]);
 
+  const model = project?.models[0];
+  const isGenerating = model?.status === 'generating_pascal' || model?.status === 'generating_isometric' || model?.status === 'generating_3d' || model?.status === 'retexturing';
+  const hasIsometric = !!model?.isometricUrl;
+  const has3D = !!model?.model3dUrl;
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isGenerating) {
+      setProgress(0);
+      interval = setInterval(() => {
+        setProgress((prev) => (prev >= 95 ? 95 : prev + Math.random() * 15));
+      }, 1000);
+    } else {
+      setProgress(100);
+    }
+    return () => clearInterval(interval);
+  }, [isGenerating]);
+
   if (isLoading) {
     return (
       <Layout>
@@ -192,8 +234,6 @@ export function Viewer() {
     );
   }
 
-  const model = project.models[0];
-
   if (!model) {
     return (
       <Layout>
@@ -207,64 +247,100 @@ export function Viewer() {
     );
   }
 
-  const isGenerating = model.status === 'generating_isometric' || model.status === 'generating_3d' || model.status === 'retexturing';
-  const hasIsometric = !!model.isometricUrl;
-  const has3D = !!model.model3dUrl;
-
   const leftPanelContent = (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* Node Graph Toolchain */}
       <div>
-        <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-1">Toolbox</div>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="flex items-center gap-2 mb-4 px-1">
+          <div className="w-1.5 h-4 bg-primary rounded-full"></div>
+          <h2 className="text-sm font-semibold tracking-wide uppercase text-white/90">Generation Node Graph</h2>
+        </div>
+        
+        <div className="space-y-3 relative before:absolute before:inset-y-6 before:left-[19px] before:w-px before:bg-white/10 before:z-0 z-10">
+          {/* Pascal Geometric Tool */}
+          <button
+            onClick={() => setActiveTool('pascal')}
+            className={`w-full flex items-center p-3 rounded-2xl border transition-all duration-300 relative z-10 group overflow-hidden ${activeTool === 'pascal' 
+                ? 'bg-gradient-to-br from-indigo-500/20 to-indigo-900/10 border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.15)] ring-1 ring-indigo-500/20' 
+                : 'bg-[#111] border-white/5 hover:bg-[#151515] hover:border-white/10'}`}
+          >
+            {activeTool === 'pascal' && <div className="absolute inset-0 bg-indigo-500/10 blur-xl opacity-50"></div>}
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${activeTool === 'pascal' ? 'bg-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.4)]' : 'bg-white/5 text-muted-foreground group-hover:bg-white/10 group-hover:text-white'}`}>
+              <Layers className="w-5 h-5" />
+            </div>
+            <div className="ml-4 text-left flex-1 relative z-10">
+              <div className={`font-medium text-sm transition-colors ${activeTool === 'pascal' ? 'text-indigo-100' : 'text-foreground'}`}>Pascal Geometric</div>
+              <div className="text-[11px] text-muted-foreground mt-0.5">3D Architecture Node Builder</div>
+            </div>
+          </button>
+
           {/* Isometric Tool */}
           <button
             onClick={() => setActiveTool('isometric')}
-            className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-all duration-300 weavy-node ${activeTool === 'isometric' ? 'active' : ''}`}
+            className={`w-full flex items-center p-3 rounded-2xl border transition-all duration-300 relative z-10 group overflow-hidden ${activeTool === 'isometric' 
+                ? 'bg-gradient-to-br from-primary/20 to-primary/5 border-primary/50 shadow-[0_0_20px_rgba(249,115,22,0.15)] ring-1 ring-primary/20' 
+                : 'bg-[#111] border-white/5 hover:bg-[#151515] hover:border-white/10'}`}
           >
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${hasIsometric ? 'bg-green-500/10 text-green-500 shadow-[0_0_12px_rgba(34,197,94,0.3)]' : 'bg-primary/10 text-primary'}`}>
-              {hasIsometric ? <Check className="w-4 h-4" /> : <RotateCw className="w-4 h-4" />}
+            {activeTool === 'isometric' && <div className="absolute inset-0 bg-primary/10 blur-xl opacity-50"></div>}
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${hasIsometric ? 'bg-green-500/20 text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.2)]' : activeTool === 'isometric' ? 'bg-primary text-white shadow-[0_0_15px_rgba(249,115,22,0.4)]' : 'bg-white/5 text-muted-foreground group-hover:bg-white/10 group-hover:text-white'}`}>
+              {hasIsometric ? <Check className="w-5 h-5" /> : <RotateCw className="w-5 h-5" />}
             </div>
-            <span className="text-xs font-medium text-center">Isometric</span>
+            <div className="ml-4 text-left flex-1 relative z-10">
+              <div className={`font-medium text-sm transition-colors ${activeTool === 'isometric' ? 'text-orange-100' : 'text-foreground'}`}>Isometric Render</div>
+              <div className="text-[11px] text-muted-foreground mt-0.5">2.5D Concept Generation</div>
+            </div>
           </button>
 
           {/* 3D Model Tool */}
           <button
             onClick={() => setActiveTool('3d')}
-            className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-all duration-300 weavy-node ${activeTool === '3d' ? 'active' : ''}`}
+            className={`w-full flex items-center p-3 rounded-2xl border transition-all duration-300 relative z-10 group overflow-hidden ${activeTool === '3d' 
+                ? 'bg-gradient-to-br from-blue-500/20 to-blue-900/10 border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.15)] ring-1 ring-blue-500/20' 
+                : 'bg-[#111] border-white/5 hover:bg-[#151515] hover:border-white/10'}`}
           >
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${has3D ? 'bg-green-500/10 text-green-500 shadow-[0_0_12px_rgba(34,197,94,0.3)]' : 'bg-blue-500/10 text-blue-500'}`}>
-              {has3D ? <Check className="w-4 h-4" /> : <Box className="w-4 h-4" />}
+            {activeTool === '3d' && <div className="absolute inset-0 bg-blue-500/10 blur-xl opacity-50"></div>}
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${has3D ? 'bg-green-500/20 text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.2)]' : activeTool === '3d' ? 'bg-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.4)]' : 'bg-white/5 text-muted-foreground group-hover:bg-white/10 group-hover:text-white'}`}>
+              {has3D ? <Check className="w-5 h-5" /> : <Box className="w-5 h-5" />}
             </div>
-            <span className="text-xs font-medium text-center">3D Model</span>
+            <div className="ml-4 text-left flex-1 relative z-10">
+              <div className={`font-medium text-sm transition-colors ${activeTool === '3d' ? 'text-blue-100' : 'text-foreground'}`}>3D Extrusion Engine</div>
+              <div className="text-[11px] text-muted-foreground mt-0.5">Volumetric Mesh Builder</div>
+            </div>
           </button>
 
           {/* Texture Tool */}
           <button
             onClick={() => setActiveTool('texture')}
-            className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-all duration-300 weavy-node col-span-2 ${activeTool === 'texture' ? 'active' : ''}`}
+            className={`w-full flex items-center p-3 rounded-2xl border transition-all duration-300 relative z-10 group overflow-hidden ${activeTool === 'texture' 
+                ? 'bg-gradient-to-br from-purple-500/20 to-purple-900/10 border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.15)] ring-1 ring-purple-500/20' 
+                : 'bg-[#111] border-white/5 hover:bg-[#151515] hover:border-white/10'}`}
           >
-            <div className="w-8 h-8 rounded-full bg-orange-500/10 text-orange-500 flex items-center justify-center mb-2">
-              <Paintbrush className="w-4 h-4" />
+            {activeTool === 'texture' && <div className="absolute inset-0 bg-purple-500/10 blur-xl opacity-50"></div>}
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${activeTool === 'texture' ? 'bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'bg-white/5 text-muted-foreground group-hover:bg-white/10 group-hover:text-white'}`}>
+              <Paintbrush className="w-5 h-5" />
             </div>
-            <span className="text-xs font-medium text-center">Material Textures</span>
+            <div className="ml-4 text-left flex-1 relative z-10">
+              <div className={`font-medium text-sm transition-colors ${activeTool === 'texture' ? 'text-purple-100' : 'text-foreground'}`}>Material Painting</div>
+              <div className="text-[11px] text-muted-foreground mt-0.5">AI Texture Application</div>
+            </div>
           </button>
         </div>
       </div>
 
-      <div className="pt-4 border-t border-white/[0.04]">
-        <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-1">Canvas Viewer</div>
-        <div className="space-y-1">
+      <div className="pt-6 border-t border-white/[0.04]">
+        <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-1">Canvas Viewer Modes</div>
+        <div className="space-y-1.5 bg-black/20 p-2 rounded-2xl border border-white/5">
           {['original', 'isometric', '3d', 'split'].map(mode => (
             <button
               key={mode}
               onClick={() => setViewMode(mode as ViewMode)}
               disabled={(mode === 'isometric' && !hasIsometric) || (mode === '3d' && !has3D)}
-              className={`w-full flex items-center px-3 py-2.5 rounded-lg text-sm transition-all ${viewMode === mode
-                ? 'bg-white/10 text-foreground font-medium shadow-inner'
-                : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.04]'
+              className={`w-full flex items-center px-4 py-3 rounded-xl text-sm transition-all duration-200 ${viewMode === mode
+                ? 'bg-white/10 text-white font-medium shadow-md border border-white/5'
+                : 'text-muted-foreground hover:text-white hover:bg-white/[0.03] border border-transparent'
                 } disabled:opacity-30 disabled:cursor-not-allowed`}
             >
-              <span className="w-2 h-2 rounded-full mr-3 inline-block bg-current object-cover flex-shrink-0" style={{ opacity: viewMode === mode ? 1 : 0.3 }}></span>
+              <div className={`w-2 h-2 rounded-full mr-3 shrink-0 ${viewMode === mode ? 'bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'bg-white/20'}`}></div>
               {mode.charAt(0).toUpperCase() + mode.slice(1)} View
             </button>
           ))}
@@ -277,6 +353,51 @@ export function Viewer() {
     <div className="space-y-6 flex flex-col h-full">
       <div className="flex-1">
         <AnimatePresence mode="wait">
+          {activeTool === 'pascal' && (
+            <motion.div
+              key="pascal"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="mb-6">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-3 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+                  <Layers className="w-5 h-5 text-indigo-400" />
+                </div>
+                <h3 className="text-sm font-semibold text-white/90 mb-1">Pascal Geometric Generation</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">Algorithmically converts 2D raster floorplans into structured, editable 3D node graphs (walls, doors, windows).</p>
+              </div>
+
+              <div className="space-y-5">
+                <Button
+                  onClick={() => generatePascalMutation.mutate(model.id)}
+                  disabled={isGenerating || generatePascalMutation.isPending}
+                  className="w-full bg-indigo-600 hover:bg-indigo-500 rounded-xl h-11 text-white font-medium shadow-[0_0_20px_rgba(79,70,229,0.4)] transition-all hover:shadow-[0_0_25px_rgba(79,70,229,0.6)]"
+                >
+                  {generatePascalMutation.isPending || model.status === 'generating_pascal' ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Building Geometry...</>
+                  ) : (
+                    <><Layers className="w-4 h-4 mr-2" />Run Geometric Pipeline</>
+                  )}
+                </Button>
+                
+                <div className="p-4 bg-indigo-500/5 rounded-xl border border-indigo-500/10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+                    <span className="text-xs font-medium text-indigo-200">How it works</span>
+                  </div>
+                  <ul className="text-[11px] text-muted-foreground space-y-1.5 pl-4 list-disc marker:text-indigo-500/50">
+                    <li>Analyzes floorplan topology</li>
+                    <li>Extracts vectorial wall definitions</li>
+                    <li>Generates watertight 3D nodes</li>
+                    <li>Exports to Pascal Editor</li>
+                  </ul>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {activeTool === 'isometric' && (
             <motion.div
               key="isometric"
@@ -380,10 +501,10 @@ export function Viewer() {
 
                 <Button
                   onClick={() => generate3DMutation.mutate(model.id)}
-                  disabled={!hasIsometric || isGenerating || generate3DMutation.isPending}
+                  disabled={isGenerating || generate3DMutation.isPending}
                   className="w-full rounded-xl h-11 text-white shadow-lg transition-all"
-                  style={{ backgroundColor: hasIsometric ? '#3b82f6' : undefined }}
-                  variant={hasIsometric ? "default" : "secondary"}
+                  style={{ backgroundColor: '#2563eb' }}
+                  variant="default"
                 >
                   {generate3DMutation.isPending || model.status === 'generating_3d' ? (
                     <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Running Compute...</>
@@ -393,13 +514,6 @@ export function Viewer() {
                     <><Box className="w-4 h-4 mr-2" />Run Compute Engine</>
                   )}
                 </Button>
-                {!hasIsometric && (
-                  <div className="p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
-                    <p className="text-[11px] text-center text-orange-400 font-medium tracking-wide">
-                      Missing dependency! You must run the Isometric Generation pipeline first.
-                    </p>
-                  </div>
-                )}
               </div>
             </motion.div>
           )}
@@ -606,20 +720,47 @@ export function Viewer() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ duration: 0.3 }}
-                className="absolute inset-0 bg-black/70 flex items-center justify-center backdrop-blur-xl z-50"
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.4 }}
+                className="absolute inset-0 bg-[#050505]/80 flex flex-col items-center justify-center backdrop-blur-3xl z-50 p-6"
               >
-                <div className="text-center bg-[#111] border border-white/[0.06] rounded-2xl p-8 max-w-sm shadow-[0_0_50px_rgba(0,0,0,0.8)]">
-                  <div className="relative w-16 h-16 mx-auto mb-6">
-                    <div className="absolute inset-0 rounded-full border border-white/10" />
-                    <div className="absolute inset-0 rounded-full border border-transparent border-t-primary animate-spin" />
-                    <Loader2 className="w-8 h-8 absolute inset-0 m-auto text-primary animate-spin" />
+                <div className="w-full max-w-md bg-[#111]/80 backdrop-blur-xl border border-white/[0.08] shadow-[0_30px_60px_rgba(0,0,0,0.8)] rounded-3xl p-8 relative overflow-hidden">
+                  {/* Decorative glowing orb */}
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-primary/20 rounded-full blur-[60px] pointer-events-none"></div>
+                  
+                  <div className="relative z-10 flex flex-col items-center">
+                    <div className="w-20 h-20 mb-6 bg-gradient-to-br from-white/10 to-transparent rounded-2xl border border-white/10 flex items-center justify-center shadow-inner relative overflow-hidden">
+                       <motion.div 
+                         initial={{ rotate: 0 }} 
+                         animate={{ rotate: 360 }} 
+                         transition={{ duration: 3, ease: "linear", repeat: Infinity }}
+                         className="absolute inset-x-0 bottom-0 top-1/2 bg-gradient-to-b from-transparent to-primary/40"
+                       />
+                       <Loader2 className="w-8 h-8 text-white relative z-10 animate-spin" />
+                    </div>
+                    
+                    <h2 className="text-xl font-semibold tracking-tight text-white mb-2">
+                      {model.status === 'generating_pascal' ? 'Building Semantic Geometry...' :
+                       model.status === 'generating_isometric' ? 'Rendering Isometric Scene...' :
+                       model.status === 'retexturing' ? 'Applying Material Networks...' : 
+                       'Synthesizing Volumetric Mesh...'}
+                    </h2>
+                    
+                    <p className="text-sm text-muted-foreground text-center mb-6 max-w-[280px]">
+                      {model.status === 'generating_pascal' ? 'Extracting architectural primitives and structural graphs.' :
+                       model.status === 'generating_isometric' ? 'Diffusing styled light and materials in 2.5D space.' :
+                       model.status === 'retexturing' ? 'Projecting and baking complex textures onto structural meshes.' : 
+                       'Extruding structures and generating point clouds...'}
+                    </p>
+
+                    <div className="w-full space-y-2">
+                       <div className="flex justify-between text-[11px] font-medium tracking-wider uppercase text-white/50">
+                         <span>Compute Progress</span>
+                         <span className="text-primary font-mono">{Math.round(progress)}%</span>
+                       </div>
+                       <Progress value={progress} className="h-1.5 bg-white/5" />
+                    </div>
                   </div>
-                  <p className="text-lg font-medium tracking-tight mb-2">
-                    {model.status === 'generating_isometric' ? 'Running Isometric Pipeline...' :
-                      model.status === 'retexturing' ? 'Applying Material Overlays...' : 'Compiling 3D Mesh...'}
-                  </p>
-                  <p className="text-sm text-muted-foreground">This computation may take a few moments directly on the server nodes.</p>
                 </div>
               </motion.div>
             )}

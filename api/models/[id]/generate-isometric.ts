@@ -199,10 +199,9 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
               ]
             }],
             generationConfig: {
-              responseModalities: ["TEXT", "IMAGE"],
+              responseModalities: ["IMAGE"],
               imageConfig: {
-                aspectRatio: "16:9",
-                imageSize: "2K"
+                aspectRatio: "16:9"
               }
             }
           };

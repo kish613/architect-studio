@@ -63,6 +63,28 @@ export async function generateIsometric(modelId: number, prompt?: string): Promi
   return response.json();
 }
 
+export async function generatePascalModel(modelId: number): Promise<FloorplanModel> {
+  // Temporary stub for the frontend UI.
+  const response = await fetch(`/api/models/${modelId}/generate-pascal`, {
+    method: 'POST',
+  });
+  
+  if (!response.ok) {
+    const text = await response.text();
+    let errorMessage = 'Failed to generate Pascal geometric model';
+    try {
+      const error = JSON.parse(text);
+      errorMessage = error.error || error.message || errorMessage;
+    } catch {
+      if (text && text.length < 200) {
+        errorMessage = text;
+      }
+    }
+    throw new Error(errorMessage);
+  }
+  return response.json();
+}
+
 export async function generate3D(modelId: number): Promise<FloorplanModel> {
   const response = await fetch(`/api/models/${modelId}/generate-3d`, {
     method: 'POST',

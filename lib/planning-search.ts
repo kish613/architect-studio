@@ -73,7 +73,7 @@ Assess extension potential based on:
 
 Be realistic about the assessments based on what's visible in the image.`;
 
-          const modelName = "gemini-2.5-flash";
+          const modelName = "gemini-3-flash";
           const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
 
           console.log("=== PROPERTY ANALYSIS API CALL ===");
@@ -218,7 +218,7 @@ Return ONLY a valid JSON object with this exact structure (no markdown, no code 
 
 Include 8-12 approval entries, focusing on modifications that match the extension potential of this property type. Make addresses realistic for the UK postcode area provided. Use realistic planning reference formats (council area code/year/number/type).`;
 
-          const modelName = "gemini-2.5-flash";
+          const modelName = "gemini-3-flash";
           const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
 
           console.log("=== PLANNING SEARCH API CALL ===");

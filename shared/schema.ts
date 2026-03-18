@@ -76,7 +76,7 @@ export type FloorplanModel = typeof floorplanModels.$inferSelect;
 export type InsertUserSubscription = z.infer<typeof insertUserSubscriptionSchema>;
 export type UserSubscription = typeof userSubscriptions.$inferSelect;
 
-export type ModelStatus = 'uploaded' | 'generating_isometric' | 'isometric_ready' | 'generating_3d' | 'retexturing' | 'completed' | 'failed';
+export type ModelStatus = 'uploaded' | 'generating_pascal' | 'pascal_ready' | 'generating_isometric' | 'isometric_ready' | 'generating_3d' | 'retexturing' | 'completed' | 'failed';
 
 // Plan limits
 export const PLAN_LIMITS: Record<SubscriptionPlan, number> = {

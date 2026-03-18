@@ -24,6 +24,7 @@ const floorplanModels = pgTable("floorplan_models", {
   texturePrompt: text("texture_prompt"),
   retextureTaskId: text("retexture_task_id"),
   retextureUsed: boolean("retexture_used").notNull().default(false),
+  pascalData: text("pascal_data"),
   status: text("status").notNull().default("uploaded"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

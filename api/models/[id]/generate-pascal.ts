@@ -22,6 +22,7 @@ const floorplanModels = pgTable("floorplan_models", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull(),
   originalUrl: text("original_url").notNull(),
+  pascalData: text("pascal_data"),
   status: text("status").notNull().default("uploaded"),
 });
 
@@ -161,8 +162,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (result.success) {
       await deductCredit(session.userId);
       // Update status to mark geometry as ready
-      const [updatedModel] = await db.update(floorplanModels).set({ 
-        status: "pascal_ready"
+      const [updatedModel] = await db.update(floorplanModels).set({
+        status: "pascal_ready",
+        pascalData: JSON.stringify(result.geometry),
       }).where(eq(floorplanModels.id, modelId)).returning();
       
       res.json({ ...updatedModel, geometryData: result.geometry });

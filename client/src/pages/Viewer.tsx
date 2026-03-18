@@ -14,6 +14,8 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { Model3DViewer, Model3DPlaceholder } from "@/components/viewer/Model3DViewer";
+import { FloorplanCanvas } from "@/components/viewer/FloorplanCanvas";
+import { useScene } from "@/stores/use-scene";
 import { PaywallModal } from "@/components/subscription";
 import { useSubscription } from "@/hooks/use-subscription";
 import { PageTransition } from "@/components/ui/page-transition";
@@ -51,6 +53,7 @@ export function Viewer() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { subscription, invalidate: invalidateSubscription } = useSubscription();
+  const { loadScene } = useScene();
 
   const { data: project, isLoading, refetch } = useQuery({
     queryKey: ['project', id],
@@ -74,6 +77,7 @@ export function Viewer() {
       queryClient.invalidateQueries({ queryKey: ['project', id] });
       invalidateSubscription();
       toast({ title: "Pascal model generated!", description: "Geometric nodes are ready." });
+      setViewMode('3d');
       setActiveTool('3d');
     },
     onError: (error: Error) => {
@@ -201,6 +205,18 @@ export function Viewer() {
   const isGenerating = model?.status === 'generating_pascal' || model?.status === 'generating_isometric' || model?.status === 'generating_3d' || model?.status === 'retexturing';
   const hasIsometric = !!model?.isometricUrl;
   const has3D = !!model?.model3dUrl;
+  const hasPascal = !!model?.pascalData;
+
+  // Load Pascal geometry into scene store when available
+  useEffect(() => {
+    if (model?.pascalData) {
+      try {
+        loadScene(JSON.parse(model.pascalData));
+      } catch (e) {
+        console.error('Failed to parse pascal data:', e);
+      }
+    }
+  }, [model?.pascalData, loadScene]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -681,7 +697,9 @@ export function Viewer() {
                   exit={{ opacity: 0 }}
                   className="w-full h-full z-10 relative"
                 >
-                  {has3D ? (
+                  {hasPascal ? (
+                    <FloorplanCanvas />
+                  ) : has3D ? (
                     <Model3DViewer modelUrl={model.model3dUrl!} isometricUrl={model.isometricUrl || undefined} />
                   ) : (
                     <Model3DPlaceholder />

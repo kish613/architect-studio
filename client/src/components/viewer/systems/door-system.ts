@@ -9,11 +9,9 @@ export interface DoorGeometries {
 export function createDoorGeometries(door: DoorNode): DoorGeometries {
   const w = door.width ?? 0.9;
   const h = door.height ?? 2.1;
-  const depth = 0.12; // frame depth
+  const depth = 0.12;
 
-  // Simple frame: box slightly wider/taller than opening
   const frame = new THREE.BoxGeometry(w + 0.06, h + 0.06, depth);
-  // Door panel inset
   const panel = new THREE.BoxGeometry(w - 0.04, h - 0.04, depth * 0.4);
 
   return { frame, panel };
@@ -31,11 +29,23 @@ export function getDoorPositionOnWall(
 }
 
 export function getDoorMaterials(isSelected: boolean): {
-  frame: THREE.MeshStandardMaterial;
-  panel: THREE.MeshStandardMaterial;
+  frame: THREE.MeshPhysicalMaterial;
+  panel: THREE.MeshPhysicalMaterial;
 } {
   return {
-    frame: new THREE.MeshStandardMaterial({ color: isSelected ? "#4A90FF" : "#8B6914", roughness: 0.7 }),
-    panel: new THREE.MeshStandardMaterial({ color: isSelected ? "#78B4FF" : "#C4A035", roughness: 0.5 }),
+    frame: new THREE.MeshPhysicalMaterial({
+      color: isSelected ? "#4A90FF" : "#5C3D1A",
+      roughness: 0.75,
+      metalness: 0,
+      envMapIntensity: 0.3,
+    }),
+    panel: new THREE.MeshPhysicalMaterial({
+      color: isSelected ? "#78B4FF" : "#8B6914",
+      roughness: 0.55,
+      metalness: 0,
+      clearcoat: 0.3,
+      clearcoatRoughness: 0.4,
+      envMapIntensity: 0.4,
+    }),
   };
 }

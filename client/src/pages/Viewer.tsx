@@ -2,7 +2,7 @@ import { useParams, Link } from "wouter";
 import { Layout } from "@/components/layout/Layout";
 import { WorkspaceLayout } from "@/components/layout/WorkspaceLayout";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Share2, Loader2, Sparkles, Box, RotateCw, Check, Paintbrush, Undo2, ZoomIn, ZoomOut, Expand, Layers } from "lucide-react";
+import { ArrowLeft, Download, Share2, Loader2, Sparkles, Box, RotateCw, Check, Paintbrush, Undo2, ZoomIn, ZoomOut, Expand, Layers, Eye, ArrowUp, ArrowRight, Grid3x3, SlidersHorizontal } from "lucide-react";
 import { TransformWrapper, TransformComponent, useControls } from "react-zoom-pan-pinch";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -18,11 +18,70 @@ import { FloorplanCanvas } from "@/components/viewer/FloorplanCanvas";
 import { useScene } from "@/stores/use-scene";
 import { PaywallModal } from "@/components/subscription";
 import { useSubscription } from "@/hooks/use-subscription";
+import { useViewer } from "@/stores/use-viewer";
 import { PageTransition } from "@/components/ui/page-transition";
 
 type ViewMode = 'original' | 'isometric' | '3d' | 'split';
 type Provider3D = 'meshy' | 'trellis';
 type ToolMode = 'pascal' | 'isometric' | '3d' | 'texture';
+
+// Scene control sub-components
+function VisibilityToggle({ storeKey, label }: { storeKey: "showWalls" | "showSlabs" | "showRoofs" | "showItems" | "showZones" | "showGrid"; label: string }) {
+  const value = useViewer((s) => s[storeKey]);
+  const toggle = useViewer((s) => s.toggleVisibility);
+  return (
+    <button
+      onClick={() => toggle(storeKey)}
+      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] transition-all ${value ? 'bg-white/10 text-white border border-white/10' : 'bg-black/20 text-white/40 border border-transparent hover:bg-white/5'}`}
+    >
+      <div className={`w-1.5 h-1.5 rounded-full ${value ? 'bg-emerald-400' : 'bg-white/20'}`} />
+      {label}
+    </button>
+  );
+}
+
+function CameraPresetButton({ preset, Icon, label }: { preset: string; Icon: React.ComponentType<{ className?: string }>; label: string }) {
+  const setCameraPreset = useViewer((s) => s.setCameraPreset);
+  return (
+    <button
+      onClick={() => setCameraPreset(preset as any)}
+      className="flex-1 flex flex-col items-center gap-1 py-2 px-1 rounded-lg bg-black/20 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all text-white/60 hover:text-white"
+    >
+      <Icon className="w-3.5 h-3.5" />
+      <span className="text-[9px]">{label}</span>
+    </button>
+  );
+}
+
+function ExplodedViewControl() {
+  const levelMode = useViewer((s) => s.levelMode);
+  const setLevelMode = useViewer((s) => s.setLevelMode);
+  const explodedSpacing = useViewer((s) => s.explodedSpacing);
+  const setExplodedSpacing = useViewer((s) => s.setExplodedSpacing);
+  const isExploded = levelMode === "exploded";
+  return (
+    <div className="space-y-2">
+      <button
+        onClick={() => setLevelMode(isExploded ? "stacked" : "exploded")}
+        className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] transition-all ${isExploded ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-black/20 text-white/50 border border-transparent hover:bg-white/5'}`}
+      >
+        <SlidersHorizontal className="w-3.5 h-3.5" />
+        {isExploded ? 'Collapse Levels' : 'Explode Levels'}
+      </button>
+      {isExploded && (
+        <input
+          type="range"
+          min={0}
+          max={10}
+          step={0.5}
+          value={explodedSpacing}
+          onChange={(e) => setExplodedSpacing(parseFloat(e.target.value))}
+          className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+        />
+      )}
+    </div>
+  );
+}
 
 const ViewZoomControls = () => {
   const { zoomIn, zoomOut, resetTransform } = useControls();
@@ -355,7 +414,7 @@ export function Viewer() {
             <button
               key={mode}
               onClick={() => setViewMode(mode as ViewMode)}
-              disabled={(mode === 'isometric' && !hasIsometric) || (mode === '3d' && !has3D)}
+              disabled={(mode === 'isometric' && !hasIsometric) || (mode === '3d' && !has3D && !hasPascal)}
               className={`w-full flex items-center px-4 py-3 rounded-xl text-sm transition-all duration-200 ${viewMode === mode
                 ? 'bg-white/10 text-white font-medium shadow-md border border-white/5'
                 : 'text-muted-foreground hover:text-white hover:bg-white/[0.03] border border-transparent'
@@ -367,6 +426,45 @@ export function Viewer() {
           ))}
         </div>
       </div>
+
+      {/* Scene Controls - visibility, camera presets, exploded view */}
+      {viewMode === '3d' && hasPascal && (
+        <div className="pt-6 border-t border-white/[0.04]">
+          <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-1">Scene Controls</div>
+
+          {/* Visibility Toggles */}
+          <div className="grid grid-cols-2 gap-1.5 mb-4">
+            {([
+              ['showWalls', 'Walls'],
+              ['showSlabs', 'Floors'],
+              ['showRoofs', 'Roofs'],
+              ['showItems', 'Items'],
+              ['showZones', 'Zones'],
+              ['showGrid', 'Grid'],
+            ] as const).map(([key, label]) => (
+              <VisibilityToggle key={key} storeKey={key} label={label} />
+            ))}
+          </div>
+
+          {/* Camera Presets */}
+          <div className="text-[10px] text-muted-foreground mb-2 px-1">Camera</div>
+          <div className="flex gap-1 mb-4">
+            {([
+              ['top', ArrowUp, 'Top'],
+              ['front', Eye, 'Front'],
+              ['right', ArrowRight, 'Side'],
+              ['perspective', Box, '3D'],
+              ['isometric', Grid3x3, 'Iso'],
+            ] as const).map(([preset, Icon, label]) => (
+              <CameraPresetButton key={preset} preset={preset} Icon={Icon} label={label} />
+            ))}
+          </div>
+
+          {/* Exploded View */}
+          <div className="text-[10px] text-muted-foreground mb-2 px-1">Exploded View</div>
+          <ExplodedViewControl />
+        </div>
+      )}
     </div>
   );
 

@@ -17,16 +17,17 @@ export function createSlabGeometry(slab: SlabNode): THREE.BufferGeometry | null 
     bevelEnabled: false,
   });
 
-  // Rotate so XZ becomes the floor plane
   geometry.rotateX(-Math.PI / 2);
 
   return geometry;
 }
 
-export function getSlabMaterial(isSelected: boolean): THREE.MeshStandardMaterial {
-  return new THREE.MeshStandardMaterial({
-    color: isSelected ? "#4A90FF" : "#c8c0b0",
-    roughness: 0.9,
+export function getSlabMaterial(isSelected: boolean): THREE.MeshPhysicalMaterial {
+  return new THREE.MeshPhysicalMaterial({
+    color: isSelected ? "#4A90FF" : "#d5cfc4",
+    roughness: 0.92,
+    metalness: 0,
+    envMapIntensity: 0.3,
     side: THREE.DoubleSide,
   });
 }

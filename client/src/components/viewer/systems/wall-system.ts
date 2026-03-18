@@ -1,14 +1,20 @@
 import * as THREE from "three";
 import type { WallNode } from "@/lib/pascal/schemas";
 
-const WALL_MATERIALS: Record<string, string> = {
-  plaster: "#f5f0e8",
-  brick: "#c4664a",
-  concrete: "#b0b0b0",
-  glass: "#a8d8ea",
-  wood: "#c8a882",
-  stone: "#9e9e9e",
+const WALL_MATERIALS: Record<string, { color: string; roughness: number; metalness: number }> = {
+  plaster: { color: "#f5f0e8", roughness: 0.8, metalness: 0 },
+  brick: { color: "#c4664a", roughness: 0.95, metalness: 0 },
+  concrete: { color: "#b0b0b0", roughness: 0.85, metalness: 0.02 },
+  glass: { color: "#a8d8ea", roughness: 0.05, metalness: 0.1 },
+  wood: { color: "#c8a882", roughness: 0.7, metalness: 0 },
+  stone: { color: "#9e9e9e", roughness: 0.9, metalness: 0 },
 };
+
+function hashVariation(id: string, range = 0.03): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
+  return ((h % 1000) / 1000) * range * 2 - range;
+}
 
 export function createWallGeometry(wall: WallNode): THREE.BufferGeometry {
   const dx = wall.end.x - wall.start.x;
@@ -34,9 +40,34 @@ export function getWallTransform(wall: WallNode): { position: THREE.Vector3; rot
   };
 }
 
-export function getWallMaterial(wall: WallNode, isSelected: boolean, isHovered: boolean): THREE.MeshStandardMaterial {
-  const color = isSelected ? "#4A90FF" : isHovered ? "#78B4FF" : (WALL_MATERIALS[wall.material ?? "plaster"] ?? "#f5f0e8");
-  return new THREE.MeshStandardMaterial({ color, roughness: 0.8, metalness: 0 });
+export function getWallMaterial(wall: WallNode, isSelected: boolean, isHovered: boolean): THREE.MeshPhysicalMaterial {
+  if (isSelected) return new THREE.MeshPhysicalMaterial({ color: "#4A90FF", roughness: 0.5, metalness: 0.1 });
+  if (isHovered) return new THREE.MeshPhysicalMaterial({ color: "#78B4FF", roughness: 0.5, metalness: 0.1 });
+
+  const matKey = wall.material ?? "plaster";
+  const preset = WALL_MATERIALS[matKey] ?? WALL_MATERIALS.plaster;
+
+  if (matKey === "glass") {
+    return new THREE.MeshPhysicalMaterial({
+      color: preset.color,
+      roughness: preset.roughness,
+      metalness: preset.metalness,
+      transmission: 0.6,
+      transparent: true,
+      opacity: 0.4,
+      envMapIntensity: 1.0,
+    });
+  }
+
+  const color = new THREE.Color(preset.color);
+  color.offsetHSL(0, 0, hashVariation(wall.id));
+
+  return new THREE.MeshPhysicalMaterial({
+    color,
+    roughness: preset.roughness,
+    metalness: preset.metalness,
+    envMapIntensity: 0.6,
+  });
 }
 
 export function getWallLength(wall: WallNode): number {

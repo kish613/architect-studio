@@ -1,12 +1,12 @@
 import * as THREE from "three";
 import type { ItemNode } from "@/lib/pascal/schemas";
 
-const ITEM_COLORS: Record<string, string> = {
-  furniture: "#c8a882",
-  appliance: "#d0d0d0",
-  fixture: "#b8b8c8",
-  light: "#fffacd",
-  custom: "#a0c8a0",
+const ITEM_PRESETS: Record<string, { color: string; roughness: number; metalness: number; clearcoat?: number; emissive?: string; emissiveIntensity?: number }> = {
+  furniture: { color: "#c8a882", roughness: 0.6, metalness: 0, clearcoat: 0.2 },
+  appliance: { color: "#d0d0d0", roughness: 0.3, metalness: 0.4 },
+  fixture: { color: "#b8b8c8", roughness: 0.5, metalness: 0.15 },
+  light: { color: "#fffacd", roughness: 0.4, metalness: 0.1, emissive: "#fffacd", emissiveIntensity: 0.3 },
+  custom: { color: "#a0c8a0", roughness: 0.7, metalness: 0 },
 };
 
 export function createItemGeometry(item: ItemNode): THREE.BufferGeometry {
@@ -22,7 +22,17 @@ export function getItemTransform(item: ItemNode): { position: THREE.Vector3 } {
   };
 }
 
-export function getItemMaterial(item: ItemNode, isSelected: boolean): THREE.MeshStandardMaterial {
-  const color = isSelected ? "#4A90FF" : (ITEM_COLORS[item.itemType ?? "furniture"] ?? "#c8a882");
-  return new THREE.MeshStandardMaterial({ color, roughness: 0.7 });
+export function getItemMaterial(item: ItemNode, isSelected: boolean): THREE.MeshPhysicalMaterial {
+  if (isSelected) return new THREE.MeshPhysicalMaterial({ color: "#4A90FF", roughness: 0.5, metalness: 0.1 });
+
+  const preset = ITEM_PRESETS[item.itemType ?? "furniture"] ?? ITEM_PRESETS.furniture;
+
+  return new THREE.MeshPhysicalMaterial({
+    color: preset.color,
+    roughness: preset.roughness,
+    metalness: preset.metalness,
+    clearcoat: preset.clearcoat ?? 0,
+    envMapIntensity: 0.5,
+    ...(preset.emissive ? { emissive: preset.emissive, emissiveIntensity: preset.emissiveIntensity } : {}),
+  });
 }

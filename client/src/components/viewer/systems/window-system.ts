@@ -30,17 +30,27 @@ export function getWindowPositionOnWall(
 }
 
 export function getWindowMaterials(isSelected: boolean): {
-  frame: THREE.MeshStandardMaterial;
-  glass: THREE.MeshStandardMaterial;
+  frame: THREE.MeshPhysicalMaterial;
+  glass: THREE.MeshPhysicalMaterial;
 } {
   return {
-    frame: new THREE.MeshStandardMaterial({ color: isSelected ? "#4A90FF" : "#d4d4d4", roughness: 0.6 }),
-    glass: new THREE.MeshStandardMaterial({
-      color: isSelected ? "#78B4FF" : "#a8d8ea",
+    frame: new THREE.MeshPhysicalMaterial({
+      color: isSelected ? "#4A90FF" : "#c0c0c0",
+      roughness: 0.4,
+      metalness: 0.3,
+      envMapIntensity: 0.8,
+    }),
+    glass: new THREE.MeshPhysicalMaterial({
+      color: isSelected ? "#78B4FF" : "#cce8f4",
+      transmission: 0.85,
+      roughness: 0.05,
+      metalness: 0,
+      ior: 1.5,
+      thickness: 0.05,
       transparent: true,
-      opacity: 0.4,
-      roughness: 0.1,
-      metalness: 0.2,
+      envMapIntensity: 1.0,
+      emissive: "#e0f0ff",
+      emissiveIntensity: 0.08,
     }),
   };
 }

@@ -4,11 +4,9 @@ import type { RoofNode } from "@/lib/pascal/schemas";
 export function createRoofGeometry(roof: RoofNode): THREE.BufferGeometry {
   const pts = roof.points;
   if (!pts || pts.length < 3) {
-    // Fallback: flat box
     return new THREE.BoxGeometry(5, 0.2, 5);
   }
 
-  // For flat roofs: extruded shape
   if (roof.roofType === "flat") {
     const shape = new THREE.Shape();
     shape.moveTo(pts[0].x, pts[0].z);
@@ -19,8 +17,6 @@ export function createRoofGeometry(roof: RoofNode): THREE.BufferGeometry {
     return geo;
   }
 
-  // For gable/shed: simple peaked shape using ConvexGeometry or manual vertices
-  // Compute bounding box of footprint
   const minX = Math.min(...pts.map((p) => p.x));
   const maxX = Math.max(...pts.map((p) => p.x));
   const minZ = Math.min(...pts.map((p) => p.z));
@@ -29,22 +25,21 @@ export function createRoofGeometry(roof: RoofNode): THREE.BufferGeometry {
   const peakH = ((maxZ - minZ) / 2) * Math.tan((pitch * Math.PI) / 180);
   const cx = (minX + maxX) / 2;
 
-  // 6 vertices: 4 corners + 2 ridge points
   const vertices = new Float32Array([
-    minX, 0, minZ,  // 0 front-left
-    maxX, 0, minZ,  // 1 front-right
-    maxX, 0, maxZ,  // 2 back-right
-    minX, 0, maxZ,  // 3 back-left
-    cx,   peakH, minZ,  // 4 ridge-front
-    cx,   peakH, maxZ,  // 5 ridge-back
+    minX, 0, minZ,
+    maxX, 0, minZ,
+    maxX, 0, maxZ,
+    minX, 0, maxZ,
+    cx,   peakH, minZ,
+    cx,   peakH, maxZ,
   ]);
 
   const indices = [
-    0, 1, 4,  // front face
-    2, 3, 5,  // back face
-    0, 4, 5, 0, 5, 3,  // left slope
-    1, 2, 5, 1, 5, 4,  // right slope
-    0, 3, 2, 0, 2, 1,  // underside
+    0, 1, 4,
+    2, 3, 5,
+    0, 4, 5, 0, 5, 3,
+    1, 2, 5, 1, 5, 4,
+    0, 3, 2, 0, 2, 1,
   ];
 
   const geo = new THREE.BufferGeometry();
@@ -54,10 +49,12 @@ export function createRoofGeometry(roof: RoofNode): THREE.BufferGeometry {
   return geo;
 }
 
-export function getRoofMaterial(isSelected: boolean): THREE.MeshStandardMaterial {
-  return new THREE.MeshStandardMaterial({
-    color: isSelected ? "#4A90FF" : "#8B4513",
+export function getRoofMaterial(isSelected: boolean): THREE.MeshPhysicalMaterial {
+  return new THREE.MeshPhysicalMaterial({
+    color: isSelected ? "#4A90FF" : "#6B3A2A",
     roughness: 0.9,
+    metalness: 0,
+    envMapIntensity: 0.2,
     side: THREE.DoubleSide,
   });
 }

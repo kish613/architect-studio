@@ -1,6 +1,8 @@
 import { Suspense, useEffect } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
-import { Environment, Grid, Html, useProgress } from "@react-three/drei";
+import { Environment, Grid, Html, useProgress, ContactShadows } from "@react-three/drei";
+import { EffectComposer, N8AO, Bloom, Vignette } from "@react-three/postprocessing";
+import * as THREE from "three";
 import { SceneRenderer } from "./SceneRenderer";
 import { CameraController } from "./CameraController";
 import { useViewer } from "@/stores/use-viewer";
@@ -26,7 +28,6 @@ function SelectionHandler() {
   useEffect(() => {
     const canvas = gl.domElement;
     const handler = (e: PointerEvent) => {
-      // Native PointerEvent has the same properties as React.PointerEvent
       handlePointerDown(e as unknown as React.PointerEvent<HTMLDivElement>);
     };
     canvas.addEventListener("pointerdown", handler);
@@ -49,12 +50,22 @@ function SceneContent() {
           fadeStrength={3}
           cellSize={1}
           sectionSize={5}
-          cellColor="#2a2a2a"
-          sectionColor="#444444"
+          cellColor="#3a3a3a"
+          sectionColor="#555555"
           position={[0, -0.01, 0]}
         />
       )}
     </>
+  );
+}
+
+function PostProcessing() {
+  return (
+    <EffectComposer>
+      <N8AO aoRadius={0.5} intensity={2} distanceFalloff={1} />
+      <Bloom luminanceThreshold={0.9} luminanceSmoothing={0.4} intensity={0.15} />
+      <Vignette darkness={0.3} offset={0.3} />
+    </EffectComposer>
   );
 }
 
@@ -67,24 +78,39 @@ export function FloorplanCanvas({ className = "" }: FloorplanCanvasProps) {
     <div className={`relative w-full h-full ${className}`}>
       <Canvas
         camera={{ position: [15, 12, 15], fov: 45 }}
-        gl={{ preserveDrawingBuffer: true, antialias: true }}
+        gl={{
+          preserveDrawingBuffer: true,
+          antialias: true,
+          toneMapping: THREE.ACESFilmicToneMapping,
+          toneMappingExposure: 1.1,
+        }}
         shadows
       >
-        <ambientLight intensity={0.4} />
+        {/* Lighting */}
+        <ambientLight intensity={0.25} />
+        <hemisphereLight args={["#b1e1ff", "#b97a20", 0.25]} />
         <directionalLight
-          position={[10, 15, 10]}
-          intensity={0.8}
+          position={[8, 20, 12]}
+          intensity={1.2}
           castShadow
-          shadow-mapSize-width={2048}
-          shadow-mapSize-height={2048}
+          shadow-mapSize-width={4096}
+          shadow-mapSize-height={4096}
+          shadow-bias={-0.0001}
+          shadow-normalBias={0.02}
+          shadow-camera-left={-25}
+          shadow-camera-right={25}
+          shadow-camera-top={25}
+          shadow-camera-bottom={-25}
         />
-        <directionalLight position={[-5, 10, -5]} intensity={0.3} />
+        <directionalLight position={[-6, 8, -4]} intensity={0.3} />
 
         <Suspense fallback={<Loader />}>
           <SceneContent />
           <SelectionHandler />
           <DrawingInteraction />
-          <Environment preset="apartment" />
+          <Environment preset="city" background={false} environmentIntensity={0.5} />
+          <ContactShadows position={[0, -0.01, 0]} opacity={0.35} scale={50} blur={2.5} far={20} />
+          <PostProcessing />
         </Suspense>
       </Canvas>
 

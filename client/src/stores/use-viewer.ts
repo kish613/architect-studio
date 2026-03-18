@@ -7,6 +7,8 @@ type VisibilityKey =
   | "showItems" | "showZones" | "showGuides" | "showScans"
   | "showGrid" | "showDimensions";
 
+export type CameraPreset = "perspective" | "top" | "front" | "right" | "isometric" | null;
+
 interface ViewerState {
   selectedIds: string[];
   hoveredId: string | null;
@@ -14,6 +16,7 @@ interface ViewerState {
   activeLevelId: string | null;
   activeZoneId: string | null;
   cameraMode: CameraMode;
+  cameraPreset: CameraPreset;
   levelMode: LevelMode;
   soloLevelId: string | null;
   explodedSpacing: number;
@@ -38,6 +41,7 @@ interface ViewerState {
   setActiveZone: (id: string | null) => void;
   setCameraMode: (mode: CameraMode) => void;
   toggleCameraMode: () => void;
+  setCameraPreset: (preset: CameraPreset) => void;
   setLevelMode: (mode: LevelMode) => void;
   setSoloLevel: (levelId: string | null) => void;
   setExplodedSpacing: (spacing: number) => void;
@@ -52,6 +56,7 @@ export const useViewer = create<ViewerState>((set) => ({
   activeLevelId: null,
   activeZoneId: null,
   cameraMode: "perspective",
+  cameraPreset: null,
   levelMode: "stacked",
   soloLevelId: null,
   explodedSpacing: 3,
@@ -81,6 +86,7 @@ export const useViewer = create<ViewerState>((set) => ({
   setCameraMode: (mode) => set({ cameraMode: mode }),
   toggleCameraMode: () =>
     set((s) => ({ cameraMode: s.cameraMode === "perspective" ? "orthographic" : "perspective" })),
+  setCameraPreset: (preset) => set({ cameraPreset: preset }),
   setLevelMode: (mode) => set({ levelMode: mode }),
   setSoloLevel: (levelId) => set({ soloLevelId: levelId, levelMode: "solo" }),
   setExplodedSpacing: (spacing) => set({ explodedSpacing: spacing }),

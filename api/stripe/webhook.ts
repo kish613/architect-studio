@@ -11,7 +11,7 @@ import {
   clearGracePeriod,
   setGracePeriod,
 } from "../lib/subscription-manager.js";
-import { PLAN_LIMITS, type SubscriptionPlan, userSubscriptions } from "../../shared/schema";
+import { PLAN_LIMITS, type SubscriptionPlan, userSubscriptions } from "../../shared/schema.js";
 import { db } from "../lib/db.js";
 import { eq } from "drizzle-orm";
 

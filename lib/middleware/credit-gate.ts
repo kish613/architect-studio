@@ -1,5 +1,5 @@
-import { getCurrentUser } from "../auth";
-import { canUserGenerate, getSubscriptionStatus } from "../subscription-manager";
+import { getCurrentUser } from "../auth.js";
+import { canUserGenerate, getSubscriptionStatus } from "../subscription-manager.js";
 
 /**
  * Error response for credit limit reached

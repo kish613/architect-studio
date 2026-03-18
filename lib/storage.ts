@@ -10,8 +10,8 @@ import {
   userSubscriptions,
   PLAN_LIMITS,
   type SubscriptionPlan,
-} from "../shared/schema";
-import { db } from "./db";
+} from "../shared/schema.js";
+import { db } from "./db.js";
 import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {

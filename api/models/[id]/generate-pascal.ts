@@ -138,6 +138,50 @@ function normaliseGeminiData(raw: any): { levels: GeminiLevel[] } {
   };
 }
 
+// ─── Server-side catalog matching ───────────────────────────
+
+const ASSET_BASE = "https://architect-studio-assets.vercel-storage.com/furniture";
+
+interface CatalogMatch {
+  id: string;
+  modelUrl: string;
+  dimensions: Vec3;
+}
+
+const CATALOG_KEYWORD_MAP: Record<string, CatalogMatch> = {
+  sofa:         { id: "sofa-01",         modelUrl: `${ASSET_BASE}/sofa-01.glb`,         dimensions: { x: 2.2, y: 0.85, z: 0.9 } },
+  couch:        { id: "sofa-01",         modelUrl: `${ASSET_BASE}/sofa-01.glb`,         dimensions: { x: 2.2, y: 0.85, z: 0.9 } },
+  bed:          { id: "bed-double-01",   modelUrl: `${ASSET_BASE}/bed-double-01.glb`,   dimensions: { x: 1.6, y: 0.5, z: 2.0 } },
+  toilet:       { id: "toilet-01",       modelUrl: `${ASSET_BASE}/toilet-01.glb`,       dimensions: { x: 0.4, y: 0.4, z: 0.65 } },
+  fridge:       { id: "fridge-01",       modelUrl: `${ASSET_BASE}/fridge-01.glb`,       dimensions: { x: 0.7, y: 1.8, z: 0.7 } },
+  refrigerator: { id: "fridge-01",       modelUrl: `${ASSET_BASE}/fridge-01.glb`,       dimensions: { x: 0.7, y: 1.8, z: 0.7 } },
+  table:        { id: "dining-table-01", modelUrl: `${ASSET_BASE}/dining-table-01.glb`, dimensions: { x: 1.6, y: 0.75, z: 0.9 } },
+  chair:        { id: "dining-chair-01", modelUrl: `${ASSET_BASE}/dining-chair-01.glb`, dimensions: { x: 0.45, y: 0.9, z: 0.45 } },
+  bathtub:      { id: "bathtub-01",      modelUrl: `${ASSET_BASE}/bathtub-01.glb`,      dimensions: { x: 0.75, y: 0.6, z: 1.7 } },
+  bath:         { id: "bathtub-01",      modelUrl: `${ASSET_BASE}/bathtub-01.glb`,      dimensions: { x: 0.75, y: 0.6, z: 1.7 } },
+  shower:       { id: "shower-01",       modelUrl: `${ASSET_BASE}/shower-01.glb`,       dimensions: { x: 0.9, y: 2.1, z: 0.9 } },
+  wardrobe:     { id: "wardrobe-01",     modelUrl: `${ASSET_BASE}/wardrobe-01.glb`,     dimensions: { x: 1.8, y: 2.2, z: 0.6 } },
+  closet:       { id: "wardrobe-01",     modelUrl: `${ASSET_BASE}/wardrobe-01.glb`,     dimensions: { x: 1.8, y: 2.2, z: 0.6 } },
+  desk:         { id: "desk-01",         modelUrl: `${ASSET_BASE}/desk-01.glb`,         dimensions: { x: 1.2, y: 0.75, z: 0.6 } },
+  oven:         { id: "oven-01",         modelUrl: `${ASSET_BASE}/oven-01.glb`,         dimensions: { x: 0.6, y: 0.85, z: 0.6 } },
+  stove:        { id: "oven-01",         modelUrl: `${ASSET_BASE}/oven-01.glb`,         dimensions: { x: 0.6, y: 0.85, z: 0.6 } },
+  sink:         { id: "sink-kitchen-01", modelUrl: `${ASSET_BASE}/sink-kitchen-01.glb`, dimensions: { x: 0.8, y: 0.2, z: 0.5 } },
+  nightstand:   { id: "nightstand-01",   modelUrl: `${ASSET_BASE}/nightstand-01.glb`,   dimensions: { x: 0.5, y: 0.55, z: 0.4 } },
+  bookshelf:    { id: "bookshelf-01",    modelUrl: `${ASSET_BASE}/bookshelf-01.glb`,    dimensions: { x: 0.8, y: 1.8, z: 0.35 } },
+  armchair:     { id: "armchair-01",     modelUrl: `${ASSET_BASE}/armchair-01.glb`,     dimensions: { x: 0.9, y: 0.85, z: 0.9 } },
+};
+
+function matchItemToCatalog(name: string): CatalogMatch | null {
+  const lower = name.toLowerCase().trim();
+  // Exact keyword match
+  if (CATALOG_KEYWORD_MAP[lower]) return CATALOG_KEYWORD_MAP[lower];
+  // Substring match — check if any keyword appears in the name
+  for (const [keyword, match] of Object.entries(CATALOG_KEYWORD_MAP)) {
+    if (lower.includes(keyword)) return match;
+  }
+  return null;
+}
+
 function buildSceneFromGemini(geminiData: any): SceneData {
   const normalised = normaliseGeminiData(geminiData);
   const nodes: Record<string, AnyNode> = {};
@@ -210,6 +254,12 @@ function buildSceneFromGemini(geminiData: any): SceneData {
         itemType: item.itemType ?? "furniture", dimensions: item.dimensions ? { ...item.dimensions } : { x: 1, y: 1, z: 1 },
         material: "wood", transform: { position: { x: item.position.x, y: 0, z: item.position.z }, rotation: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 } },
       };
+      const catalogMatch = matchItemToCatalog(item.name);
+      if (catalogMatch) {
+        itemNode.catalogId = catalogMatch.id;
+        itemNode.modelUrl = catalogMatch.modelUrl;
+        itemNode.dimensions = catalogMatch.dimensions;
+      }
       nodes[itemNode.id] = itemNode;
       level.childIds.push(itemNode.id);
     }

@@ -159,7 +159,7 @@ function RoofMesh({ node }: { node: RoofNode }) {
   );
 }
 
-function ItemMesh({ node }: { node: ItemNode }) {
+function FallbackItemMesh({ node }: { node: ItemNode }) {
   const selectedIds = useViewer((s) => s.selectedIds);
   const isSelected = selectedIds.includes(node.id);
   const geometry = useMemo(() => createItemGeometry(node), [node]);
@@ -184,6 +184,45 @@ function ItemMesh({ node }: { node: ItemNode }) {
       userData={{ nodeId: node.id }}
     />
   );
+}
+
+function ItemModelMesh({ node }: { node: ItemNode }) {
+  const selectedIds = useViewer((s) => s.selectedIds);
+  const isSelected = selectedIds.includes(node.id);
+  const { scene } = useGLTF(node.modelUrl!);
+  const clonedScene = useMemo(() => scene.clone(), [scene]);
+  const { position } = getItemTransform(node);
+  const d = node.dimensions ?? { x: 1, y: 1, z: 1 };
+
+  return (
+    <group
+      position={position}
+      ref={(g) => {
+        if (g) sceneRegistry.register(node.id, g);
+        else sceneRegistry.unregister(node.id);
+      }}
+      userData={{ nodeId: node.id }}
+    >
+      <primitive object={clonedScene} scale={[d.x, d.y, d.z]} />
+      {isSelected && (
+        <mesh>
+          <boxGeometry args={[d.x * 1.05, d.y * 1.05, d.z * 1.05]} />
+          <meshBasicMaterial color="#4A90FF" wireframe transparent opacity={0.3} />
+        </mesh>
+      )}
+    </group>
+  );
+}
+
+function ItemMesh({ node }: { node: ItemNode }) {
+  if (node.modelUrl) {
+    return (
+      <Suspense fallback={<FallbackItemMesh node={node} />}>
+        <ItemModelMesh node={node} />
+      </Suspense>
+    );
+  }
+  return <FallbackItemMesh node={node} />;
 }
 
 // Find which level a node belongs to by tracing parentId upward

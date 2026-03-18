@@ -4,7 +4,7 @@ import { useGLTF } from "@react-three/drei";
 import { useScene } from "@/stores/use-scene";
 import { useViewer } from "@/stores/use-viewer";
 import { sceneRegistry } from "@/lib/pascal/scene-registry";
-import { createWallGeometry, getWallTransform, getWallMaterial } from "./systems/wall-system";
+import { createWallGeometry, getWallTransform, getWallMaterial, getWallLength } from "./systems/wall-system";
 import { createDoorGeometries, getDoorPositionOnWall, getDoorMaterials } from "./systems/door-system";
 import { createWindowGeometries, getWindowPositionOnWall, getWindowMaterials } from "./systems/window-system";
 import { createSlabGeometry, getSlabMaterial } from "./systems/slab-system";
@@ -20,7 +20,7 @@ function WallMesh({ node }: { node: WallNode }) {
   const isHovered = hoveredId === node.id;
   const { position, rotationY } = getWallTransform(node);
   const geometry = useMemo(() => createWallGeometry(node), [node]);
-  const material = useMemo(() => getWallMaterial(node, isSelected, isHovered), [node, isSelected, isHovered]);
+  const material = useMemo(() => getWallMaterial(node, isSelected, isHovered, getWallLength(node)), [node, isSelected, isHovered]);
 
   useEffect(() => { return () => { geometry.dispose(); }; }, [geometry]);
   useEffect(() => { return () => { material.dispose(); }; }, [material]);

@@ -1,5 +1,6 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, Suspense } from "react";
 import * as THREE from "three";
+import { useGLTF } from "@react-three/drei";
 import { useScene } from "@/stores/use-scene";
 import { useViewer } from "@/stores/use-viewer";
 import { sceneRegistry } from "@/lib/pascal/scene-registry";
@@ -9,6 +10,7 @@ import { createWindowGeometries, getWindowPositionOnWall, getWindowMaterials } f
 import { createSlabGeometry, getSlabMaterial } from "./systems/slab-system";
 import { createRoofGeometry, getRoofMaterial } from "./systems/roof-system";
 import { createItemGeometry, getItemTransform, getItemMaterial } from "./systems/item-system";
+import { WallDragHandles } from "./WallDragHandles";
 import type { WallNode, DoorNode, WindowNode, SlabNode, RoofNode, ItemNode, LevelNode } from "@/lib/pascal/schemas";
 
 function WallMesh({ node }: { node: WallNode }) {
@@ -204,6 +206,7 @@ export function SceneRenderer() {
   const showSlabs = useViewer((s) => s.showSlabs);
   const showRoofs = useViewer((s) => s.showRoofs);
   const showItems = useViewer((s) => s.showItems);
+  const selectedIds = useViewer((s) => s.selectedIds);
   const levelMode = useViewer((s) => s.levelMode);
   const explodedSpacing = useViewer((s) => s.explodedSpacing);
 
@@ -277,6 +280,12 @@ export function SceneRenderer() {
           <ItemMesh node={i} />
         </group>
       ))}
+      {/* Drag handles for selected walls */}
+      {walls
+        .filter((w) => selectedIds.includes(w.id))
+        .map((w) => (
+          <WallDragHandles key={`handles-${w.id}`} wall={w} />
+        ))}
     </group>
   );
 }

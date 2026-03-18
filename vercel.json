@@ -6,7 +6,7 @@
   "functions": {
     "api/models/*/generate-isometric.ts": {
       "maxDuration": 120,
-      "includeFiles": "lib/**"
+      "includeFiles": "lib/**,shared/**"
     },
     "api/models/*/generate-3d.ts": {
       "maxDuration": 120
@@ -16,7 +16,7 @@
     },
     "api/**/*.ts": {
       "maxDuration": 60,
-      "includeFiles": "lib/**"
+      "includeFiles": "lib/**,shared/**"
     }
   },
   "rewrites": [

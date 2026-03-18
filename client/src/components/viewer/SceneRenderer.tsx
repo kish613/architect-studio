@@ -190,7 +190,23 @@ function ItemModelMesh({ node }: { node: ItemNode }) {
   const selectedIds = useViewer((s) => s.selectedIds);
   const isSelected = selectedIds.includes(node.id);
   const { scene } = useGLTF(node.modelUrl!);
-  const clonedScene = useMemo(() => scene.clone(), [scene]);
+  const clonedScene = useMemo(() => {
+    const clone = scene.clone(true);
+    clone.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        // Deep clone materials so each instance is independent
+        if (Array.isArray(mesh.material)) {
+          mesh.material = mesh.material.map(m => m.clone());
+        } else if (mesh.material) {
+          mesh.material = mesh.material.clone();
+        }
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+      }
+    });
+    return clone;
+  }, [scene]);
   const { position } = getItemTransform(node);
   const d = node.dimensions ?? { x: 1, y: 1, z: 1 };
 

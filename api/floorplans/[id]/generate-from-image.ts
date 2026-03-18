@@ -433,7 +433,7 @@ Furniture / items:
 - "dimensions" is width (x), height (y), and depth (z) in meters. Use reasonable estimates if exact sizes are not clear.
 - If no furniture is visible, return an empty items array.`;
 
-  const modelName = "gemini-3.1-flash-preview";
+  const modelName = "gemini-3-flash-preview";
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
 
   console.log("=== GEMINI FLOOR PLAN PARSE START ===");

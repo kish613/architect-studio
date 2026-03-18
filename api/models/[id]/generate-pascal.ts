@@ -97,6 +97,7 @@ Ensure it is a valid JSON that a Pascal geometric engine could use.`;
               "Content-Type": "application/json"
             },
             body: JSON.stringify(requestBody),
+            signal: AbortSignal.timeout(90_000),
           });
 
           if (!fetchResponse.ok) {
@@ -115,7 +116,10 @@ Ensure it is a valid JSON that a Pascal geometric engine could use.`;
 
           return { success: true, geometry: JSON.parse(textResult) };
         } catch (error: any) {
-          throw new AbortError(error.message || "Geometry extraction failed");
+          if (error?.message?.includes("status 4")) {
+            throw new AbortError(error.message);
+          }
+          throw error;
         }
       },
       { retries: 2, minTimeout: 2000, maxTimeout: 5000 }
@@ -169,11 +173,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       
       res.json({ ...updatedModel, geometryData: result.geometry });
     } else {
-      await db.update(floorplanModels).set({ status: "failed" }).where(eq(floorplanModels.id, modelId));
+      await db.update(floorplanModels).set({ status: "uploaded" }).where(eq(floorplanModels.id, modelId));
       res.status(500).json({ error: "Failed to generate Pascal geometry" });
     }
   } catch (error: any) {
-    await db.update(floorplanModels).set({ status: "failed" }).where(eq(floorplanModels.id, modelId));
+    await db.update(floorplanModels).set({ status: "uploaded" }).where(eq(floorplanModels.id, modelId));
     res.status(500).json({ error: error?.message || "An unexpected error occurred" });
   }
 }

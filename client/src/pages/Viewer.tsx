@@ -393,10 +393,10 @@ export function Viewer() {
               <div className="space-y-5">
                 <Button
                   onClick={() => generatePascalMutation.mutate(model.id)}
-                  disabled={isGenerating || generatePascalMutation.isPending}
+                  disabled={generatePascalMutation.isPending}
                   className="w-full bg-indigo-600 hover:bg-indigo-500 rounded-xl h-11 text-white font-medium shadow-[0_0_20px_rgba(79,70,229,0.4)] transition-all hover:shadow-[0_0_25px_rgba(79,70,229,0.6)]"
                 >
-                  {generatePascalMutation.isPending || model.status === 'generating_pascal' ? (
+                  {generatePascalMutation.isPending ? (
                     <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Building Geometry...</>
                   ) : (
                     <><Layers className="w-4 h-4 mr-2" />Run Geometric Pipeline</>

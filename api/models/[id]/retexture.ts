@@ -4,6 +4,7 @@ import { drizzle } from "drizzle-orm/neon-http";
 import { pgTable, text, varchar, serial, timestamp, integer, boolean } from "drizzle-orm/pg-core";
 import { eq } from "drizzle-orm";
 import { jwtVerify } from "jose";
+import { canUserGenerate, deductCredit } from "../../lib/subscription-manager.js";
 
 const MESHY_API_URL = "https://api.meshy.ai";
 
@@ -183,16 +184,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Check usage limits
-    let [subscription] = await db.select().from(userSubscriptions).where(eq(userSubscriptions.userId, userId));
-    if (!subscription) {
-      [subscription] = await db.insert(userSubscriptions).values({
-        userId,
-        plan: "free",
-        generationsLimit: 2,
-      }).returning();
-    }
-
-    if (subscription.generationsUsed >= subscription.generationsLimit) {
+    const hasCredits = await canUserGenerate(userId);
+    if (!hasCredits) {
       return res.status(403).json({
         error: "Generation limit reached",
         message: "Please upgrade your plan or purchase additional generations",
@@ -215,10 +208,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (result.success && result.taskId) {
       // Only increment credits and mark retextureUsed on successful task creation
-      await db.update(userSubscriptions).set({
-        generationsUsed: subscription.generationsUsed + 1,
-        updatedAt: new Date(),
-      }).where(eq(userSubscriptions.userId, userId));
+      await deductCredit(userId);
 
       const [updatedModel] = await db.update(floorplanModels).set({
         retextureTaskId: result.taskId,

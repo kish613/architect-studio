@@ -4,6 +4,7 @@ import { drizzle } from "drizzle-orm/neon-http";
 import { pgTable, text, varchar, serial, timestamp, integer, boolean } from "drizzle-orm/pg-core";
 import { eq } from "drizzle-orm";
 import { jwtVerify } from "jose";
+import { canUserGenerate, deductCredit } from "../../lib/subscription-manager.js";
 
 const MESHY_API_URL = "https://api.meshy.ai";
 
@@ -159,6 +160,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: "Isometric image not yet generated" });
     }
 
+    // Check usage limits using subscription manager
+    const hasCredits = await canUserGenerate(userId);
+    if (!hasCredits) {
+      return res.status(403).json({
+        error: "Generation limit reached",
+        message: "Please upgrade your plan or purchase additional generations",
+        redirectTo: "/pricing",
+      });
+    }
+
     // Update status
     await db.update(floorplanModels).set({ status: "generating_3d" }).where(eq(floorplanModels.id, modelId));
 
@@ -169,6 +180,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const result = await createImageTo3DTask(imageUrl);
 
     if (result.success && result.taskId) {
+      await deductCredit(userId);
+
       const [updatedModel] = await db.update(floorplanModels).set({
         meshyTaskId: result.taskId,
       }).where(eq(floorplanModels.id, modelId)).returning();

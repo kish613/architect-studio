@@ -6,6 +6,7 @@ import { drizzle } from "drizzle-orm/neon-http";
 import { pgTable, text, varchar, serial, timestamp, integer, boolean } from "drizzle-orm/pg-core";
 import { eq } from "drizzle-orm";
 import { jwtVerify } from "jose";
+import { canUserGenerate, deductCredit } from "../../lib/subscription-manager.js";
 
 // Allow up to 5 minutes for TRELLIS generation
 export const maxDuration = 300;
@@ -164,6 +165,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: "Isometric image not yet generated" });
     }
 
+    // Check usage limits using subscription manager
+    const hasCredits = await canUserGenerate(userId);
+    if (!hasCredits) {
+      return res.status(403).json({
+        error: "Generation limit reached",
+        message: "Please upgrade your plan or purchase additional generations",
+        redirectTo: "/pricing",
+      });
+    }
+
     // Update status to generating
     await db.update(floorplanModels).set({ status: "generating_3d" }).where(eq(floorplanModels.id, modelId));
 
@@ -183,6 +194,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       Buffer.from(glbBuffer),
       { access: "public", contentType: "model/gltf-binary" }
     );
+
+    // Deduct credit since generation and upload succeeded
+    await deductCredit(userId);
 
     // Update model with the permanent Blob URL
     const [updatedModel] = await db.update(floorplanModels).set({

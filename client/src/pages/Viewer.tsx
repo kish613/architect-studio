@@ -117,10 +117,15 @@ export function Viewer() {
   });
 
   const generate3DMutation = useMutation({
-    mutationFn: (modelId: number) =>
-      provider3D === 'trellis' ? generate3DTrellis(modelId) : generate3D(modelId),
+    mutationFn: async (modelId: number) => {
+      if (!subscription?.canGenerate) {
+        throw new Error("INSUFFICIENT_CREDITS");
+      }
+      return provider3D === 'trellis' ? generate3DTrellis(modelId) : generate3D(modelId);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project', id] });
+      invalidateSubscription();
       if (provider3D === 'trellis') {
         toast({ title: "3D model ready!", description: "TRELLIS model generated successfully." });
         setViewMode('3d');
@@ -130,18 +135,41 @@ export function Viewer() {
       }
     },
     onError: (error: Error) => {
+      if (error.message === "INSUFFICIENT_CREDITS" || error.message.includes("limit")) {
+        setShowPaywall(true);
+        return;
+      }
+      if (error.message.includes("403") || error.message.includes("Credit limit")) {
+        setShowPaywall(true);
+        invalidateSubscription();
+        return;
+      }
       toast({ title: "3D generation failed", description: error.message, variant: "destructive" });
     },
   });
 
   const retextureMutation = useMutation({
-    mutationFn: ({ modelId, prompt }: { modelId: number; prompt: string }) =>
-      retextureModel(modelId, prompt),
+    mutationFn: async ({ modelId, prompt }: { modelId: number; prompt: string }) => {
+      if (!subscription?.canGenerate) {
+        throw new Error("INSUFFICIENT_CREDITS");
+      }
+      return retextureModel(modelId, prompt);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project', id] });
+      invalidateSubscription();
       toast({ title: "Retexturing started!", description: "AI is enhancing textures..." });
     },
     onError: (error: Error) => {
+      if (error.message === "INSUFFICIENT_CREDITS" || error.message.includes("limit")) {
+        setShowPaywall(true);
+        return;
+      }
+      if (error.message.includes("403") || error.message.includes("Credit limit") || error.message.includes("limit reached")) {
+        setShowPaywall(true);
+        invalidateSubscription();
+        return;
+      }
       toast({ title: "Retexturing failed", description: error.message, variant: "destructive" });
     },
   });

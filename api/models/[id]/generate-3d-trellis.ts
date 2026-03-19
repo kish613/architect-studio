@@ -1,120 +1,43 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { put } from "@vercel/blob";
-import { Client, handle_file } from "@gradio/client";
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
-import { pgTable, text, varchar, serial, timestamp, integer, boolean } from "drizzle-orm/pg-core";
 import { eq } from "drizzle-orm";
-import { jwtVerify } from "jose";
 import { canUserGenerate, deductCredit } from "../../lib/subscription-manager.js";
+import { requireAuth } from "../../lib/auth.js";
+import { db } from "../../lib/db.js";
+import { createImageTo3DTask } from "../../../lib/meshy.js";
+import { generateTrellis3D } from "../../../lib/trellis.js";
+import {
+  DEFAULT_3D_PROVIDER,
+  get3DStageForProvider,
+  resolve3DProvider,
+} from "../../../shared/model-pipeline.js";
+import { floorplanModels, projects, users } from "../../../shared/schema.js";
 
-// Allow up to 5 minutes for TRELLIS generation
 export const maxDuration = 300;
 
-const TRELLIS_SPACE = "trellis-community/TRELLIS";
-
-// Inline schema
-const users = pgTable("users", {
-  id: varchar("id").primaryKey(),
-  email: varchar("email").unique(),
-  firstName: varchar("first_name"),
-  lastName: varchar("last_name"),
-  profileImageUrl: varchar("profile_image_url"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-const projects = pgTable("projects", {
-  id: serial("id").primaryKey(),
-  userId: varchar("user_id"),
-  name: text("name").notNull(),
-  lastModified: timestamp("last_modified").notNull().defaultNow(),
-});
-
-const floorplanModels = pgTable("floorplan_models", {
-  id: serial("id").primaryKey(),
-  projectId: integer("project_id").notNull(),
-  originalUrl: text("original_url").notNull(),
-  isometricUrl: text("isometric_url"),
-  isometricPrompt: text("isometric_prompt"),
-  model3dUrl: text("model_3d_url"),
-  baseModel3dUrl: text("base_model_3d_url"),
-  meshyTaskId: text("meshy_task_id"),
-  texturePrompt: text("texture_prompt"),
-  retextureTaskId: text("retexture_task_id"),
-  retextureUsed: boolean("retexture_used").notNull().default(false),
-  status: text("status").notNull().default("uploaded"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
-// Inline db connection
-function getDb() {
-  if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL must be set");
-  }
-  const sql = neon(process.env.DATABASE_URL);
-  return drizzle(sql);
-}
-
-// Inline auth helpers
-function getSessionFromCookies(cookieHeader: string | null): string | null {
-  if (!cookieHeader) return null;
-  const cookies = cookieHeader.split(";").map((c) => c.trim());
-  const sessionCookie = cookies.find((c) => c.startsWith("auth_session="));
-  return sessionCookie ? sessionCookie.split("=")[1] : null;
-}
-
-async function verifySession(token: string): Promise<{ userId: string } | null> {
-  try {
-    const secret = new TextEncoder().encode(process.env.SESSION_SECRET || "fallback-secret");
-    const { payload } = await jwtVerify(token, secret);
-    if (typeof payload.userId === "string") {
-      return { userId: payload.userId };
-    }
+function stringifyDiagnostics(diagnostics: unknown): string | null {
+  if (!diagnostics) {
     return null;
+  }
+
+  try {
+    return JSON.stringify(diagnostics);
   } catch {
     return null;
   }
 }
 
-// TRELLIS 3D generation via Gradio Space
-async function generateWithTrellis(imageUrl: string) {
-  const hfToken = process.env.HF_TOKEN;
+async function downloadAndStoreGlb(modelId: number, glbUrl: string) {
+  const response = await fetch(glbUrl);
+  if (!response.ok) {
+    throw new Error(`Failed to download GLB: ${response.status}`);
+  }
 
-  const client = await Client.connect(TRELLIS_SPACE, {
-    token: hfToken as `hf_${string}` | undefined,
+  const glbBuffer = await response.arrayBuffer();
+  return put(`models/${modelId}/trellis-model.glb`, Buffer.from(glbBuffer), {
+    access: "public",
+    contentType: "model/gltf-binary",
   });
-
-  const result = await client.predict("/generate_and_extract_glb", [
-    handle_file(imageUrl), // image
-    null,                   // multiimages
-    false,                  // is_multiimage
-    0,                      // seed
-    7.5,                    // ss_guidance_strength
-    12,                     // ss_sampling_steps
-    3.0,                    // slat_guidance_strength
-    12,                     // slat_sampling_steps
-    "stochastic",           // multiimage_algo
-    0.95,                   // mesh_simplify
-    1024,                   // texture_size
-  ]);
-
-  // Result: [state_dict, video_url, glb_display, glb_download]
-  const data = result.data as any[];
-  const glbOutput = data[3];
-
-  let glbUrl: string | undefined;
-  if (glbOutput && typeof glbOutput === "object" && glbOutput.url) {
-    glbUrl = glbOutput.url;
-  } else if (typeof glbOutput === "string") {
-    glbUrl = glbOutput;
-  }
-
-  if (!glbUrl) {
-    throw new Error("TRELLIS did not return a GLB file");
-  }
-
-  return glbUrl;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -122,30 +45,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  // Check authentication
-  const cookieHeader = req.headers.cookie || null;
-  const token = getSessionFromCookies(cookieHeader);
-
-  if (!token) {
-    return res.status(401).json({ error: "Not authenticated" });
-  }
-
-  const session = await verifySession(token);
+  const session = await requireAuth(req, res);
   if (!session) {
-    return res.status(401).json({ error: "Not authenticated" });
+    return;
   }
 
-  const db = getDb();
   const [user] = await db.select().from(users).where(eq(users.id, session.userId));
   if (!user) {
     return res.status(401).json({ error: "Not authenticated" });
   }
 
-  const userId = user.id;
-  const { id } = req.query;
-  const modelId = parseInt(id as string);
-
-  if (isNaN(modelId)) {
+  const modelId = parseInt(req.query.id as string);
+  if (Number.isNaN(modelId)) {
     return res.status(400).json({ error: "Invalid model ID" });
   }
 
@@ -155,9 +66,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(404).json({ error: "Model not found" });
     }
 
-    // Verify model ownership through project
     const [project] = await db.select().from(projects).where(eq(projects.id, model.projectId));
-    if (!project || project.userId !== userId) {
+    if (!project || project.userId !== user.id) {
       return res.status(403).json({ error: "Access denied" });
     }
 
@@ -165,8 +75,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: "Isometric image not yet generated" });
     }
 
-    // Check usage limits using subscription manager
-    const hasCredits = await canUserGenerate(userId);
+    const hasCredits = await canUserGenerate(user.id);
     if (!hasCredits) {
       return res.status(403).json({
         error: "Generation limit reached",
@@ -175,41 +84,121 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Update status to generating
-    await db.update(floorplanModels).set({ status: "generating_3d" }).where(eq(floorplanModels.id, modelId));
+    const startedAt = new Date();
+    const resolvedProvider = resolve3DProvider("trellis", {
+      trellisHealthy: Boolean(process.env.HF_TOKEN),
+      trellisUsable: true,
+    });
 
-    // Generate 3D model with TRELLIS (synchronous - blocks until complete)
-    const tempGlbUrl = await generateWithTrellis(model.isometricUrl);
+    await db.update(floorplanModels).set({
+      provider: resolvedProvider.provider,
+      stage: get3DStageForProvider(resolvedProvider.provider),
+      status: get3DStageForProvider(resolvedProvider.provider),
+      startedAt,
+      finishedAt: null,
+      lastError: null,
+      lastDiagnostics: null,
+    }).where(eq(floorplanModels.id, modelId));
 
-    // Download GLB from the Space's temporary URL
-    const glbResponse = await fetch(tempGlbUrl);
-    if (!glbResponse.ok) {
-      throw new Error(`Failed to download GLB: ${glbResponse.status}`);
+    if (resolvedProvider.provider === DEFAULT_3D_PROVIDER) {
+      const fallback = await createImageTo3DTask(model.isometricUrl);
+      if (!fallback.success || !fallback.taskId) {
+        await db.update(floorplanModels).set({
+          provider: DEFAULT_3D_PROVIDER,
+          stage: "failed",
+          status: "failed",
+          finishedAt: new Date(),
+          lastError: fallback.error || "Failed to start Meshy fallback",
+          lastDiagnostics: stringifyDiagnostics(fallback.diagnostics),
+        }).where(eq(floorplanModels.id, modelId));
+
+        return res.status(500).json({ error: fallback.error || "Failed to start 3D generation" });
+      }
+
+      await deductCredit(user.id);
+
+      const [updatedModel] = await db.update(floorplanModels).set({
+        provider: DEFAULT_3D_PROVIDER,
+        stage: get3DStageForProvider(DEFAULT_3D_PROVIDER),
+        status: get3DStageForProvider(DEFAULT_3D_PROVIDER),
+        meshyTaskId: fallback.taskId,
+        startedAt,
+        finishedAt: null,
+        lastDiagnostics: stringifyDiagnostics({
+          fallbackFrom: "trellis",
+          reason: resolvedProvider.fallbackReason || "trellis_unavailable",
+        }),
+      }).where(eq(floorplanModels.id, modelId)).returning();
+
+      return res.json(updatedModel);
     }
-    const glbBuffer = await glbResponse.arrayBuffer();
 
-    // Upload to Vercel Blob for permanent storage
-    const blob = await put(
-      `models/${modelId}/trellis-model.glb`,
-      Buffer.from(glbBuffer),
-      { access: "public", contentType: "model/gltf-binary" }
-    );
+    const trellisResult = await generateTrellis3D(model.isometricUrl);
+    if (!trellisResult.success || !trellisResult.glbUrl) {
+      const fallback = await createImageTo3DTask(model.isometricUrl);
+      if (!fallback.success || !fallback.taskId) {
+        await db.update(floorplanModels).set({
+          provider: DEFAULT_3D_PROVIDER,
+          stage: "failed",
+          status: "failed",
+          finishedAt: new Date(),
+          lastError: trellisResult.error || fallback.error || "Failed to generate 3D model",
+          lastDiagnostics: stringifyDiagnostics({
+            trellis: trellisResult.diagnostics,
+            fallback: fallback.diagnostics,
+          }),
+        }).where(eq(floorplanModels.id, modelId));
 
-    // Deduct credit since generation and upload succeeded
-    await deductCredit(userId);
+        return res.status(500).json({
+          error: trellisResult.error || fallback.error || "Failed to generate 3D model",
+        });
+      }
 
-    // Update model with the permanent Blob URL
+      await deductCredit(user.id);
+
+      const [updatedModel] = await db.update(floorplanModels).set({
+        provider: DEFAULT_3D_PROVIDER,
+        stage: get3DStageForProvider(DEFAULT_3D_PROVIDER),
+        status: get3DStageForProvider(DEFAULT_3D_PROVIDER),
+        meshyTaskId: fallback.taskId,
+        startedAt,
+        finishedAt: null,
+        lastError: null,
+        lastDiagnostics: stringifyDiagnostics({
+          fallbackFrom: "trellis",
+          trellis: trellisResult.diagnostics,
+        }),
+      }).where(eq(floorplanModels.id, modelId)).returning();
+
+      return res.json(updatedModel);
+    }
+
+    const blob = await downloadAndStoreGlb(modelId, trellisResult.glbUrl);
+    await deductCredit(user.id);
+
     const [updatedModel] = await db.update(floorplanModels).set({
-      model3dUrl: blob.url,
+      provider: "trellis",
+      stage: "completed",
       status: "completed",
+      model3dUrl: blob.url,
+      startedAt,
+      finishedAt: new Date(),
+      lastError: null,
+      lastDiagnostics: stringifyDiagnostics(trellisResult.diagnostics),
     }).where(eq(floorplanModels.id, modelId)).returning();
 
-    res.json(updatedModel);
+    return res.json(updatedModel);
   } catch (error: any) {
     console.error("TRELLIS 3D generation error:", error);
-    await db.update(floorplanModels).set({ status: "failed" }).where(eq(floorplanModels.id, modelId));
-    res.status(500).json({
-      error: error.message || "Failed to generate 3D model with TRELLIS",
+    await db.update(floorplanModels).set({
+      stage: "failed",
+      status: "failed",
+      finishedAt: new Date(),
+      lastError: error?.message || "Failed to generate 3D model with TRELLIS",
+    }).where(eq(floorplanModels.id, modelId));
+
+    return res.status(500).json({
+      error: error?.message || "Failed to generate 3D model with TRELLIS",
     });
   }
 }

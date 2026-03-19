@@ -8,8 +8,9 @@ This guide explains how to deploy Architect Studio to Vercel with Neon PostgreSQ
 2. A [Neon](https://neon.tech) account for PostgreSQL
 3. A [Google Cloud](https://console.cloud.google.com) project with OAuth credentials
 4. A [Google AI Studio](https://aistudio.google.com) API key for Gemini
-5. A [Meshy](https://www.meshy.ai) API key
-6. A [Stripe](https://stripe.com) account
+5. A [Hugging Face](https://huggingface.co) access token for TRELLIS
+6. A [Meshy](https://www.meshy.ai) API key
+7. A [Stripe](https://stripe.com) account
 
 ## Step 1: Set Up Neon Database
 
@@ -43,15 +44,24 @@ npm run db:push
 1. Go to [Google AI Studio](https://aistudio.google.com)
 2. Click **Get API key**
 3. Create a new API key or use an existing one
-4. Note: The app uses `gemini-2.0-flash-exp` model for image generation
+4. The app uses Gemini for two different jobs:
+   - `gemini-3.1-flash-image-preview` for isometric image generation
+   - `gemini-3-flash-preview` for floorplan parsing / Pascal scene extraction
 
-## Step 4: Get Meshy API Key
+## Step 4: Get Hugging Face Access Token
+
+1. Create or sign in to a [Hugging Face](https://huggingface.co) account
+2. Open your account settings and create an access token
+3. Use a read access token that can connect to the `trellis-community/TRELLIS` Space
+4. Set it as `HF_TOKEN` in Vercel and local development
+
+## Step 5: Get Meshy API Key
 
 1. Sign up at [Meshy](https://www.meshy.ai)
 2. Go to your account settings
 3. Generate an API key
 
-## Step 5: Set Up Stripe
+## Step 6: Set Up Stripe
 
 1. Create a [Stripe](https://stripe.com) account
 2. Get your API keys from the Dashboard
@@ -67,7 +77,7 @@ npx tsx scripts/seed-stripe-products.ts
    - Events: Select all events (or at minimum: `checkout.session.completed`, `customer.subscription.*`)
    - Copy the webhook signing secret
 
-## Step 6: Deploy to Vercel
+## Step 7: Deploy to Vercel
 
 ### Option A: Deploy via Vercel Dashboard
 
@@ -86,7 +96,7 @@ npm i -g vercel
 vercel
 ```
 
-## Step 7: Configure Environment Variables
+## Step 8: Configure Environment Variables
 
 In your Vercel project settings, add these environment variables:
 
@@ -96,6 +106,7 @@ In your Vercel project settings, add these environment variables:
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID | `123...apps.googleusercontent.com` |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | `GOCSPX-...` |
 | `GOOGLE_GEMINI_API_KEY` | Google AI API key | `AIza...` |
+| `HF_TOKEN` | Hugging Face token for TRELLIS Space access | `hf_...` |
 | `MESHY_API_KEY` | Meshy 3D API key | `msy_...` |
 | `STRIPE_SECRET_KEY` | Stripe secret key | `sk_live_...` |
 | `STRIPE_PUBLISHABLE_KEY` | Stripe publishable key | `pk_live_...` |
@@ -104,14 +115,14 @@ In your Vercel project settings, add these environment variables:
 
 Vercel Blob storage is automatically configured when you enable it in your project.
 
-## Step 8: Enable Vercel Blob Storage
+## Step 9: Enable Vercel Blob Storage
 
 1. In your Vercel project, go to **Storage**
 2. Click **Create Database**
 3. Select **Blob**
 4. The `BLOB_READ_WRITE_TOKEN` is automatically added to your environment
 
-## Step 9: Update OAuth Redirect URI
+## Step 10: Update OAuth Redirect URI
 
 After deployment, update your Google OAuth credentials with the actual Vercel URL:
 - `https://your-app.vercel.app/api/auth/callback`
@@ -127,6 +138,13 @@ npm run dev
 ```
 
 The app will be available at `http://localhost:5000`
+
+## Generation Paths
+
+- Gemini is used for the floorplan-to-scene steps and has different request budgets depending on the route. `generate-isometric` uses a 50s per-request timeout with retries for rate limits and intermittent text-only responses, while `generate-pascal` uses a 90s timeout for the JSON parse step.
+- TRELLIS is the long-running synchronous path. `api/models/*/generate-3d-trellis.ts` connects to `trellis-community/TRELLIS` through Hugging Face, needs `HF_TOKEN`, and is allowed to run for up to 300 seconds. The resulting GLB is temporary and must be downloaded and stored immediately.
+- Meshy is the async path. `generate-3d.ts` and `retexture.ts` create a task quickly, then the matching status routes poll until completion. If Meshy task creation fails, the route marks the model as failed. If retexturing fails, the previous completed model stays intact and the status returns to `completed`.
+- For most API routes, Vercel is configured for a 120 second ceiling. That keeps the Gemini and Meshy support routes aligned with the actual request timeouts in code, while TRELLIS gets the longer 300 second allowance.
 
 ## Troubleshooting
 
@@ -163,11 +181,11 @@ Make sure the redirect URI in Google Cloud Console exactly matches your deployme
 │  Neon PostgreSQL│  │ External APIs   │
 │  (Database)     │  │ - Google OAuth  │
 └─────────────────┘  │ - Gemini AI     │
+                     │ - Hugging Face   │
                      │ - Meshy 3D      │
                      │ - Stripe        │
                      └─────────────────┘
 ```
-
 
 
 

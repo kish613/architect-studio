@@ -8,6 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "tsc",
+    "audit:furniture-catalog": "tsx scripts/audit-furniture-catalog.ts",
+    "generate:furniture-previews": "tsx scripts/generate-furniture-previews.ts",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",

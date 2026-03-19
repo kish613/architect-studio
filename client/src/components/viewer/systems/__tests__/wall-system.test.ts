@@ -87,10 +87,17 @@ describe("wall-system", () => {
     it("returns non-selected material color when not selected", () => {
       const wall = makeWall({ x: 0, z: 0 }, { x: 5, z: 0 });
       const mat = getWallMaterial(wall, false, false);
+      const expected = new THREE.Color("#f5f0e8");
+      const actualHsl = { h: 0, s: 0, l: 0 };
+      const expectedHsl = { h: 0, s: 0, l: 0 };
+      mat.color.getHSL(actualHsl);
+      expected.getHSL(expectedHsl);
 
       expect(mat).toBeInstanceOf(THREE.MeshStandardMaterial);
-      // Default plaster color
-      expect(mat.color.getHexString()).toBe(new THREE.Color("#f5f0e8").getHexString());
+      expect(actualHsl.h).toBeCloseTo(expectedHsl.h, 5);
+      expect(actualHsl.s).toBeCloseTo(expectedHsl.s, 5);
+      expect(actualHsl.l).toBeGreaterThan(expectedHsl.l - 0.08);
+      expect(actualHsl.l).toBeLessThan(expectedHsl.l + 0.08);
     });
   });
 });

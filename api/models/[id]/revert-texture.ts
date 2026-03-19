@@ -1,67 +1,57 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
-import { pgTable, text, serial, timestamp, integer, boolean } from "drizzle-orm/pg-core";
 import { eq } from "drizzle-orm";
-
-// Inline schema
-const floorplanModels = pgTable("floorplan_models", {
-  id: serial("id").primaryKey(),
-  projectId: integer("project_id").notNull(),
-  originalUrl: text("original_url").notNull(),
-  isometricUrl: text("isometric_url"),
-  isometricPrompt: text("isometric_prompt"),
-  model3dUrl: text("model_3d_url"),
-  baseModel3dUrl: text("base_model_3d_url"),
-  meshyTaskId: text("meshy_task_id"),
-  texturePrompt: text("texture_prompt"),
-  retextureTaskId: text("retexture_task_id"),
-  retextureUsed: boolean("retexture_used").notNull().default(false),
-  status: text("status").notNull().default("uploaded"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
-// Inline db connection
-function getDb() {
-  if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL must be set");
-  }
-  const sql = neon(process.env.DATABASE_URL);
-  return drizzle(sql);
-}
+import { requireAuth } from "../../lib/auth.js";
+import { db } from "../../lib/db.js";
+import { floorplanModels, projects, users } from "../../../shared/schema.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { id } = req.query;
-  const modelId = parseInt(id as string);
+  const session = await requireAuth(req, res);
+  if (!session) {
+    return;
+  }
 
-  if (isNaN(modelId)) {
+  const [user] = await db.select().from(users).where(eq(users.id, session.userId));
+  if (!user) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const modelId = parseInt(req.query.id as string);
+  if (Number.isNaN(modelId)) {
     return res.status(400).json({ error: "Invalid model ID" });
   }
 
   try {
-    const db = getDb();
     const [model] = await db.select().from(floorplanModels).where(eq(floorplanModels.id, modelId));
     if (!model) {
       return res.status(404).json({ error: "Model not found" });
+    }
+
+    const [project] = await db.select().from(projects).where(eq(projects.id, model.projectId));
+    if (!project || project.userId !== user.id) {
+      return res.status(403).json({ error: "Access denied" });
     }
 
     if (!model.baseModel3dUrl) {
       return res.status(400).json({ error: "No base model to revert to" });
     }
 
-    // Revert to the base model
     const [updatedModel] = await db.update(floorplanModels).set({
+      stage: "completed",
+      status: "completed",
       model3dUrl: model.baseModel3dUrl,
+      retextureTaskId: null,
       texturePrompt: null,
+      finishedAt: new Date(),
+      lastError: null,
     }).where(eq(floorplanModels.id, modelId)).returning();
 
-    res.json(updatedModel);
+    return res.json(updatedModel);
   } catch (error) {
     console.error("Error reverting texture:", error);
-    res.status(500).json({ error: "Failed to revert texture" });
+    return res.status(500).json({ error: "Failed to revert texture" });
   }
 }

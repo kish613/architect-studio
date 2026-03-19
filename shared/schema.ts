@@ -2,9 +2,15 @@ import { sql } from "drizzle-orm";
 import { pgTable, text, varchar, serial, timestamp, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import {
+  DEFAULT_3D_PROVIDER,
+  type ModelGenerationProvider,
+  type ModelPipelineStage,
+} from "./model-pipeline.js";
 
 // Re-export auth models
 export * from "./models/auth.js";
+export * from "./model-pipeline.js";
 
 // Subscription plans
 export type SubscriptionPlan = 'free' | 'starter' | 'pro' | 'studio';
@@ -44,6 +50,14 @@ export const floorplanModels = pgTable("floorplan_models", {
   isometricPrompt: text("isometric_prompt"),
   model3dUrl: text("model_3d_url"),
   baseModel3dUrl: text("base_model_3d_url"),
+  provider: text("provider").$type<ModelGenerationProvider>().notNull().default(DEFAULT_3D_PROVIDER),
+  stage: text("stage").$type<ModelPipelineStage>().notNull().default("uploaded"),
+  lastError: text("last_error"),
+  lastDiagnostics: text("last_diagnostics"),
+  startedAt: timestamp("started_at"),
+  finishedAt: timestamp("finished_at"),
+  sceneVersion: integer("scene_version").notNull().default(1),
+  retextureVersion: integer("retexture_version").notNull().default(0),
   meshyTaskId: text("meshy_task_id"),
   texturePrompt: text("texture_prompt"),
   retextureTaskId: text("retexture_task_id"),
@@ -76,7 +90,18 @@ export type FloorplanModel = typeof floorplanModels.$inferSelect;
 export type InsertUserSubscription = z.infer<typeof insertUserSubscriptionSchema>;
 export type UserSubscription = typeof userSubscriptions.$inferSelect;
 
-export type ModelStatus = 'uploaded' | 'generating_pascal' | 'pascal_ready' | 'generating_isometric' | 'isometric_ready' | 'generating_3d' | 'retexturing' | 'completed' | 'failed';
+export type ModelStatus =
+  | "uploaded"
+  | "generating_pascal"
+  | "pascal_ready"
+  | "generating_isometric"
+  | "isometric_ready"
+  | "generating_3d"
+  | "generating_3d_meshy"
+  | "generating_3d_trellis"
+  | "retexturing"
+  | "completed"
+  | "failed";
 
 // Plan limits
 export const PLAN_LIMITS: Record<SubscriptionPlan, number> = {

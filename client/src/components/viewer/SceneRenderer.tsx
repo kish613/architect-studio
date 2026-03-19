@@ -1,9 +1,10 @@
-import { useEffect, useMemo, Suspense } from "react";
+import { Component, useEffect, useMemo, Suspense, type ReactNode } from "react";
 import * as THREE from "three";
 import { useGLTF } from "@react-three/drei";
 import { useScene } from "@/stores/use-scene";
 import { useViewer } from "@/stores/use-viewer";
 import { sceneRegistry } from "@/lib/pascal/scene-registry";
+import { normalizeImportedModel } from "@/lib/pascal/model-normalization";
 import { createWallGeometry, getWallTransform, getWallMaterial, getWallLength } from "./systems/wall-system";
 import { createDoorGeometries, getDoorPositionOnWall, getDoorMaterials } from "./systems/door-system";
 import { createWindowGeometries, getWindowPositionOnWall, getWindowMaterials } from "./systems/window-system";
@@ -192,14 +193,15 @@ function ItemModelMesh({ node }: { node: ItemNode }) {
   const selectedIds = useViewer((s) => s.selectedIds);
   const isSelected = selectedIds.includes(node.id);
   const { scene } = useGLTF(node.modelUrl!);
-  const clonedScene = useMemo(() => {
-    const clone = scene.clone(true);
-    clone.traverse((child) => {
+  const { position, rotationY } = getItemTransform(node);
+  const d = node.dimensions ?? { x: 1, y: 1, z: 1 };
+  const normalizedScene = useMemo(() => {
+    const normalized = normalizeImportedModel(scene, d);
+    normalized.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
-        // Deep clone materials so each instance is independent
         if (Array.isArray(mesh.material)) {
-          mesh.material = mesh.material.map(m => m.clone());
+          mesh.material = mesh.material.map((m) => m.clone());
         } else if (mesh.material) {
           mesh.material = mesh.material.clone();
         }
@@ -207,10 +209,8 @@ function ItemModelMesh({ node }: { node: ItemNode }) {
         mesh.receiveShadow = true;
       }
     });
-    return clone;
-  }, [scene]);
-  const { position, rotationY } = getItemTransform(node);
-  const d = node.dimensions ?? { x: 1, y: 1, z: 1 };
+    return normalized;
+  }, [scene, d.x, d.y, d.z]);
 
   return (
     <group
@@ -222,7 +222,7 @@ function ItemModelMesh({ node }: { node: ItemNode }) {
       }}
       userData={{ nodeId: node.id }}
     >
-      <primitive object={clonedScene} scale={[d.x, d.y, d.z]} />
+      <primitive object={normalizedScene} />
       {isSelected && (
         <mesh>
           <boxGeometry args={[d.x * 1.05, d.y * 1.05, d.z * 1.05]} />
@@ -236,12 +236,29 @@ function ItemModelMesh({ node }: { node: ItemNode }) {
 function ItemMesh({ node }: { node: ItemNode }) {
   if (node.modelUrl) {
     return (
-      <Suspense fallback={<FallbackItemMesh node={node} />}>
-        <ItemModelMesh node={node} />
-      </Suspense>
+      <ItemModelErrorBoundary fallback={<FallbackItemMesh node={node} />}>
+        <Suspense fallback={<FallbackItemMesh node={node} />}>
+          <ItemModelMesh node={node} />
+        </Suspense>
+      </ItemModelErrorBoundary>
     );
   }
   return <FallbackItemMesh node={node} />;
+}
+
+class ItemModelErrorBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+    return this.props.children;
+  }
 }
 
 // Find which level a node belongs to by tracing parentId upward

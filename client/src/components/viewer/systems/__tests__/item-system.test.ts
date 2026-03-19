@@ -67,16 +67,24 @@ describe("item-system", () => {
   });
 
   describe("getItemMaterial", () => {
-    it("returns a MeshStandardMaterial", () => {
+    it("returns a MeshPhysicalMaterial", () => {
       const item = makeItem();
       const mat = getItemMaterial(item, false);
-      expect(mat).toBeInstanceOf(THREE.MeshStandardMaterial);
+      expect(mat).toBeInstanceOf(THREE.MeshPhysicalMaterial);
     });
 
     it("returns blue when selected", () => {
       const item = makeItem();
       const mat = getItemMaterial(item, true);
       expect(mat.color.getHexString()).toBe(new THREE.Color("#4A90FF").getHexString());
+    });
+
+    it("uses a more realistic finish for furniture", () => {
+      const item = makeItem({ itemType: "furniture" });
+      const mat = getItemMaterial(item, false);
+
+      expect(mat.clearcoat).toBeGreaterThan(0);
+      expect(mat.roughness).toBeLessThan(1);
     });
   });
 });

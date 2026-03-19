@@ -1,6 +1,7 @@
 import { useViewer } from "@/stores/use-viewer";
 import { useScene } from "@/stores/use-scene";
-import type { AnyNode, WallNode, DoorNode, WindowNode, LevelNode } from "@/lib/pascal/schemas";
+import type { AnyNode, WallNode, DoorNode, WindowNode, LevelNode, ItemNode } from "@/lib/pascal/schemas";
+import { getItemQualityWarnings } from "@/lib/pascal/item-warnings";
 
 function safeParseFloat(value: string, fallback: number): number {
   const parsed = parseFloat(value);
@@ -137,6 +138,132 @@ function LevelProperties({ node }: { node: LevelNode }) {
   );
 }
 
+function ItemProperties({ node }: { node: ItemNode }) {
+  const updateNode = useScene((s) => s.updateNode);
+  const warnings = getItemQualityWarnings(node);
+
+  const updateTransform = (key: "position" | "rotation" | "scale", axis: "x" | "y" | "z", value: string) => {
+    const parsed = safeParseFloat(value, node.transform[key][axis]);
+    updateNode(node.id, {
+      transform: {
+        ...node.transform,
+        [key]: {
+          ...node.transform[key],
+          [axis]: parsed,
+        },
+      },
+    });
+  };
+
+  const updateDimensions = (axis: "x" | "y" | "z", value: string) => {
+    updateNode(node.id, {
+      dimensions: {
+        ...node.dimensions,
+        [axis]: safeParseFloat(value, node.dimensions[axis]),
+      },
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      <h4 className="text-xs font-medium text-white/50 uppercase tracking-wider">Item</h4>
+
+      <div className="space-y-2">
+        <div>
+          <label className="text-xs text-white/50 block mb-1">Catalog ID</label>
+          <input
+            type="text"
+            value={node.catalogId ?? ""}
+            onChange={(e) => updateNode(node.id, { catalogId: e.target.value || undefined })}
+            className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-sm text-white"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-white/50 block mb-1">Model URL</label>
+          <input
+            type="text"
+            value={node.modelUrl ?? ""}
+            onChange={(e) => updateNode(node.id, { modelUrl: e.target.value || undefined })}
+            className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-sm text-white"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-white/50 block mb-1">Item Type</label>
+          <select
+            value={node.itemType}
+            onChange={(e) => updateNode(node.id, { itemType: e.target.value as ItemNode["itemType"] })}
+            className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-sm text-white"
+          >
+            {["furniture", "appliance", "fixture", "light", "custom"].map((type) => (
+              <option key={type} value={type} className="bg-[#1a1a1a]">{type}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs text-white/50 block mb-1">Material</label>
+          <input
+            type="text"
+            value={node.material ?? ""}
+            onChange={(e) => updateNode(node.id, { material: e.target.value })}
+            className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-sm text-white"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <h5 className="text-[10px] uppercase tracking-wider text-white/35">Transform</h5>
+        {(["position", "rotation", "scale"] as const).map((section) => (
+          <div key={section} className="grid grid-cols-3 gap-2">
+            {(["x", "y", "z"] as const).map((axis) => (
+              <label key={`${section}-${axis}`} className="block">
+                <span className="text-[10px] text-white/45 uppercase tracking-wider block mb-1">
+                  {section} {axis}
+                </span>
+                <input
+                  type="number"
+                  step={section === "rotation" ? 1 : 0.01}
+                  value={node.transform[section][axis]}
+                  onChange={(e) => updateTransform(section, axis, e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-sm text-white"
+                />
+              </label>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-2">
+        <h5 className="text-[10px] uppercase tracking-wider text-white/35">Dimensions</h5>
+        <div className="grid grid-cols-3 gap-2">
+          {(["x", "y", "z"] as const).map((axis) => (
+            <label key={axis} className="block">
+              <span className="text-[10px] text-white/45 uppercase tracking-wider block mb-1">{axis}</span>
+              <input
+                type="number"
+                step={0.01}
+                value={node.dimensions[axis]}
+                onChange={(e) => updateDimensions(axis, e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-sm text-white"
+              />
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {warnings.length > 0 && (
+        <div className="space-y-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2">
+          <h5 className="text-[10px] uppercase tracking-wider text-amber-200">Quality warnings</h5>
+          <ul className="space-y-1 text-xs text-amber-50/85">
+            {warnings.map((warning) => (
+              <li key={warning}>- {warning}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function NodeName({ node }: { node: AnyNode }) {
   const updateNode = useScene((s) => s.updateNode);
   return (
@@ -172,7 +299,8 @@ export function PropertyPanel() {
         {node.type === "door" && <DoorProperties node={node} />}
         {node.type === "window" && <WindowProperties node={node} />}
         {node.type === "level" && <LevelProperties node={node} />}
-        {node.type !== "wall" && node.type !== "door" && node.type !== "window" && node.type !== "level" && (
+        {node.type === "item" && <ItemProperties node={node} />}
+        {node.type !== "wall" && node.type !== "door" && node.type !== "window" && node.type !== "level" && node.type !== "item" && (
           <p className="text-xs text-white/40">Type: {node.type}</p>
         )}
       </div>

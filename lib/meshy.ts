@@ -1,4 +1,5 @@
 import pRetry, { AbortError } from "p-retry";
+import { isValidGlbUrl } from "../shared/model-pipeline.js";
 
 const MESHY_API_URL = "https://api.meshy.ai";
 
@@ -8,6 +9,10 @@ export interface MeshyTaskResult {
   modelUrl?: string;
   status?: string;
   error?: string;
+  diagnostics?: {
+    rejectedUrl?: string;
+    modelUrlSource?: "glb" | "obj" | "none";
+  };
 }
 
 function getMeshyApiKey(): string {
@@ -16,6 +21,58 @@ function getMeshyApiKey(): string {
     throw new Error("MESHY_API_KEY is not configured");
   }
   return key;
+}
+
+export function parseMeshyTaskResponse(payload: unknown): MeshyTaskResult {
+  const data = payload && typeof payload === "object" ? payload as Record<string, any> : null;
+  const status = data?.status;
+  const glbUrl = data?.model_urls?.glb;
+  const objUrl = data?.model_urls?.obj;
+
+  if (status === "SUCCEEDED") {
+    if (isValidGlbUrl(glbUrl)) {
+      return {
+        success: true,
+        status: "completed",
+        modelUrl: glbUrl,
+        diagnostics: { modelUrlSource: "glb" },
+      };
+    }
+
+    if (typeof objUrl === "string" && objUrl) {
+      return {
+        success: false,
+        status: "failed",
+        error: "Meshy returned an OBJ-only result; a GLB is required",
+        diagnostics: {
+          rejectedUrl: objUrl,
+          modelUrlSource: "obj",
+        },
+      };
+    }
+
+    return {
+      success: false,
+      status: "failed",
+      error: "Meshy did not return a valid GLB output",
+      diagnostics: {
+        modelUrlSource: "none",
+      },
+    };
+  }
+
+  if (status === "FAILED") {
+    return {
+      success: false,
+      status: "failed",
+      error: data?.task_error?.message || "3D generation failed",
+    };
+  }
+
+  return {
+    success: true,
+    status: typeof status === "string" ? status.toLowerCase() : undefined,
+  };
 }
 
 export async function createImageTo3DTask(
@@ -80,28 +137,16 @@ export async function checkMeshyTaskStatus(
     }
 
     const data = await response.json();
-
-    if (data.status === "SUCCEEDED") {
-      return {
-        success: true,
-        taskId,
-        status: "completed",
-        modelUrl: data.model_urls?.glb || data.model_urls?.obj,
-      };
-    } else if (data.status === "FAILED") {
-      return {
-        success: false,
-        taskId,
-        status: "failed",
-        error: data.task_error?.message || "3D generation failed",
-      };
-    } else {
-      return {
-        success: true,
-        taskId,
-        status: data.status.toLowerCase(),
-      };
-    }
+    const parsed = parseMeshyTaskResponse(data);
+    return parsed.success
+      ? {
+          ...parsed,
+          taskId,
+        }
+      : {
+          ...parsed,
+          taskId,
+        };
   } catch (error: any) {
     console.error("Error checking Meshy task:", error);
     return { success: false, error: error.message };
@@ -197,28 +242,16 @@ export async function checkRetextureTaskStatus(
     }
 
     const data = await response.json();
-
-    if (data.status === "SUCCEEDED") {
-      return {
-        success: true,
-        taskId,
-        status: "completed",
-        modelUrl: data.model_urls?.glb || data.model_urls?.obj,
-      };
-    } else if (data.status === "FAILED") {
-      return {
-        success: false,
-        taskId,
-        status: "failed",
-        error: data.task_error?.message || "Retexture failed",
-      };
-    } else {
-      return {
-        success: true,
-        taskId,
-        status: data.status.toLowerCase(),
-      };
-    }
+    const parsed = parseMeshyTaskResponse(data);
+    return parsed.success
+      ? {
+          ...parsed,
+          taskId,
+        }
+      : {
+          ...parsed,
+          taskId,
+        };
   } catch (error: any) {
     console.error("Error checking retexture task:", error);
     return { success: false, error: error.message };
@@ -255,7 +288,5 @@ export async function pollRetextureTask(
     }
   );
 }
-
-
 
 

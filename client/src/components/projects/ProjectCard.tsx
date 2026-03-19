@@ -13,6 +13,10 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
   const model = project.models[0];
   const thumbnail = model?.isometricUrl || model?.originalUrl;
   const date = new Date(project.lastModified).toLocaleDateString();
+  const isGenerating3D =
+    model?.status === "generating_3d" ||
+    model?.status === "generating_3d_meshy" ||
+    model?.status === "generating_3d_trellis";
 
   const getStatusLabel = () => {
     if (!model) return 'Empty';
@@ -21,9 +25,11 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
       case 'generating_isometric': return 'Processing...';
       case 'isometric_ready': return 'Isometric Ready';
       case 'generating_3d': return 'Creating 3D...';
+      case 'generating_3d_meshy': return 'Creating 3D...';
+      case 'generating_3d_trellis': return 'Creating 3D...';
       case 'completed': return '3D Complete';
       case 'failed': return 'Failed';
-      default: return model.status;
+      default: return isGenerating3D ? 'Creating 3D...' : model.status;
     }
   };
 

@@ -114,6 +114,10 @@ export function Viewer() {
   const { toast } = useToast();
   const { subscription, invalidate: invalidateSubscription } = useSubscription();
   const { loadScene } = useScene();
+  const is3DGenerationStatus = (status?: string | null) =>
+    status === "generating_3d" ||
+    status === "generating_3d_meshy" ||
+    status === "generating_3d_trellis";
 
   const { data: project, isLoading, refetch } = useQuery({
     queryKey: ['project', id],
@@ -122,7 +126,12 @@ export function Viewer() {
     refetchInterval: (query) => {
       const data = query.state.data;
       const model = data?.models[0];
-      if (model?.status === 'generating_pascal' || model?.status === 'generating_isometric' || model?.status === 'generating_3d' || model?.status === 'retexturing') {
+      if (
+        model?.status === 'generating_pascal' ||
+        model?.status === 'generating_isometric' ||
+        model?.status === 'retexturing' ||
+        is3DGenerationStatus(model?.status)
+      ) {
         return 3000;
       }
       return false;
@@ -175,13 +184,15 @@ export function Viewer() {
     mutationFn: async (modelId: number) => {
       return provider3D === 'trellis' ? generate3DTrellis(modelId) : generate3D(modelId);
     },
-    onSuccess: () => {
+    onSuccess: (updatedModel) => {
       queryClient.invalidateQueries({ queryKey: ['project', id] });
       invalidateSubscription();
-      if (provider3D === 'trellis') {
+      if (updatedModel.provider === 'trellis' && updatedModel.status === 'completed') {
         toast({ title: "3D model ready!", description: "TRELLIS model generated successfully." });
         setViewMode('3d');
         setActiveTool('texture');
+      } else if (provider3D === 'trellis' && updatedModel.provider === 'meshy') {
+        toast({ title: "TRELLIS unavailable", description: "Falling back to Meshy for a more reliable 3D generation run." });
       } else {
         toast({ title: "3D generation started!", description: "This may take a few minutes." });
       }
@@ -244,7 +255,7 @@ export function Viewer() {
       return () => clearInterval(interval);
     }
 
-    if (model?.status === 'generating_3d' && model.meshyTaskId) {
+    if (is3DGenerationStatus(model?.status) && model.meshyTaskId) {
       const interval = setInterval(async () => {
         const updated = await checkModelStatus(model.id);
         if (updated.status === 'completed' || updated.status === 'failed') {
@@ -262,7 +273,11 @@ export function Viewer() {
   }, [project?.models[0]?.status, project?.models[0]?.meshyTaskId, project?.models[0]?.retextureTaskId]);
 
   const model = project?.models[0];
-  const isGenerating = model?.status === 'generating_pascal' || model?.status === 'generating_isometric' || model?.status === 'generating_3d' || model?.status === 'retexturing';
+  const isGenerating =
+    model?.status === 'generating_pascal' ||
+    model?.status === 'generating_isometric' ||
+    model?.status === 'retexturing' ||
+    is3DGenerationStatus(model?.status);
   const hasIsometric = !!model?.isometricUrl;
   const has3D = !!model?.model3dUrl;
   const hasPascal = !!model?.pascalData;
@@ -649,7 +664,7 @@ export function Viewer() {
                   style={{ backgroundColor: '#2563eb' }}
                   variant="default"
                 >
-                  {generate3DMutation.isPending || model.status === 'generating_3d' ? (
+                  {generate3DMutation.isPending || is3DGenerationStatus(model.status) ? (
                     <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Running Compute...</>
                   ) : has3D ? (
                     <><RotateCw className="w-4 h-4 mr-2" />Re-run Compute Engine</>
@@ -887,6 +902,8 @@ export function Viewer() {
                     <h2 className="text-xl font-semibold tracking-tight text-white mb-2">
                       {model.status === 'generating_pascal' ? 'Building Semantic Geometry...' :
                        model.status === 'generating_isometric' ? 'Rendering Isometric Scene...' :
+                       model.status === 'generating_3d_trellis' ? 'Synthesizing TRELLIS Mesh...' :
+                       model.status === 'generating_3d_meshy' ? 'Synthesizing Meshy Geometry...' :
                        model.status === 'retexturing' ? 'Applying Material Networks...' : 
                        'Synthesizing Volumetric Mesh...'}
                     </h2>
@@ -894,6 +911,8 @@ export function Viewer() {
                     <p className="text-sm text-muted-foreground text-center mb-6 max-w-[280px]">
                       {model.status === 'generating_pascal' ? 'Extracting architectural primitives and structural graphs.' :
                        model.status === 'generating_isometric' ? 'Diffusing styled light and materials in 2.5D space.' :
+                       model.status === 'generating_3d_trellis' ? 'Running the TRELLIS volumetric reconstruction stack and validating the returned GLB contract.' :
+                       model.status === 'generating_3d_meshy' ? 'Queueing Meshy image-to-3D generation with realistic PBR output settings.' :
                        model.status === 'retexturing' ? 'Projecting and baking complex textures onto structural meshes.' : 
                        'Extruding structures and generating point clouds...'}
                     </p>

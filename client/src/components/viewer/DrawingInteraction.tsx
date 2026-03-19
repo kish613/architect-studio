@@ -6,6 +6,7 @@ import { useEditor } from "@/stores/use-editor";
 import { useScene } from "@/stores/use-scene";
 import { useViewer } from "@/stores/use-viewer";
 import { createNode } from "@/lib/pascal/schemas";
+import { createCatalogPlacementNode } from "@/lib/pascal/item-placement";
 
 const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const raycaster = new THREE.Raycaster();
@@ -14,14 +15,18 @@ const intersection = new THREE.Vector3();
 
 export function DrawingInteraction() {
   const activeTool = useEditor((s) => s.activeTool);
+  const phase = useEditor((s) => s.phase);
   const drawingPoints = useEditor((s) => s.drawingPoints);
   const previewPoint = useEditor((s) => s.previewPoint);
+  const placingCatalogItem = useEditor((s) => s.placingCatalogItem);
   const addDrawingPoint = useEditor((s) => s.addDrawingPoint);
   const setPreviewPoint = useEditor((s) => s.setPreviewPoint);
   const clearDrawing = useEditor((s) => s.clearDrawing);
+  const cancelAction = useEditor((s) => s.cancelAction);
 
   const addNode = useScene((s) => s.addNode);
   const activeLevelId = useViewer((s) => s.activeLevelId);
+  const select = useViewer((s) => s.select);
 
   const { camera, gl } = useThree();
 
@@ -43,11 +48,11 @@ export function DrawingInteraction() {
     [camera, gl]
   );
 
-  // Only active for wall tool
   const isWallTool = activeTool === "wall";
+  const isItemPlacement = activeTool === "item" && phase === "placing" && placingCatalogItem != null;
 
   useEffect(() => {
-    if (!isWallTool) return;
+    if (!isWallTool && !isItemPlacement) return;
 
     const canvas = gl.domElement;
 
@@ -59,10 +64,21 @@ export function DrawingInteraction() {
     const onClick = (e: MouseEvent) => {
       if (e.button !== 0) return; // left click only
       const pt = getGroundPoint(e.clientX, e.clientY);
-      if (pt) addDrawingPoint(pt);
+      if (!pt) return;
+
+      if (isItemPlacement && placingCatalogItem) {
+        const node = createCatalogPlacementNode(placingCatalogItem, activeLevelId, pt);
+        addNode(node, activeLevelId ?? undefined);
+        select([node.id]);
+        cancelAction();
+        return;
+      }
+
+      addDrawingPoint(pt);
     };
 
     const onDblClick = () => {
+      if (!isWallTool) return;
       const points = useEditor.getState().drawingPoints;
       if (points.length < 2) return;
 
@@ -102,10 +118,14 @@ export function DrawingInteraction() {
     addNode,
     activeLevelId,
     setPreviewPoint,
+    phase,
+    placingCatalogItem,
+    isItemPlacement,
+    select,
+    cancelAction,
   ]);
 
-  // Don't render anything if not in wall mode
-  if (!isWallTool) return null;
+  if (!isWallTool && !isItemPlacement) return null;
 
   // Build line points for visualization
   const linePoints: [number, number, number][] = drawingPoints.map((p) => [
@@ -137,6 +157,20 @@ export function DrawingInteraction() {
         <mesh position={[previewPoint.x, 0.05, previewPoint.z]}>
           <sphereGeometry args={[0.06, 16, 16]} />
           <meshBasicMaterial color="#78B4FF" transparent opacity={0.6} />
+        </mesh>
+      )}
+
+      {isItemPlacement && previewPoint && placingCatalogItem && (
+        <mesh position={[previewPoint.x, placingCatalogItem.dimensions.y / 2, previewPoint.z]} castShadow receiveShadow>
+          <boxGeometry args={[placingCatalogItem.dimensions.x, placingCatalogItem.dimensions.y, placingCatalogItem.dimensions.z]} />
+          <meshPhysicalMaterial
+            color="#4A90FF"
+            transparent
+            opacity={0.3}
+            roughness={0.5}
+            metalness={0.05}
+            clearcoat={0.2}
+          />
         </mesh>
       )}
     </>

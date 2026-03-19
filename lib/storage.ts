@@ -108,7 +108,7 @@ export class DatabaseStorage implements IStorage {
   async createModel(insertModel: InsertFloorplanModel): Promise<FloorplanModel> {
     const [model] = await db
       .insert(floorplanModels)
-      .values(insertModel)
+      .values(insertModel as any)
       .returning();
     return model;
   }
@@ -119,7 +119,7 @@ export class DatabaseStorage implements IStorage {
   ): Promise<FloorplanModel | undefined> {
     const [model] = await db
       .update(floorplanModels)
-      .set(modelUpdate)
+      .set(modelUpdate as any)
       .where(eq(floorplanModels.id, id))
       .returning();
     return model || undefined;
@@ -200,7 +200,6 @@ export class DatabaseStorage implements IStorage {
 }
 
 export const storage = new DatabaseStorage();
-
 
 
 

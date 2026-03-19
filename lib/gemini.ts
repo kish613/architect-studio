@@ -1,6 +1,7 @@
 import pLimit from "p-limit";
 import pRetry, { AbortError } from "p-retry";
 import { put } from "@vercel/blob";
+import { isValidGlbUrl } from "../shared/model-pipeline.js";
 
 // Get API key
 function getApiKey() {
@@ -25,6 +26,114 @@ export interface IsometricGenerationResult {
   success: boolean;
   imageUrl?: string;
   error?: string;
+  diagnostics?: GeminiImageDiagnostics;
+}
+
+export interface GeminiImageDiagnostics {
+  candidateCount: number;
+  partCount: number;
+  textPartCount: number;
+  imagePartCount: number;
+  hasImagePart: boolean;
+  finishReason?: string;
+  responseShape: string;
+}
+
+export interface GeminiImageParseSuccess {
+  success: true;
+  imagePart: {
+    inline_data: {
+      mime_type?: string;
+      data: string;
+    };
+  };
+  diagnostics: GeminiImageDiagnostics;
+}
+
+export interface GeminiImageParseFailure {
+  success: false;
+  error: string;
+  retryable: boolean;
+  diagnostics: GeminiImageDiagnostics;
+}
+
+export type GeminiImageParseResult = GeminiImageParseSuccess | GeminiImageParseFailure;
+
+interface GeminiResponsePart {
+  text?: string;
+  inline_data?: {
+    mime_type?: string;
+    data?: string;
+  };
+}
+
+export function parseGeminiImageResponse(response: unknown): GeminiImageParseResult {
+  const candidates = (response && typeof response === "object" ? (response as any).candidates : null) as any[] | null;
+  const candidate = candidates?.[0];
+  const parts = Array.isArray(candidate?.content?.parts)
+    ? (candidate.content.parts as GeminiResponsePart[])
+    : null;
+
+  const diagnostics: GeminiImageDiagnostics = {
+    candidateCount: candidates?.length ?? 0,
+    partCount: parts?.length ?? 0,
+    textPartCount: 0,
+    imagePartCount: 0,
+    hasImagePart: false,
+    finishReason: candidate?.finishReason,
+    responseShape: Array.isArray(response)
+      ? "array"
+      : response && typeof response === "object"
+        ? "object"
+        : typeof response,
+  };
+
+  if (!candidates || candidates.length === 0) {
+    return {
+      success: false,
+      error: "Gemini response had no candidates",
+      retryable: false,
+      diagnostics,
+    };
+  }
+
+  if (!parts) {
+    return {
+      success: false,
+      error: "Gemini response had no parts array",
+      retryable: false,
+      diagnostics,
+    };
+  }
+
+  const imagePart = parts.find(
+    (part: GeminiResponsePart) =>
+      part?.inline_data?.data && typeof part.inline_data.data === "string"
+  );
+  const textParts = parts.filter((part: GeminiResponsePart) => typeof part?.text === "string");
+  diagnostics.textPartCount = textParts.length;
+  diagnostics.imagePartCount = imagePart ? 1 : 0;
+  diagnostics.hasImagePart = Boolean(imagePart);
+
+  if (imagePart?.inline_data?.data) {
+    return {
+      success: true,
+      imagePart: {
+        inline_data: {
+          mime_type: imagePart.inline_data.mime_type,
+          data: imagePart.inline_data.data,
+        },
+      },
+      diagnostics,
+    };
+  }
+
+  return {
+    success: false,
+    error: "NO_IMAGE_DATA: Model returned text-only response",
+    retryable: true,
+    diagnostics,
+  };
 }
 
 export async function generateIsometricFloorplan(
@@ -35,9 +144,10 @@ export async function generateIsometricFloorplan(
   const apiKey = getApiKey();
   const limit = pLimit(1);
 
-  return limit(() =>
-    pRetry(
-      async () => {
+  try {
+    return await limit(() =>
+      pRetry(
+        async () => {
         try {
           const base64Image = imageBuffer.toString("base64");
 
@@ -179,77 +289,17 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
           console.log("=== GEMINI API RESPONSE RECEIVED ===");
           console.log("Raw response size:", JSON.stringify(response).length, "bytes");
 
-          console.log("=== VALIDATING RESPONSE STRUCTURE ===");
-          if (!response) {
-            console.error("ERROR: Response object is null/undefined");
-            throw new Error("No response received from Gemini API");
+          const parsed = parseGeminiImageResponse(response);
+          if (!parsed.success) {
+            const error = new Error(parsed.error);
+            (error as Error & { diagnostics?: GeminiImageDiagnostics }).diagnostics = parsed.diagnostics;
+            if (parsed.retryable) {
+              throw error;
+            }
+            throw new AbortError(parsed.error);
           }
 
-          console.log("Response keys:", Object.keys(response));
-          console.log("Response structure:", JSON.stringify({
-            hasCandidates: !!response.candidates,
-            candidatesLength: response.candidates?.length,
-            candidatesIsArray: Array.isArray(response.candidates),
-            firstCandidateHasContent: !!response.candidates?.[0]?.content,
-            firstCandidateHasParts: !!response.candidates?.[0]?.content?.parts,
-            partsLength: response.candidates?.[0]?.content?.parts?.length,
-            partsIsArray: Array.isArray(response.candidates?.[0]?.content?.parts),
-          }, null, 2));
-
-          const responsePreview = JSON.stringify(response).substring(0, 1000);
-          console.log("Response preview (first 1000 chars):", responsePreview);
-
-          const candidate = response.candidates?.[0];
-          if (!candidate) {
-            console.error("ERROR: No candidates array or empty candidates");
-            console.error("Full response:", JSON.stringify(response, null, 2));
-            throw new Error("No candidates in API response");
-          }
-
-          console.log("Candidate structure:", JSON.stringify({
-            hasContent: !!candidate.content,
-            hasParts: !!candidate.content?.parts,
-            partsCount: candidate.content?.parts?.length,
-            finishReason: candidate.finishReason,
-            safetyRatings: candidate.safetyRatings?.length || 0
-          }, null, 2));
-
-          const parts = candidate?.content?.parts;
-          if (!parts || !Array.isArray(parts)) {
-            console.error("ERROR: Parts is not an array or is missing");
-            console.error("Candidate content:", JSON.stringify(candidate.content, null, 2));
-            throw new Error("Invalid response structure - no parts array");
-          }
-
-          console.log(`Found ${parts.length} parts in response`);
-          parts.forEach((part: any, idx: number) => {
-            console.log(`Part ${idx}:`, JSON.stringify({
-              hasText: !!part.text,
-              textLength: part.text?.length || 0,
-              hasInlineData: !!part.inline_data,
-              hasMimeType: !!part.inline_data?.mime_type,
-              mimeType: part.inline_data?.mime_type,
-              hasData: !!part.inline_data?.data,
-              dataLength: part.inline_data?.data?.length || 0
-            }, null, 2));
-          });
-
-          const imagePart = parts.find((part: any) => part.inline_data);
-
-          if (!imagePart?.inline_data?.data) {
-            console.error("=== NO IMAGE DATA FOUND ===");
-            console.error("Total parts:", parts.length);
-            console.error("Parts breakdown:", parts.map((p: any, idx: number) => ({
-              index: idx,
-              hasText: !!p.text,
-              textPreview: p.text?.substring(0, 100),
-              hasInlineData: !!p.inline_data,
-              inlineDataKeys: p.inline_data ? Object.keys(p.inline_data) : []
-            })));
-            // This is a known Gemini issue - complex prompts sometimes get text-only responses.
-            // Throw a retryable error (NOT AbortError) so p-retry will attempt again.
-            throw new Error("NO_IMAGE_DATA: Model returned text-only response, retrying...");
-          }
+          const imagePart = parsed.imagePart;
 
           console.log("=== IMAGE DATA FOUND ===");
           console.log("MIME Type:", imagePart.inline_data.mime_type);
@@ -282,6 +332,7 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
           return {
             success: true,
             imageUrl: blob.url,
+            diagnostics: parsed.diagnostics,
           };
         } catch (error: any) {
           console.error("=== GEMINI GENERATION ERROR ===");
@@ -314,10 +365,13 @@ CRITICAL FOR 3D MODEL CONVERSION (follow these EXACTLY):
           console.log(`Error: ${error.message}`);
         },
       }
-    )
-  );
+      )
+    );
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error?.message || "Generation failed",
+      diagnostics: error?.diagnostics,
+    };
+  }
 }
-
-
-
-

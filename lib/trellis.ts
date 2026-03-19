@@ -1,11 +1,35 @@
 import { Client, handle_file } from "@gradio/client";
+import { isValidGlbUrl } from "../shared/model-pipeline.js";
 
 const TRELLIS_SPACE = "trellis-community/TRELLIS";
+
+export interface TrellisParseDiagnostics {
+  rawType: string;
+  outputCount: number;
+  outputKinds: string[];
+  glbCandidateCount: number;
+  rejectedUrl?: string;
+}
+
+export interface TrellisParseSuccess {
+  success: true;
+  glbUrl: string;
+  diagnostics: TrellisParseDiagnostics;
+}
+
+export interface TrellisParseFailure {
+  success: false;
+  error: string;
+  diagnostics: TrellisParseDiagnostics;
+}
+
+export type TrellisParseResult = TrellisParseSuccess | TrellisParseFailure;
 
 export interface TrellisResult {
   success: boolean;
   glbUrl?: string;
   error?: string;
+  diagnostics?: TrellisParseDiagnostics;
 }
 
 export interface TrellisOptions {
@@ -27,6 +51,94 @@ const DEFAULT_OPTIONS: Required<TrellisOptions> = {
   meshSimplify: 0.95,
   textureSize: 1024,
 };
+
+function getTrellisOutputs(payload: unknown): unknown[] | null {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (payload && typeof payload === "object" && Array.isArray((payload as { data?: unknown[] }).data)) {
+    return (payload as { data: unknown[] }).data;
+  }
+
+  return null;
+}
+
+function normalizeOutputValue(output: unknown): string | undefined {
+  if (typeof output === "string") {
+    return output;
+  }
+
+  if (output && typeof output === "object") {
+    const candidate = (output as { url?: unknown }).url;
+    if (typeof candidate === "string") {
+      return candidate;
+    }
+  }
+
+  return undefined;
+}
+
+export function parseTrellisPredictResult(payload: unknown): TrellisParseResult {
+  const outputs = getTrellisOutputs(payload);
+  const diagnostics: TrellisParseDiagnostics = {
+    rawType: Array.isArray(payload)
+      ? "array"
+      : payload && typeof payload === "object"
+        ? "object"
+        : typeof payload,
+    outputCount: outputs?.length ?? 0,
+    outputKinds: outputs?.map((output) => {
+      if (typeof output === "string") return "string";
+      if (output && typeof output === "object") return "object";
+      return typeof output;
+    }) ?? [],
+    glbCandidateCount: 0,
+  };
+
+  if (!outputs || outputs.length < 3) {
+    return {
+      success: false,
+      error: "TRELLIS response missing required outputs",
+      diagnostics,
+    };
+  }
+
+  const glbCandidates = outputs
+    .slice(2)
+    .map(normalizeOutputValue)
+    .filter((value): value is string => Boolean(value));
+  diagnostics.glbCandidateCount = glbCandidates.length;
+
+  const glbUrl = glbCandidates.find(isValidGlbUrl);
+  if (glbUrl) {
+    return {
+      success: true,
+      glbUrl,
+      diagnostics,
+    };
+  }
+
+  const rejectedUrl = glbCandidates.find((value) => /\.obj(?:[?#].*)?$/i.test(value));
+  if (rejectedUrl) {
+    diagnostics.rejectedUrl = rejectedUrl;
+    return {
+      success: false,
+      error: "TRELLIS returned an OBJ-only result; a GLB is required",
+      diagnostics,
+    };
+  }
+
+  if (glbCandidates.length > 0) {
+    diagnostics.rejectedUrl = glbCandidates[0];
+  }
+
+  return {
+    success: false,
+    error: "TRELLIS did not return a valid GLB output",
+    diagnostics,
+  };
+}
 
 /**
  * Generate a 3D GLB model from an image using TRELLIS v1 via the Gradio Space.
@@ -61,35 +173,27 @@ export async function generateTrellis3D(
       opts.textureSize,
     ]);
 
-    // Result data: [state_dict, video_url, glb_display, glb_download]
-    const data = result.data as any[];
-
-    // The GLB download URL is the 4th output (index 3)
-    const glbOutput = data[3];
-    let glbUrl: string | undefined;
-
-    if (glbOutput && typeof glbOutput === "object" && glbOutput.url) {
-      glbUrl = glbOutput.url;
-    } else if (typeof glbOutput === "string") {
-      glbUrl = glbOutput;
-    }
-
-    if (!glbUrl) {
-      return {
-        success: false,
-        error: "TRELLIS did not return a GLB file URL",
-      };
+    const parsed = parseTrellisPredictResult(result);
+    if (!parsed.success) {
+      return parsed;
     }
 
     return {
       success: true,
-      glbUrl,
+      glbUrl: parsed.glbUrl,
+      diagnostics: parsed.diagnostics,
     };
   } catch (error: any) {
     console.error("TRELLIS generation error:", error);
     return {
       success: false,
       error: error.message || "TRELLIS 3D generation failed",
+      diagnostics: {
+        rawType: "exception",
+        outputCount: 0,
+        outputKinds: [],
+        glbCandidateCount: 0,
+      },
     };
   }
 }

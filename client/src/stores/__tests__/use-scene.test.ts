@@ -1,10 +1,33 @@
 import { vi } from "vitest";
 import { useScene } from "@/stores/use-scene";
+import { useViewer } from "@/stores/use-viewer";
 import { createEmptyScene, createNode } from "@/lib/pascal/schemas";
 import { eventBus } from "@/lib/pascal/event-bus";
 
 beforeEach(() => {
   useScene.getState().loadScene(createEmptyScene());
+  useViewer.setState({
+    selectedIds: [],
+    hoveredId: null,
+    activeBuildingId: null,
+    activeLevelId: null,
+    activeZoneId: null,
+    cameraMode: "perspective",
+    cameraPreset: null,
+    levelMode: "stacked",
+    soloLevelId: null,
+    explodedSpacing: 3,
+    showWalls: true,
+    showCeilings: true,
+    showSlabs: true,
+    showRoofs: true,
+    showItems: true,
+    showZones: true,
+    showGuides: true,
+    showScans: true,
+    showGrid: true,
+    showDimensions: true,
+  });
   eventBus.clear();
 });
 
@@ -334,6 +357,19 @@ describe("useScene – loadScene", () => {
     state().setFloorplanId(99);
     state().loadScene(createEmptyScene());
     expect(state().floorplanId).toBeNull();
+  });
+
+  it("initializes active building and level context from the loaded scene", () => {
+    const scene = createEmptyScene();
+
+    state().loadScene(scene);
+
+    const siteId = scene.rootNodeIds[0];
+    const buildingId = scene.nodes[siteId].childIds[0];
+    const levelId = scene.nodes[buildingId].childIds[0];
+
+    expect(useViewer.getState().activeBuildingId).toBe(buildingId);
+    expect(useViewer.getState().activeLevelId).toBe(levelId);
   });
 });
 

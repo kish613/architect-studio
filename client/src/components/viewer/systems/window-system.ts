@@ -48,6 +48,7 @@ export function getWindowMaterials(isSelected: boolean): {
       ior: 1.5,
       thickness: 0.05,
       transparent: true,
+      opacity: 0.5,
       envMapIntensity: 1.0,
       emissive: "#e0f0ff",
       emissiveIntensity: 0.08,

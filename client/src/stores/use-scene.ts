@@ -3,6 +3,8 @@ import { temporal } from "zundo";
 import type { AnyNode, SceneData } from "@/lib/pascal/schemas";
 import { createEmptyScene } from "@/lib/pascal/schemas";
 import { eventBus } from "@/lib/pascal/event-bus";
+import { useViewer } from "@/stores/use-viewer";
+import { deriveSceneContext } from "@/lib/pascal/scene-context";
 
 interface SceneState {
   // Scene data (persisted)
@@ -179,6 +181,7 @@ export const useScene = create<SceneState>()(
         },
 
         loadScene: (data, floorplanId) => {
+          const context = deriveSceneContext(data);
           set({
             nodes: data.nodes,
             rootNodeIds: data.rootNodeIds,
@@ -186,6 +189,8 @@ export const useScene = create<SceneState>()(
             floorplanId: floorplanId ?? null,
             hasUnsavedChanges: false,
           });
+          useViewer.getState().setActiveBuilding(context.activeBuildingId);
+          useViewer.getState().setActiveLevel(context.activeLevelId);
           eventBus.emit("scene:loaded", { nodeCount: Object.keys(data.nodes).length });
         },
 
@@ -197,6 +202,8 @@ export const useScene = create<SceneState>()(
             dirtyNodeIds: new Set(),
             hasUnsavedChanges: true,
           });
+          useViewer.getState().setActiveBuilding(null);
+          useViewer.getState().setActiveLevel(null);
         },
 
         getSceneData: () => ({

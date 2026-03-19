@@ -76,6 +76,10 @@ function ProjectCard({ project }: { project: ProjectWithModels }) {
   const model = project.models[0];
   const thumbnail = model?.isometricUrl || model?.originalUrl;
   const isCompleted = model?.status === 'completed';
+  const isGenerating3D =
+    model?.status === "generating_3d" ||
+    model?.status === "generating_3d_meshy" ||
+    model?.status === "generating_3d_trellis";
   
   const getStatusInfo = () => {
     if (!model) return { text: 'Empty', color: 'text-slate-400' };
@@ -84,9 +88,13 @@ function ProjectCard({ project }: { project: ProjectWithModels }) {
       case 'generating_isometric': return { text: 'Processing...', color: 'text-orange-400' };
       case 'isometric_ready': return { text: 'Isometric Ready', color: 'text-cyan-400' };
       case 'generating_3d': return { text: 'Creating 3D...', color: 'text-orange-400' };
+      case 'generating_3d_meshy': return { text: 'Creating 3D...', color: 'text-orange-400' };
+      case 'generating_3d_trellis': return { text: 'Creating 3D...', color: 'text-orange-400' };
       case 'completed': return { text: 'Render Ready', color: 'text-emerald-400' };
       case 'failed': return { text: 'Failed', color: 'text-red-400' };
-      default: return { text: model.status, color: 'text-slate-400' };
+      default: return isGenerating3D
+        ? { text: 'Creating 3D...', color: 'text-orange-400' }
+        : { text: model.status, color: 'text-slate-400' };
     }
   };
 

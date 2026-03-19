@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { CatalogItem } from "@/lib/pascal/furniture-catalog";
 
 export type EditorTool =
   | "select" | "wall" | "door" | "window" | "slab"
@@ -13,11 +14,13 @@ interface EditorState {
   phase: EditorPhase;
   drawingPoints: Array<{ x: number; z: number }>;
   previewPoint: { x: number; z: number } | null;
+  placingCatalogItem: CatalogItem | null;
   visiblePanels: Set<PanelId>;
 
   setTool: (tool: EditorTool) => void;
   setPhase: (phase: EditorPhase) => void;
   cancelAction: () => void;
+  beginPlacement: (catalogItem: CatalogItem) => void;
   addDrawingPoint: (point: { x: number; z: number }) => void;
   setPreviewPoint: (point: { x: number; z: number } | null) => void;
   clearDrawing: () => void;
@@ -31,15 +34,24 @@ export const useEditor = create<EditorState>((set) => ({
   phase: "idle",
   drawingPoints: [],
   previewPoint: null,
+  placingCatalogItem: null,
   visiblePanels: new Set<PanelId>(["properties", "levels"]),
 
-  setTool: (tool) => set({ activeTool: tool, phase: "idle", drawingPoints: [], previewPoint: null }),
+  setTool: (tool) => set({ activeTool: tool, phase: "idle", drawingPoints: [], previewPoint: null, placingCatalogItem: null }),
   setPhase: (phase) => set({ phase }),
-  cancelAction: () => set({ activeTool: "select", phase: "idle", drawingPoints: [], previewPoint: null }),
+  cancelAction: () => set({ activeTool: "select", phase: "idle", drawingPoints: [], previewPoint: null, placingCatalogItem: null }),
+  beginPlacement: (catalogItem) =>
+    set({
+      activeTool: "item",
+      phase: "placing",
+      drawingPoints: [],
+      previewPoint: null,
+      placingCatalogItem: catalogItem,
+    }),
   addDrawingPoint: (point) =>
     set((s) => ({ drawingPoints: [...s.drawingPoints, point], phase: "drawing" })),
   setPreviewPoint: (point) => set({ previewPoint: point }),
-  clearDrawing: () => set({ drawingPoints: [], previewPoint: null, phase: "idle" }),
+  clearDrawing: () => set({ drawingPoints: [], previewPoint: null, phase: "idle", placingCatalogItem: null }),
   togglePanel: (panel) =>
     set((s) => {
       const next = new Set(s.visiblePanels);

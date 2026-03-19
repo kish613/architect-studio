@@ -7,6 +7,7 @@ beforeEach(() => {
     phase: "idle",
     drawingPoints: [],
     previewPoint: null,
+    placingCatalogItem: null,
     visiblePanels: new Set<PanelId>(["properties", "levels"]),
   });
 });
@@ -99,6 +100,61 @@ describe("useEditor – cancelAction", () => {
     expect(state().phase).toBe("idle");
     expect(state().drawingPoints).toEqual([]);
     expect(state().previewPoint).toBeNull();
+  });
+
+  it("clears any active catalog placement", () => {
+    state().beginPlacement({
+      id: "sofa-01",
+      name: "Sofa",
+      category: "living",
+      modelUrl: "/assets/furniture/sofa-01.glb",
+      thumbnailUrl: "/assets/furniture/sofa-01.webp",
+      dimensions: { x: 2.2, y: 0.85, z: 0.9 },
+      keywords: ["sofa"],
+    });
+
+    state().cancelAction();
+
+    expect(state().placingCatalogItem).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Placement
+// ---------------------------------------------------------------------------
+
+describe("useEditor – placement", () => {
+  it("beginPlacement enters placing mode with the chosen catalog item", () => {
+    state().beginPlacement({
+      id: "armchair-01",
+      name: "Armchair",
+      category: "living",
+      modelUrl: "/assets/furniture/armchair-01.glb",
+      thumbnailUrl: "/assets/furniture/armchair-01.webp",
+      dimensions: { x: 0.9, y: 0.85, z: 0.9 },
+      keywords: ["armchair"],
+    });
+
+    expect(state().activeTool).toBe("item");
+    expect(state().phase).toBe("placing");
+    expect(state().placingCatalogItem?.id).toBe("armchair-01");
+  });
+
+  it("setPreviewPoint keeps the snapped point available during placement", () => {
+    state().beginPlacement({
+      id: "bench-01",
+      name: "Bench",
+      category: "living",
+      modelUrl: "/assets/furniture/bench-01.glb",
+      thumbnailUrl: "/assets/furniture/bench-01.webp",
+      dimensions: { x: 1.4, y: 0.5, z: 0.5 },
+      keywords: ["bench"],
+    });
+
+    state().setPreviewPoint({ x: 4.5, z: 2.5 });
+
+    expect(state().previewPoint).toEqual({ x: 4.5, z: 2.5 });
+    expect(state().phase).toBe("placing");
   });
 });
 

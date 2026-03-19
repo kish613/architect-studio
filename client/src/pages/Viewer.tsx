@@ -291,6 +291,23 @@ export function Viewer() {
     return () => clearInterval(interval);
   }, [isGenerating]);
 
+  // Delete selected items
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        const tag = (e.target as HTMLElement)?.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+        const ids = useViewer.getState().selectedIds;
+        if (ids.length === 0) return;
+        const { deleteNode } = useScene.getState();
+        ids.forEach(id => deleteNode(id));
+        useViewer.getState().clearSelection();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   if (isLoading) {
     return (
       <Layout>

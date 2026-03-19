@@ -14,11 +14,12 @@ export function createItemGeometry(item: ItemNode): THREE.BufferGeometry {
   return new THREE.BoxGeometry(d.x, d.y, d.z);
 }
 
-export function getItemTransform(item: ItemNode): { position: THREE.Vector3 } {
+export function getItemTransform(item: ItemNode): { position: THREE.Vector3; rotationY: number } {
   const d = item.dimensions ?? { x: 1, y: 1, z: 1 };
   const pos = item.transform?.position ?? { x: 0, y: 0, z: 0 };
   return {
     position: new THREE.Vector3(pos.x, pos.y + d.y / 2, pos.z),
+    rotationY: item.transform?.rotation?.y ?? 0,
   };
 }
 

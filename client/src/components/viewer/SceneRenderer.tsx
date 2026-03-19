@@ -11,6 +11,7 @@ import { createSlabGeometry, getSlabMaterial } from "./systems/slab-system";
 import { createRoofGeometry, getRoofMaterial } from "./systems/roof-system";
 import { createItemGeometry, getItemTransform, getItemMaterial } from "./systems/item-system";
 import { WallDragHandles } from "./WallDragHandles";
+import { ItemDragHandles } from "./ItemDragHandles";
 import type { WallNode, DoorNode, WindowNode, SlabNode, RoofNode, ItemNode, LevelNode } from "@/lib/pascal/schemas";
 
 function WallMesh({ node }: { node: WallNode }) {
@@ -168,13 +169,14 @@ function FallbackItemMesh({ node }: { node: ItemNode }) {
   useEffect(() => { return () => { geometry.dispose(); }; }, [geometry]);
   useEffect(() => { return () => { material.dispose(); }; }, [material]);
 
-  const { position } = getItemTransform(node);
+  const { position, rotationY } = getItemTransform(node);
 
   return (
     <mesh
       geometry={geometry}
       material={material}
       position={position}
+      rotation={[0, rotationY, 0]}
       castShadow
       receiveShadow
       ref={(mesh) => {
@@ -207,12 +209,13 @@ function ItemModelMesh({ node }: { node: ItemNode }) {
     });
     return clone;
   }, [scene]);
-  const { position } = getItemTransform(node);
+  const { position, rotationY } = getItemTransform(node);
   const d = node.dimensions ?? { x: 1, y: 1, z: 1 };
 
   return (
     <group
       position={position}
+      rotation={[0, rotationY, 0]}
       ref={(g) => {
         if (g) sceneRegistry.register(node.id, g);
         else sceneRegistry.unregister(node.id);
@@ -340,6 +343,12 @@ export function SceneRenderer() {
         .filter((w) => selectedIds.includes(w.id))
         .map((w) => (
           <WallDragHandles key={`handles-${w.id}`} wall={w} />
+        ))}
+      {/* Drag handles for selected items */}
+      {items
+        .filter((i) => selectedIds.includes(i.id))
+        .map((i) => (
+          <ItemDragHandles key={`handles-${i.id}`} item={i} />
         ))}
     </group>
   );

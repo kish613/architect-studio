@@ -5,7 +5,7 @@ import { useViewer } from "@/stores/use-viewer";
 import { createNode } from "@/lib/pascal/schemas";
 import { Package } from "lucide-react";
 
-const CATEGORIES = ["all", "living", "bedroom", "kitchen", "bathroom", "office"] as const;
+const CATEGORIES = ["all", "living", "bedroom", "kitchen", "bathroom", "office", "utility", "decor", "outdoor", "garage"] as const;
 
 export function FurnitureCatalogPanel() {
   const [category, setCategory] = useState<string>("all");

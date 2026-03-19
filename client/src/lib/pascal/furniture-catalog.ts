@@ -8,7 +8,7 @@ const ASSET_BASE = "/assets/furniture";
 export interface CatalogItem {
   id: string;
   name: string;
-  category: "living" | "bedroom" | "kitchen" | "bathroom" | "office" | "utility" | "decor";
+  category: "living" | "bedroom" | "kitchen" | "bathroom" | "office" | "utility" | "decor" | "outdoor" | "garage";
   modelUrl: string;
   thumbnailUrl: string;
   dimensions: { x: number; y: number; z: number };
@@ -687,6 +687,91 @@ export const FURNITURE_CATALOG: CatalogItem[] = [
     thumbnailUrl: `${ASSET_BASE}/coat-rack-01.webp`,
     dimensions: { x: 0.5, y: 1.8, z: 0.5 },
     keywords: ["coat rack", "coat stand", "hat rack", "coat hanger stand"],
+  },
+
+  // ── Outdoor ─────────────────────────────────────────────────
+  {
+    id: "patio-chair-01",
+    name: "Patio Chair",
+    category: "outdoor",
+    modelUrl: `${ASSET_BASE}/dining-chair-01.glb`,
+    thumbnailUrl: `${ASSET_BASE}/dining-chair-01.webp`,
+    dimensions: { x: 0.6, y: 0.85, z: 0.6 },
+    keywords: ["patio chair", "outdoor chair", "garden chair", "patio"],
+  },
+  {
+    id: "garden-table-01",
+    name: "Garden Table",
+    category: "outdoor",
+    modelUrl: `${ASSET_BASE}/round-table-01.glb`,
+    thumbnailUrl: `${ASSET_BASE}/round-table-01.webp`,
+    dimensions: { x: 1.2, y: 0.75, z: 1.2 },
+    keywords: ["garden table", "outdoor table", "patio table"],
+  },
+  {
+    id: "outdoor-bench-01",
+    name: "Outdoor Bench",
+    category: "outdoor",
+    modelUrl: `${ASSET_BASE}/bench-01.glb`,
+    thumbnailUrl: `${ASSET_BASE}/bench-01.webp`,
+    dimensions: { x: 1.5, y: 0.45, z: 0.5 },
+    keywords: ["outdoor bench", "garden bench", "park bench"],
+  },
+  {
+    id: "planter-01",
+    name: "Planter",
+    category: "outdoor",
+    modelUrl: `${ASSET_BASE}/plant-01.glb`,
+    thumbnailUrl: `${ASSET_BASE}/plant-01.webp`,
+    dimensions: { x: 0.5, y: 0.6, z: 0.5 },
+    keywords: ["planter", "flower pot", "garden planter", "outdoor planter"],
+  },
+  {
+    id: "sun-lounger-01",
+    name: "Sun Lounger",
+    category: "outdoor",
+    modelUrl: `${ASSET_BASE}/bench-01.glb`,
+    thumbnailUrl: `${ASSET_BASE}/bench-01.webp`,
+    dimensions: { x: 0.7, y: 0.4, z: 1.9 },
+    keywords: ["sun lounger", "lounger", "chaise longue", "deck chair", "sunbed"],
+  },
+  {
+    id: "picnic-table-01",
+    name: "Picnic Table",
+    category: "outdoor",
+    modelUrl: `${ASSET_BASE}/dining-table-01.glb`,
+    thumbnailUrl: `${ASSET_BASE}/dining-table-01.webp`,
+    dimensions: { x: 1.8, y: 0.75, z: 1.4 },
+    keywords: ["picnic table", "picnic", "outdoor dining table"],
+  },
+
+  // ── Garage ──────────────────────────────────────────────────
+  {
+    id: "workbench-01",
+    name: "Workbench",
+    category: "garage",
+    modelUrl: `${ASSET_BASE}/desk-01.glb`,
+    thumbnailUrl: `${ASSET_BASE}/desk-01.webp`,
+    dimensions: { x: 1.8, y: 0.9, z: 0.7 },
+    keywords: ["workbench", "work bench", "garage bench", "workshop bench"],
+  },
+  {
+    id: "tool-cabinet-01",
+    name: "Tool Cabinet",
+    category: "garage",
+    modelUrl: `${ASSET_BASE}/wardrobe-01.glb`,
+    thumbnailUrl: `${ASSET_BASE}/wardrobe-01.webp`,
+    dimensions: { x: 0.9, y: 1.8, z: 0.5 },
+    keywords: ["tool cabinet", "tool chest", "tool storage", "garage cabinet"],
+  },
+  {
+    id: "storage-shelf-01",
+    name: "Storage Shelf",
+    category: "garage",
+    modelUrl: `${ASSET_BASE}/bookshelf-01.glb`,
+    thumbnailUrl: `${ASSET_BASE}/bookshelf-01.webp`,
+    dimensions: { x: 1.2, y: 1.8, z: 0.5 },
+    keywords: ["storage shelf", "garage shelf", "utility shelf", "metal shelf"],
   },
 ];
 

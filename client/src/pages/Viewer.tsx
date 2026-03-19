@@ -20,6 +20,7 @@ import { PaywallModal } from "@/components/subscription";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useViewer } from "@/stores/use-viewer";
 import { PageTransition } from "@/components/ui/page-transition";
+import { FurnitureCatalogPanel } from "@/components/editor/FurnitureCatalogPanel";
 
 type ViewMode = 'original' | 'isometric' | '3d' | 'split';
 type Provider3D = 'meshy' | 'trellis';
@@ -463,6 +464,12 @@ export function Viewer() {
           {/* Exploded View */}
           <div className="text-[10px] text-muted-foreground mb-2 px-1">Exploded View</div>
           <ExplodedViewControl />
+
+          {/* Furniture Catalog */}
+          <div className="mt-4">
+            <div className="text-[10px] text-muted-foreground mb-2 px-1">Add Furniture</div>
+            <FurnitureCatalogPanel />
+          </div>
         </div>
       )}
     </div>

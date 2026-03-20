@@ -15,6 +15,25 @@ const vec3Schema = z.object({
   z: z.number(),
 });
 
+const uvScaleSchema = z.object({
+  x: z.number().positive(),
+  y: z.number().positive(),
+});
+
+const bimRefSchema = z.object({
+  source: z.enum(["ifc", "catalog"]),
+  externalId: z.string().min(1),
+  className: z.string().optional(),
+  propertySetKeys: z.array(z.string()).optional(),
+});
+
+const materialSlotSchema = z.object({
+  slotId: z.string().min(1),
+  label: z.string().min(1),
+  finishId: z.string().min(1),
+  finishVariantId: z.string().optional(),
+});
+
 const transformSchema = z.object({
   position: vec3Schema.default({ x: 0, y: 0, z: 0 }),
   rotation: vec3Schema.default({ x: 0, y: 0, z: 0 }),
@@ -36,6 +55,7 @@ export const levelNodeSchema = baseNodeSchema.extend({
   elevation: z.number().default(0),
   height: z.number().default(2.7),
   index: z.number().default(0),
+  assemblyId: z.string().optional(),
   transform: transformSchema.default({}),
 });
 
@@ -57,6 +77,7 @@ export const zoneNodeSchema = baseNodeSchema.extend({
   label: z.string().default(""),
   color: z.string().default("#4A90D9"),
   points: z.array(vec3Schema).default([]),
+  assemblyId: z.string().optional(),
   transform: transformSchema.default({}),
 });
 
@@ -67,6 +88,10 @@ export const wallNodeSchema = baseNodeSchema.extend({
   height: z.number().default(2.7),
   thickness: z.number().default(0.15),
   material: z.string().default("plaster"),
+  finishId: z.string().optional(),
+  finishVariantId: z.string().optional(),
+  assemblyId: z.string().optional(),
+  uvScale: uvScaleSchema.optional(),
   transform: transformSchema.default({}),
 });
 
@@ -75,6 +100,10 @@ export const ceilingNodeSchema = baseNodeSchema.extend({
   points: z.array(vec3Schema).default([]),
   height: z.number().default(0.2),
   material: z.string().default("plaster"),
+  finishId: z.string().optional(),
+  finishVariantId: z.string().optional(),
+  assemblyId: z.string().optional(),
+  uvScale: uvScaleSchema.optional(),
   transform: transformSchema.default({}),
 });
 
@@ -83,6 +112,10 @@ export const slabNodeSchema = baseNodeSchema.extend({
   points: z.array(vec3Schema).default([]),
   thickness: z.number().default(0.3),
   material: z.string().default("concrete"),
+  finishId: z.string().optional(),
+  finishVariantId: z.string().optional(),
+  assemblyId: z.string().optional(),
+  uvScale: uvScaleSchema.optional(),
   transform: transformSchema.default({}),
 });
 
@@ -93,6 +126,10 @@ export const roofNodeSchema = baseNodeSchema.extend({
   overhang: z.number().default(0.3),
   points: z.array(vec3Schema).default([]),
   material: z.string().default("tile"),
+  finishId: z.string().optional(),
+  finishVariantId: z.string().optional(),
+  assemblyId: z.string().optional(),
+  uvScale: uvScaleSchema.optional(),
   transform: transformSchema.default({}),
 });
 
@@ -144,6 +181,12 @@ export const itemNodeSchema = baseNodeSchema.extend({
   dimensions: vec3Schema.default({ x: 1, y: 1, z: 1 }),
   material: z.string().default("wood"),
   modelUrl: z.string().optional(),
+  finishId: z.string().optional(),
+  finishVariantId: z.string().optional(),
+  materialSlots: z.array(materialSlotSchema).default([]),
+  assetQualityTier: z.enum(["placeholder", "draft", "production"]).default("placeholder"),
+  assetStyleTier: z.enum(["realistic", "stylized"]).default("realistic"),
+  bimRef: bimRefSchema.optional(),
   transform: transformSchema.default({}),
 });
 

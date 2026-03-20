@@ -150,6 +150,24 @@ describe("wallNodeSchema", () => {
     expect(result.material).toBe("plaster");
   });
 
+  it("accepts finish metadata for realism overrides", () => {
+    const result = wallNodeSchema.parse({
+      ...makeBase(),
+      type: "wall",
+      start: { x: 0, y: 0, z: 0 },
+      end: { x: 5, y: 0, z: 0 },
+      finishId: "wall-brick",
+      finishVariantId: "heritage",
+      assemblyId: "warm-minimal",
+      uvScale: { x: 2, y: 1.5 },
+    });
+
+    expect(result.finishId).toBe("wall-brick");
+    expect(result.finishVariantId).toBe("heritage");
+    expect(result.assemblyId).toBe("warm-minimal");
+    expect(result.uvScale).toEqual({ x: 2, y: 1.5 });
+  });
+
   it("rejects when start/end missing", () => {
     expect(wallNodeSchema.safeParse({ ...makeBase(), type: "wall" }).success).toBe(false);
   });
@@ -239,6 +257,38 @@ describe("itemNodeSchema", () => {
     expect(result.itemType).toBe("furniture");
     expect(result.material).toBe("wood");
     expect(result.dimensions).toEqual({ x: 1, y: 1, z: 1 });
+    expect(result.assetQualityTier).toBe("placeholder");
+    expect(result.assetStyleTier).toBe("realistic");
+  });
+
+  it("accepts material slot and BIM metadata", () => {
+    const result = itemNodeSchema.parse({
+      ...makeBase(),
+      type: "item",
+      finishId: "item-oak",
+      finishVariantId: "natural",
+      materialSlots: [
+        {
+          slotId: "upholstery",
+          label: "Upholstery",
+          finishId: "item-boucle",
+          finishVariantId: "oat",
+        },
+      ],
+      assetQualityTier: "production",
+      assetStyleTier: "realistic",
+      bimRef: {
+        source: "catalog",
+        externalId: "sofa-01",
+        className: "IfcFurniture",
+        propertySetKeys: ["Pset_FurnitureCommon"],
+      },
+    });
+
+    expect(result.finishId).toBe("item-oak");
+    expect(result.materialSlots).toHaveLength(1);
+    expect(result.materialSlots?.[0].slotId).toBe("upholstery");
+    expect(result.bimRef?.externalId).toBe("sofa-01");
   });
 });
 

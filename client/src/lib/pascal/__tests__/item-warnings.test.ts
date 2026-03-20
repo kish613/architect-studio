@@ -19,6 +19,15 @@ describe("getItemQualityWarnings", () => {
       catalogId: "sofa-01",
       modelUrl: "/assets/furniture/sofa-01.glb",
       dimensions: { x: 2.2, y: 0.85, z: 0.9 },
+      assetQualityTier: "production",
+      materialSlots: [
+        {
+          slotId: "primary",
+          label: "Primary finish",
+          finishId: "item-oak",
+          finishVariantId: "natural",
+        },
+      ],
     });
 
     expect(getItemQualityWarnings(item)).toEqual([]);

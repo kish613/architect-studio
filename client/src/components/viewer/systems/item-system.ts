@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { ItemNode } from "@/lib/pascal/schemas";
+import { createFinishMaterial } from "@/lib/pascal/finish-resolver";
 
 const ITEM_PRESETS: Record<string, {
   color: string;
@@ -33,6 +34,10 @@ export function getItemTransform(item: ItemNode): { position: THREE.Vector3; rot
 }
 
 export function getItemMaterial(item: ItemNode, isSelected: boolean): THREE.MeshPhysicalMaterial {
+  if (item.finishId || item.materialSlots?.length) {
+    return createFinishMaterial(item, "item", { selected: isSelected });
+  }
+
   if (isSelected) return new THREE.MeshPhysicalMaterial({ color: "#4A90FF", roughness: 0.5, metalness: 0.1 });
 
   const preset = ITEM_PRESETS[item.itemType ?? "furniture"] ?? ITEM_PRESETS.furniture;

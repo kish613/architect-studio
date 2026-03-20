@@ -67,12 +67,22 @@ describe("roof-system", () => {
 
   describe("getRoofMaterial", () => {
     it("returns a MeshStandardMaterial", () => {
-      const mat = getRoofMaterial(false);
+      const roof = makeRoof("flat", [
+        { x: 0, z: 0 },
+        { x: 4, z: 0 },
+        { x: 4, z: 4 },
+      ]);
+      const mat = getRoofMaterial(roof, false);
       expect(mat).toBeInstanceOf(THREE.MeshStandardMaterial);
     });
 
     it("uses blue when selected", () => {
-      const mat = getRoofMaterial(true);
+      const roof = makeRoof("flat", [
+        { x: 0, z: 0 },
+        { x: 4, z: 0 },
+        { x: 4, z: 4 },
+      ]);
+      const mat = getRoofMaterial(roof, true);
       expect(mat.color.getHexString()).toBe(new THREE.Color("#4A90FF").getHexString());
     });
   });

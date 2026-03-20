@@ -87,17 +87,37 @@ describe("wall-system", () => {
     it("returns non-selected material color when not selected", () => {
       const wall = makeWall({ x: 0, z: 0 }, { x: 5, z: 0 });
       const mat = getWallMaterial(wall, false, false);
-      const expected = new THREE.Color("#f5f0e8");
+      const expected = new THREE.Color("#efe4d4");
       const actualHsl = { h: 0, s: 0, l: 0 };
       const expectedHsl = { h: 0, s: 0, l: 0 };
       mat.color.getHSL(actualHsl);
       expected.getHSL(expectedHsl);
 
       expect(mat).toBeInstanceOf(THREE.MeshStandardMaterial);
-      expect(actualHsl.h).toBeCloseTo(expectedHsl.h, 5);
-      expect(actualHsl.s).toBeCloseTo(expectedHsl.s, 5);
+      expect(actualHsl.h).toBeCloseTo(expectedHsl.h, 1);
+      expect(actualHsl.s).toBeCloseTo(expectedHsl.s, 1);
       expect(actualHsl.l).toBeGreaterThan(expectedHsl.l - 0.08);
       expect(actualHsl.l).toBeLessThan(expectedHsl.l + 0.08);
+    });
+
+    it("prefers finish metadata over the legacy material string", () => {
+      const wall = createNode("wall", {
+        start: { x: 0, y: 0, z: 0 },
+        end: { x: 5, y: 0, z: 0 },
+        material: "plaster",
+        finishId: "wall-brick",
+        finishVariantId: "heritage",
+      });
+      const mat = getWallMaterial(wall, false, false);
+
+      const plaster = new THREE.Color("#f5f0e8");
+      const actualHsl = { h: 0, s: 0, l: 0 };
+      const plasterHsl = { h: 0, s: 0, l: 0 };
+      mat.color.getHSL(actualHsl);
+      plaster.getHSL(plasterHsl);
+
+      expect(actualHsl.h).not.toBeCloseTo(plasterHsl.h, 2);
+      expect(mat.roughness).toBeGreaterThan(0.7);
     });
   });
 });

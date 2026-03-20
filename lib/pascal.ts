@@ -359,6 +359,8 @@ export function buildSceneFromGemini(geminiData: GeminiFloorplanData): SceneData
         height: wallData.height ?? 2.7,
         thickness: wallData.thickness ?? 0.15,
         material: "plaster",
+        finishId: "wall-plaster",
+        finishVariantId: "warm",
         transform: { ...defaultTransform },
       };
 
@@ -432,6 +434,11 @@ export function buildSceneFromGemini(geminiData: GeminiFloorplanData): SceneData
         itemType: itemData.itemType ?? "furniture",
         dimensions: itemData.dimensions ?? { x: 1, y: 1, z: 1 },
         material: "wood",
+        finishId: "item-oak",
+        finishVariantId: "natural",
+        materialSlots: [],
+        assetQualityTier: "placeholder",
+        assetStyleTier: "realistic",
         transform: {
           position: { x: itemData.position.x, y: 0, z: itemData.position.z },
           rotation: { x: 0, y: 0, z: 0 },
@@ -444,6 +451,12 @@ export function buildSceneFromGemini(geminiData: GeminiFloorplanData): SceneData
         item.catalogId = catalogMatch.id;
         item.modelUrl = catalogMatch.modelUrl;
         item.dimensions = catalogMatch.dimensions;
+        item.finishId = catalogMatch.materialSlots[0]?.finishId ?? item.finishId;
+        item.finishVariantId = catalogMatch.materialSlots[0]?.finishVariantId ?? item.finishVariantId;
+        item.materialSlots = catalogMatch.materialSlots;
+        item.assetQualityTier = catalogMatch.qualityTier;
+        item.assetStyleTier = catalogMatch.styleTier;
+        item.bimRef = catalogMatch.bimRef;
       }
 
       nodes[item.id] = item;

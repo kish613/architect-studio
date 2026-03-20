@@ -21,6 +21,7 @@ interface SceneState {
   // Node CRUD
   addNode: (node: AnyNode, parentId?: string) => void;
   updateNode: (nodeId: string, changes: Partial<AnyNode>) => void;
+  applyNodeUpdates: (changesByNodeId: Record<string, Partial<AnyNode>>) => void;
   deleteNode: (nodeId: string) => void;
   moveNode: (nodeId: string, newParentId: string) => void;
 
@@ -95,6 +96,36 @@ export const useScene = create<SceneState>()(
 
             return {
               nodes: { ...state.nodes, [nodeId]: updated },
+              dirtyNodeIds,
+              hasUnsavedChanges: true,
+            };
+          });
+        },
+
+        applyNodeUpdates: (changesByNodeId) => {
+          set((state) => {
+            const nodes = { ...state.nodes };
+            const dirtyNodeIds = new Set(state.dirtyNodeIds);
+            let changed = false;
+
+            for (const [nodeId, changes] of Object.entries(changesByNodeId)) {
+              const existing = nodes[nodeId];
+              if (!existing) {
+                continue;
+              }
+
+              nodes[nodeId] = { ...existing, ...changes, type: existing.type } as AnyNode;
+              dirtyNodeIds.add(nodeId);
+              changed = true;
+              eventBus.emit("node:updated", { nodeId, changes });
+            }
+
+            if (!changed) {
+              return state;
+            }
+
+            return {
+              nodes,
               dirtyNodeIds,
               hasUnsavedChanges: true,
             };

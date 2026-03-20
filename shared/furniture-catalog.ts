@@ -7,6 +7,11 @@ import {
   type FurnitureAssetManifestEntry,
   type FurnitureAssetOrigin,
 } from "./furniture-assets.js";
+import type {
+  AssetProvenance,
+  BimReference,
+  CatalogMaterialSlot,
+} from "./material-library.js";
 
 const ASSET_BASE = "/assets/furniture";
 
@@ -14,13 +19,61 @@ export interface CatalogItem extends FurnitureAssetManifestEntry {
   thumbnailUrl: string | null;
 }
 
-type CatalogItemSeed = Omit<CatalogItem, "thumbnailUrl" | "previewUrl" | "bounds" | "origin" | "qualityTier" | "styleTier"> &
-  Partial<Pick<CatalogItem, "thumbnailUrl" | "previewUrl" | "bounds" | "origin" | "qualityTier" | "styleTier">>;
+type CatalogItemSeed = Omit<
+  CatalogItem,
+  | "thumbnailUrl"
+  | "previewUrl"
+  | "bounds"
+  | "origin"
+  | "qualityTier"
+  | "styleTier"
+  | "materialSlots"
+  | "provenance"
+  | "bimRef"
+  | "performanceBudgetKb"
+> &
+  Partial<
+    Pick<
+      CatalogItem,
+      | "thumbnailUrl"
+      | "previewUrl"
+      | "bounds"
+      | "origin"
+      | "qualityTier"
+      | "styleTier"
+      | "materialSlots"
+      | "provenance"
+      | "bimRef"
+      | "performanceBudgetKb"
+    >
+  >;
+
+function getDefaultMaterialSlots(category: CatalogItem["category"]): CatalogMaterialSlot[] {
+  switch (category) {
+    case "bathroom":
+      return [{ slotId: "primary", label: "Primary finish", finishId: "item-stone", finishVariantId: "travertine" }];
+    case "kitchen":
+      return [{ slotId: "primary", label: "Primary finish", finishId: "item-stone", finishVariantId: "ash" }];
+    case "office":
+      return [{ slotId: "primary", label: "Primary finish", finishId: "item-oak", finishVariantId: "smoked" }];
+    default:
+      return [{ slotId: "primary", label: "Primary finish", finishId: "item-oak", finishVariantId: "natural" }];
+  }
+}
 
 function withCatalogDefaults(item: CatalogItemSeed): CatalogItem {
   const previewUrl = item.previewUrl ?? item.thumbnailUrl ?? getDefaultFurniturePreviewUrl(item.id);
   const bounds = item.bounds ?? { ...item.dimensions };
   const origin: FurnitureAssetOrigin = item.origin ?? { x: 0.5, y: 0, z: 0.5 };
+  const provenance: AssetProvenance = item.provenance ?? {
+    source: "internal",
+    license: "Unspecified",
+  };
+  const bimRef: BimReference = item.bimRef ?? {
+    source: "catalog",
+    externalId: item.id,
+  };
+  const materialSlots = item.materialSlots ?? getDefaultMaterialSlots(item.category);
 
   return {
     ...item,
@@ -30,6 +83,10 @@ function withCatalogDefaults(item: CatalogItemSeed): CatalogItem {
     origin,
     qualityTier: item.qualityTier ?? "placeholder",
     styleTier: item.styleTier ?? "realistic",
+    materialSlots,
+    provenance,
+    bimRef,
+    performanceBudgetKb: item.performanceBudgetKb ?? 500,
   };
 }
 

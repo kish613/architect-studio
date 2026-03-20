@@ -175,6 +175,23 @@ describe("useScene – updateNode", () => {
     state().updateNode("nonexistent-id", { name: "Ghost" } as any);
     expect(state().nodes).toEqual(before);
   });
+
+  it("can apply multiple node updates in a single transaction", () => {
+    const wall = makeWall();
+    const siteId = state().rootNodeIds[0];
+    state().addNode(wall, siteId);
+    state().clearDirty();
+
+    state().applyNodeUpdates({
+      [siteId]: { name: "Styled Site" } as any,
+      [wall.id]: { finishId: "wall-brick", finishVariantId: "heritage" } as any,
+    });
+
+    expect(state().nodes[siteId].name).toBe("Styled Site");
+    expect((state().nodes[wall.id] as any).finishId).toBe("wall-brick");
+    expect(state().dirtyNodeIds.has(siteId)).toBe(true);
+    expect(state().dirtyNodeIds.has(wall.id)).toBe(true);
+  });
 });
 
 // ---------------------------------------------------------------------------

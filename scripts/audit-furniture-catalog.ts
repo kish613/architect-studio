@@ -185,6 +185,38 @@ function auditTierMetadata(item: CatalogItem, issues: AuditIssue[]): void {
   }
 }
 
+function auditCatalogMetadata(item: CatalogItem, issues: AuditIssue[]): void {
+  if ((item.materialSlots?.length ?? 0) === 0) {
+    addIssue(
+      issues,
+      item.qualityTier === "production" ? "error" : "warning",
+      item.id,
+      "catalog entry is missing finish-slot metadata"
+    );
+  }
+
+  if (!item.provenance?.license || item.provenance.license === "Unspecified") {
+    addIssue(
+      issues,
+      item.qualityTier === "production" ? "error" : "warning",
+      item.id,
+      "catalog entry is missing clear provenance/license metadata"
+    );
+  }
+
+  if (!item.provenance?.source) {
+    addIssue(issues, "warning", item.id, "catalog entry is missing provenance source metadata");
+  }
+
+  if (item.performanceBudgetKb <= 0) {
+    addIssue(issues, "error", item.id, `invalid performance budget: ${item.performanceBudgetKb}`);
+  }
+
+  if (item.bimRef && !item.bimRef.externalId) {
+    addIssue(issues, "error", item.id, "BIM reference is missing externalId");
+  }
+}
+
 async function auditModelAsset(item: CatalogItem, issues: AuditIssue[]): Promise<void> {
   const modelPath = toFilesystemPath(item.modelUrl);
   if (!modelPath) {
@@ -208,6 +240,18 @@ async function auditModelAsset(item: CatalogItem, issues: AuditIssue[]): Promise
     return;
   }
 
+  if (buffer) {
+    const fileSizeKb = Math.ceil(buffer.length / 1024);
+    if (fileSizeKb > item.performanceBudgetKb) {
+      addIssue(
+        issues,
+        item.qualityTier === "production" ? "error" : "warning",
+        item.id,
+        `GLB is ${fileSizeKb}KB, above its ${item.performanceBudgetKb}KB performance budget`
+      );
+    }
+  }
+
   const expectedAssetId = basenameWithoutExtension(item.modelUrl);
   if (expectedAssetId !== item.id) {
     addIssue(
@@ -229,13 +273,18 @@ async function auditModelAsset(item: CatalogItem, issues: AuditIssue[]): Promise
   }
 
   if (parsed.extensionsUsed.includes("KHR_materials_unlit")) {
-    addIssue(issues, "warning", item.id, "GLB uses KHR_materials_unlit, so the model will render as an unlit placeholder");
+    addIssue(
+      issues,
+      item.qualityTier === "production" ? "error" : "warning",
+      item.id,
+      "GLB uses KHR_materials_unlit, so the model will render as an unlit placeholder"
+    );
   }
 
   if (!parsed.hasTextures || !parsed.hasImages) {
     addIssue(
       issues,
-      "warning",
+      item.qualityTier === "production" ? "error" : "warning",
       item.id,
       "GLB is missing texture/image references, which usually means the model is still at placeholder-material quality"
     );
@@ -289,6 +338,7 @@ async function main(): Promise<void> {
     await auditModelAsset(item, issues);
     await auditPreviewAsset(item, issues);
     auditTierMetadata(item, issues);
+    auditCatalogMetadata(item, issues);
   }
 
   const errorCount = issues.filter((issue) => issue.severity === "error").length;

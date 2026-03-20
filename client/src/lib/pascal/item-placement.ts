@@ -22,6 +22,12 @@ export function createCatalogPlacementNode(
     catalogId: catalogItem.id,
     modelUrl: catalogItem.modelUrl,
     dimensions: catalogItem.dimensions,
+    finishId: catalogItem.materialSlots[0]?.finishId,
+    finishVariantId: catalogItem.materialSlots[0]?.finishVariantId,
+    materialSlots: catalogItem.materialSlots,
+    assetQualityTier: catalogItem.qualityTier,
+    assetStyleTier: catalogItem.styleTier,
+    bimRef: catalogItem.bimRef,
     transform: {
       position: { x: point.x, y: 0, z: point.z },
       rotation: { x: 0, y: 0, z: 0 },

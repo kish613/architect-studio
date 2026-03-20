@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "check": "tsc",
     "audit:furniture-catalog": "tsx scripts/audit-furniture-catalog.ts",
+    "sync:bim-assets": "tsx scripts/sync-bim-assets.ts",
     "generate:furniture-previews": "tsx scripts/generate-furniture-previews.ts",
     "db:push": "node --import tsx ./node_modules/drizzle-kit/bin.cjs push",
     "db:generate": "node --import tsx ./node_modules/drizzle-kit/bin.cjs generate",

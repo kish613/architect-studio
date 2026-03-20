@@ -112,7 +112,7 @@ function SlabMesh({ node }: { node: SlabNode }) {
   const selectedIds = useViewer((s) => s.selectedIds);
   const isSelected = selectedIds.includes(node.id);
   const geometry = useMemo(() => createSlabGeometry(node), [node]);
-  const material = useMemo(() => getSlabMaterial(isSelected), [isSelected]);
+  const material = useMemo(() => getSlabMaterial(node, isSelected), [node, isSelected]);
 
   useEffect(() => { return () => { geometry?.dispose(); }; }, [geometry]);
   useEffect(() => { return () => { material.dispose(); }; }, [material]);
@@ -139,7 +139,7 @@ function RoofMesh({ node }: { node: RoofNode }) {
   const selectedIds = useViewer((s) => s.selectedIds);
   const isSelected = selectedIds.includes(node.id);
   const geometry = useMemo(() => createRoofGeometry(node), [node]);
-  const material = useMemo(() => getRoofMaterial(isSelected), [isSelected]);
+  const material = useMemo(() => getRoofMaterial(node, isSelected), [node, isSelected]);
 
   useEffect(() => { return () => { geometry.dispose(); }; }, [geometry]);
   useEffect(() => { return () => { material.dispose(); }; }, [material]);

@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { SlabNode } from "@/lib/pascal/schemas";
+import { createFinishMaterial } from "@/lib/pascal/finish-resolver";
 
 export function createSlabGeometry(slab: SlabNode): THREE.BufferGeometry | null {
   const pts = slab.points;
@@ -22,12 +23,9 @@ export function createSlabGeometry(slab: SlabNode): THREE.BufferGeometry | null 
   return geometry;
 }
 
-export function getSlabMaterial(isSelected: boolean): THREE.MeshPhysicalMaterial {
-  return new THREE.MeshPhysicalMaterial({
-    color: isSelected ? "#4A90FF" : "#d5cfc4",
-    roughness: 0.92,
-    metalness: 0,
-    envMapIntensity: 0.3,
+export function getSlabMaterial(slab: SlabNode, isSelected: boolean): THREE.MeshPhysicalMaterial {
+  return createFinishMaterial(slab, "slab", {
+    selected: isSelected,
     side: THREE.DoubleSide,
   });
 }

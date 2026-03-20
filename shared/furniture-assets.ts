@@ -1,3 +1,9 @@
+import type {
+  AssetProvenance,
+  BimReference,
+  CatalogMaterialSlot,
+} from "./material-library.js";
+
 export type FurnitureAssetCategory =
   | "living"
   | "bedroom"
@@ -29,6 +35,10 @@ export interface FurnitureAssetManifestEntry {
   origin: FurnitureAssetOrigin;
   qualityTier: FurnitureAssetQualityTier;
   styleTier: FurnitureAssetStyleTier;
+  materialSlots: CatalogMaterialSlot[];
+  provenance: AssetProvenance;
+  bimRef?: BimReference;
+  performanceBudgetKb: number;
   keywords: string[];
 }
 

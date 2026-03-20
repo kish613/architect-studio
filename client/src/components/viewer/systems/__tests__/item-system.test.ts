@@ -86,5 +86,18 @@ describe("item-system", () => {
       expect(mat.clearcoat).toBeGreaterThan(0);
       expect(mat.roughness).toBeLessThan(1);
     });
+
+    it("uses finish metadata over the generic item preset", () => {
+      const item = makeItem({
+        itemType: "furniture",
+        material: "wood",
+        finishId: "item-stone",
+        finishVariantId: "travertine",
+      });
+      const mat = getItemMaterial(item, false);
+
+      expect(mat.roughness).toBeGreaterThan(0.75);
+      expect(mat.color.getHexString()).not.toBe(new THREE.Color("#b78d63").getHexString());
+    });
   });
 });

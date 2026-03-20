@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { RoofNode } from "@/lib/pascal/schemas";
+import { createFinishMaterial } from "@/lib/pascal/finish-resolver";
 
 export function createRoofGeometry(roof: RoofNode): THREE.BufferGeometry {
   const pts = roof.points;
@@ -49,12 +50,9 @@ export function createRoofGeometry(roof: RoofNode): THREE.BufferGeometry {
   return geo;
 }
 
-export function getRoofMaterial(isSelected: boolean): THREE.MeshPhysicalMaterial {
-  return new THREE.MeshPhysicalMaterial({
-    color: isSelected ? "#4A90FF" : "#6B3A2A",
-    roughness: 0.9,
-    metalness: 0,
-    envMapIntensity: 0.2,
+export function getRoofMaterial(roof: RoofNode, isSelected: boolean): THREE.MeshPhysicalMaterial {
+  return createFinishMaterial(roof, "roof", {
+    selected: isSelected,
     side: THREE.DoubleSide,
   });
 }

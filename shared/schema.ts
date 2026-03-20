@@ -6,11 +6,11 @@ import {
   DEFAULT_3D_PROVIDER,
   type ModelGenerationProvider,
   type ModelPipelineStage,
-} from "./model-pipeline.ts";
+} from "./model-pipeline.js";
 
 // Re-export auth models
-export * from "./models/auth.ts";
-export * from "./model-pipeline.ts";
+export * from "./models/auth.js";
+export * from "./model-pipeline.js";
 
 // Subscription plans
 export type SubscriptionPlan = 'free' | 'starter' | 'pro' | 'studio';

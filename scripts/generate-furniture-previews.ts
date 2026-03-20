@@ -2,7 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createCanvas } from "@napi-rs/canvas";
-import { FURNITURE_CATALOG } from "../client/src/lib/pascal/furniture-catalog.ts";
+import { FURNITURE_CATALOG } from "../shared/furniture-catalog.ts";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(SCRIPT_DIR, "..");

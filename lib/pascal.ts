@@ -11,7 +11,7 @@ import {
   type WindowNode,
   type ZoneNode,
 } from "../shared/pascal-scene.js";
-import { matchCatalogItem } from "../client/src/lib/pascal/furniture-catalog.js";
+import { matchCatalogItem } from "../shared/furniture-catalog.js";
 
 const defaultTransform = {
   position: { x: 0, y: 0, z: 0 },

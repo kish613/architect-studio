@@ -2,7 +2,7 @@ import { access, readFile } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { FURNITURE_CATALOG, type CatalogItem } from "../client/src/lib/pascal/furniture-catalog.ts";
+import { FURNITURE_CATALOG, type CatalogItem } from "../shared/furniture-catalog.ts";
 
 type Severity = "error" | "warning";
 

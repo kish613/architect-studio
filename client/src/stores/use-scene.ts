@@ -5,7 +5,12 @@ import { createEmptyScene } from "@/lib/pascal/schemas";
 import { eventBus } from "@/lib/pascal/event-bus";
 import { useViewer } from "@/stores/use-viewer";
 import { deriveSceneContext } from "@/lib/pascal/scene-context";
-import { loadSceneIntoPascal } from "@/stores/pascal-bridge";
+import {
+  loadSceneIntoPascal,
+  syncNodeToPascal,
+  syncNodeUpdateToPascal,
+  deleteNodeFromPascal,
+} from "@/stores/pascal-bridge";
 
 interface SceneState {
   // Scene data (persisted)
@@ -82,6 +87,8 @@ export const useScene = create<SceneState>()(
               hasUnsavedChanges: true,
             };
           });
+          // Sync new node to Pascal's store
+          syncNodeToPascal(node, get().nodes);
         },
 
         updateNode: (nodeId, changes) => {
@@ -101,6 +108,8 @@ export const useScene = create<SceneState>()(
               hasUnsavedChanges: true,
             };
           });
+          // Sync update to Pascal's store
+          syncNodeUpdateToPascal(nodeId, changes, get().nodes);
         },
 
         applyNodeUpdates: (changesByNodeId) => {
@@ -131,9 +140,30 @@ export const useScene = create<SceneState>()(
               hasUnsavedChanges: true,
             };
           });
+          // Sync each changed node to Pascal's store
+          const currentNodes = get().nodes;
+          for (const [nodeId, changes] of Object.entries(changesByNodeId)) {
+            if (currentNodes[nodeId]) {
+              syncNodeUpdateToPascal(nodeId, changes, currentNodes);
+            }
+          }
         },
 
         deleteNode: (nodeId) => {
+          // Collect IDs to delete before mutating state, so we can sync to Pascal after
+          const preState = get();
+          const rootNode = preState.nodes[nodeId];
+          const idsToDelete: string[] = [];
+          if (rootNode) {
+            const queue = [nodeId];
+            while (queue.length > 0) {
+              const id = queue.shift()!;
+              idsToDelete.push(id);
+              const n = preState.nodes[id];
+              if (n) queue.push(...n.childIds);
+            }
+          }
+
           set((state) => {
             const node = state.nodes[nodeId];
             if (!node) return state;
@@ -176,6 +206,10 @@ export const useScene = create<SceneState>()(
               hasUnsavedChanges: true,
             };
           });
+          // Sync deletions to Pascal's store (children first, then parents)
+          for (const id of idsToDelete.reverse()) {
+            deleteNodeFromPascal(id);
+          }
         },
 
         moveNode: (nodeId, newParentId) => {

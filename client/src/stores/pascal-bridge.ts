@@ -298,6 +298,83 @@ export function convertOurNodeToPascal(
   }
 }
 
+// ---------- Per-mutation syncing ----------
+
+/**
+ * Sync a single node from our store into Pascal's store.
+ * If Pascal already has this node (by mapped ID), update it; otherwise create it.
+ */
+export function syncNodeToPascal(
+  node: OurAnyNode,
+  allNodes: Record<string, OurAnyNode>,
+): void {
+  const store = pascalUseScene.getState();
+  const existingPascalId = ourToPascalId.get(node.id);
+
+  // Ensure parent ID mapping exists before converting this node
+  if (node.parentId && allNodes[node.parentId]) {
+    const parent = allNodes[node.parentId];
+    toPascalId(parent.id, parent.type);
+  }
+
+  const pascalNode = convertOurNodeToPascal(node, allNodes);
+
+  if (existingPascalId && store.nodes[existingPascalId as AnyNodeId]) {
+    // Node already exists in Pascal — update it
+    store.updateNode(existingPascalId as AnyNodeId, pascalNode);
+  } else {
+    // New node — create it in Pascal
+    const parentPascalId = node.parentId
+      ? ourToPascalId.get(node.parentId)
+      : undefined;
+    store.createNode(
+      pascalNode,
+      parentPascalId as AnyNodeId | undefined,
+    );
+  }
+}
+
+/**
+ * Delete a node (by our ID) from Pascal's store.
+ */
+export function deleteNodeFromPascal(nodeId: string): void {
+  const pascalId = ourToPascalId.get(nodeId);
+  if (!pascalId) return;
+
+  const store = pascalUseScene.getState();
+  if (store.nodes[pascalId as AnyNodeId]) {
+    store.deleteNode(pascalId as AnyNodeId);
+  }
+
+  // Clean up ID mappings
+  ourToPascalId.delete(nodeId);
+  pascalToOurId.delete(pascalId);
+}
+
+/**
+ * Sync a partial update for a node into Pascal's store.
+ * Re-converts the full node (with changes applied) so that field
+ * format differences (e.g. {x,y,z} vs [x,z] tuples) are handled.
+ */
+export function syncNodeUpdateToPascal(
+  nodeId: string,
+  changes: Partial<OurAnyNode>,
+  allNodes: Record<string, OurAnyNode>,
+): void {
+  const pascalId = ourToPascalId.get(nodeId);
+  if (!pascalId) return;
+
+  const store = pascalUseScene.getState();
+  if (!store.nodes[pascalId as AnyNodeId]) return;
+
+  // The node in allNodes should already have the changes merged by the caller.
+  const updatedNode = allNodes[nodeId];
+  if (!updatedNode) return;
+
+  const pascalNode = convertOurNodeToPascal(updatedNode, allNodes);
+  store.updateNode(pascalId as AnyNodeId, pascalNode);
+}
+
 // ---------- Scene loading ----------
 
 /**

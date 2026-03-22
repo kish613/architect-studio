@@ -5,6 +5,7 @@ import { createEmptyScene } from "@/lib/pascal/schemas";
 import { eventBus } from "@/lib/pascal/event-bus";
 import { useViewer } from "@/stores/use-viewer";
 import { deriveSceneContext } from "@/lib/pascal/scene-context";
+import { loadSceneIntoPascal } from "@/stores/pascal-bridge";
 
 interface SceneState {
   // Scene data (persisted)
@@ -222,6 +223,8 @@ export const useScene = create<SceneState>()(
           });
           useViewer.getState().setActiveBuilding(context.activeBuildingId);
           useViewer.getState().setActiveLevel(context.activeLevelId);
+          // Sync to Pascal's store so the Pascal <Viewer> renders our scene
+          loadSceneIntoPascal(data);
           eventBus.emit("scene:loaded", { nodeCount: Object.keys(data.nodes).length });
         },
 
@@ -235,6 +238,8 @@ export const useScene = create<SceneState>()(
           });
           useViewer.getState().setActiveBuilding(null);
           useViewer.getState().setActiveLevel(null);
+          // Sync empty scene to Pascal's store
+          loadSceneIntoPascal(emptyScene);
         },
 
         getSceneData: () => ({

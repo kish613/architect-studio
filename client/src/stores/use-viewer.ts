@@ -1,4 +1,6 @@
 import { create } from "zustand";
+import { useViewer as pascalUseViewer } from "@pascal-app/viewer";
+import { getPascalIdFromOur } from "@/stores/pascal-bridge";
 
 export type CameraMode = "perspective" | "orthographic";
 export type LevelMode = "stacked" | "exploded" | "solo";
@@ -49,7 +51,54 @@ interface ViewerState {
   setVisibility: (key: VisibilityKey, visible: boolean) => void;
 }
 
-export const useViewer = create<ViewerState>((set) => ({
+/**
+ * Sync selection state to Pascal's viewer store.
+ * Pascal uses a nested `selection` object and Pascal-prefixed IDs.
+ */
+function syncSelectionToPascal(
+  selectedIds: string[],
+  buildingId: string | null,
+  levelId: string | null,
+  zoneId: string | null,
+): void {
+  const pascalSelectedIds = selectedIds
+    .map((id) => getPascalIdFromOur(id))
+    .filter((id): id is string => id != null);
+  const pascalBuildingId = buildingId ? getPascalIdFromOur(buildingId) ?? null : null;
+  const pascalLevelId = levelId ? getPascalIdFromOur(levelId) ?? null : null;
+  const pascalZoneId = zoneId ? getPascalIdFromOur(zoneId) ?? null : null;
+
+  pascalUseViewer.getState().setSelection({
+    buildingId: pascalBuildingId as any,
+    levelId: pascalLevelId as any,
+    zoneId: pascalZoneId as any,
+    selectedIds: pascalSelectedIds as any,
+  });
+}
+
+function syncCameraModeToPascal(mode: CameraMode): void {
+  pascalUseViewer.getState().setCameraMode(mode);
+}
+
+function syncLevelModeToPascal(mode: LevelMode): void {
+  // Pascal supports "manual" mode too; map our modes directly
+  pascalUseViewer.getState().setLevelMode(mode);
+}
+
+function syncVisibilityToPascal(key: VisibilityKey, value: boolean): void {
+  const pv = pascalUseViewer.getState();
+  if (key === "showScans") pv.setShowScans(value);
+  else if (key === "showGuides") pv.setShowGuides(value);
+  else if (key === "showGrid") pv.setShowGrid(value);
+  // Pascal doesn't have showWalls/showSlabs/etc toggles -- those are handled by our SceneRenderer
+}
+
+function syncHoveredToPascal(id: string | null): void {
+  const pascalId = id ? getPascalIdFromOur(id) ?? null : null;
+  pascalUseViewer.getState().setHoveredId(pascalId as any);
+}
+
+export const useViewer = create<ViewerState>((set, get) => ({
   selectedIds: [],
   hoveredId: null,
   activeBuildingId: null,
@@ -71,25 +120,75 @@ export const useViewer = create<ViewerState>((set) => ({
   showGrid: true,
   showDimensions: true,
 
-  select: (nodeIds) => set({ selectedIds: nodeIds }),
+  select: (nodeIds) => {
+    set({ selectedIds: nodeIds });
+    const s = get();
+    syncSelectionToPascal(nodeIds, s.activeBuildingId, s.activeLevelId, s.activeZoneId);
+  },
   addToSelection: (nodeId) =>
-    set((s) => ({
-      selectedIds: s.selectedIds.includes(nodeId) ? s.selectedIds : [...s.selectedIds, nodeId],
-    })),
+    set((s) => {
+      const selectedIds = s.selectedIds.includes(nodeId) ? s.selectedIds : [...s.selectedIds, nodeId];
+      syncSelectionToPascal(selectedIds, s.activeBuildingId, s.activeLevelId, s.activeZoneId);
+      return { selectedIds };
+    }),
   removeFromSelection: (nodeId) =>
-    set((s) => ({ selectedIds: s.selectedIds.filter((id) => id !== nodeId) })),
-  clearSelection: () => set({ selectedIds: [] }),
-  setHovered: (nodeId) => set({ hoveredId: nodeId }),
-  setActiveBuilding: (id) => set({ activeBuildingId: id }),
-  setActiveLevel: (id) => set({ activeLevelId: id }),
-  setActiveZone: (id) => set({ activeZoneId: id }),
-  setCameraMode: (mode) => set({ cameraMode: mode }),
+    set((s) => {
+      const selectedIds = s.selectedIds.filter((id) => id !== nodeId);
+      syncSelectionToPascal(selectedIds, s.activeBuildingId, s.activeLevelId, s.activeZoneId);
+      return { selectedIds };
+    }),
+  clearSelection: () => {
+    set({ selectedIds: [] });
+    const s = get();
+    syncSelectionToPascal([], s.activeBuildingId, s.activeLevelId, s.activeZoneId);
+  },
+  setHovered: (nodeId) => {
+    set({ hoveredId: nodeId });
+    syncHoveredToPascal(nodeId);
+  },
+  setActiveBuilding: (id) => {
+    set({ activeBuildingId: id });
+    const s = get();
+    syncSelectionToPascal(s.selectedIds, id, s.activeLevelId, s.activeZoneId);
+  },
+  setActiveLevel: (id) => {
+    set({ activeLevelId: id });
+    const s = get();
+    syncSelectionToPascal(s.selectedIds, s.activeBuildingId, id, s.activeZoneId);
+  },
+  setActiveZone: (id) => {
+    set({ activeZoneId: id });
+    const s = get();
+    syncSelectionToPascal(s.selectedIds, s.activeBuildingId, s.activeLevelId, id);
+  },
+  setCameraMode: (mode) => {
+    set({ cameraMode: mode });
+    syncCameraModeToPascal(mode);
+  },
   toggleCameraMode: () =>
-    set((s) => ({ cameraMode: s.cameraMode === "perspective" ? "orthographic" : "perspective" })),
+    set((s) => {
+      const mode = s.cameraMode === "perspective" ? "orthographic" : "perspective";
+      syncCameraModeToPascal(mode);
+      return { cameraMode: mode };
+    }),
   setCameraPreset: (preset) => set({ cameraPreset: preset }),
-  setLevelMode: (mode) => set({ levelMode: mode }),
-  setSoloLevel: (levelId) => set({ soloLevelId: levelId, levelMode: "solo" }),
+  setLevelMode: (mode) => {
+    set({ levelMode: mode });
+    syncLevelModeToPascal(mode);
+  },
+  setSoloLevel: (levelId) => {
+    set({ soloLevelId: levelId, levelMode: "solo" });
+    syncLevelModeToPascal("solo");
+  },
   setExplodedSpacing: (spacing) => set({ explodedSpacing: spacing }),
-  toggleVisibility: (key) => set((s) => ({ [key]: !s[key] })),
-  setVisibility: (key, visible) => set({ [key]: visible }),
+  toggleVisibility: (key) =>
+    set((s) => {
+      const newVal = !s[key];
+      syncVisibilityToPascal(key, newVal);
+      return { [key]: newVal } as Record<string, boolean>;
+    }),
+  setVisibility: (key, visible) => {
+    set({ [key]: visible } as Record<string, boolean>);
+    syncVisibilityToPascal(key, visible);
+  },
 }));

@@ -14,6 +14,7 @@ import { Planning } from "@/pages/Planning";
 import { PlanningUpload } from "@/pages/PlanningUpload";
 import { PlanningViewer } from "@/pages/PlanningViewer";
 import { FloorplanEditorPage } from "@/pages/FloorplanEditorPage";
+import { DevTest } from "@/pages/DevTest";
 
 function Router() {
   return (
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/planning/new" component={PlanningUpload} />
       <Route path="/planning/:id/editor" component={FloorplanEditorPage} />
       <Route path="/planning/:id" component={PlanningViewer} />
+      <Route path="/dev-test" component={DevTest} />
       <Route component={NotFound} />
     </Switch>
   );

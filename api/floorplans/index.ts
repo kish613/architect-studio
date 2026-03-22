@@ -29,7 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .returning();
       return res.status(201).json(floorplan);
     } catch (error) {
-      if (error instanceof z.ZodError) return res.status(400).json({ error: error.errors });
+      if (error instanceof z.ZodError) return res.status(400).json({ error: error.issues });
       console.error("Error creating floorplan:", error);
       return res.status(500).json({ error: "Failed to create floorplan" });
     }

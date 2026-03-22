@@ -148,7 +148,7 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
     res.status(201).json(project);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.errors });
+      return res.status(400).json({ error: error.issues });
     }
     console.error("Error creating project:", error);
     res.status(500).json({ error: "Failed to create project" });

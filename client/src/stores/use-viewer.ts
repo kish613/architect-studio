@@ -1,7 +1,4 @@
 import { create } from "zustand";
-import { useViewer as pascalUseViewer } from "@pascal-app/viewer";
-import type { AnyNodeId } from "@pascal-app/core";
-import { getPascalIdFromOur, getOurIdFromPascal, pascalUseScene } from "@/stores/pascal-bridge";
 
 export type CameraMode = "perspective" | "orthographic";
 export type LevelMode = "stacked" | "exploded" | "solo";
@@ -58,83 +55,20 @@ interface ViewerState {
   setVisibility: (key: VisibilityKey, visible: boolean) => void;
 }
 
-// Guard flag to prevent infinite selection sync loops between our store and Pascal's.
-let _syncingFromUs = false;
-
-/**
- * Sync selection state to Pascal's viewer store.
- * Pascal uses a nested `selection` object and Pascal-prefixed IDs.
- */
+// Sync stubs — the local SceneRenderer reads directly from useScene/useViewer,
+// so there's no external store to push state into.
 function syncSelectionToPascal(
-  selectedIds: string[],
-  buildingId: string | null,
-  levelId: string | null,
-  zoneId: string | null,
-): void {
-  const pascalSelectedIds = selectedIds
-    .map((id) => getPascalIdFromOur(id))
-    .filter((id): id is string => id != null);
-  const pascalBuildingId = buildingId ? getPascalIdFromOur(buildingId) ?? null : null;
-  const pascalLevelId = levelId ? getPascalIdFromOur(levelId) ?? null : null;
-  const pascalZoneId = zoneId ? getPascalIdFromOur(zoneId) ?? null : null;
+  _selectedIds: string[],
+  _buildingId: string | null,
+  _levelId: string | null,
+  _zoneId: string | null,
+): void {}
 
-  _syncingFromUs = true;
-  pascalUseViewer.getState().setSelection({
-    buildingId: pascalBuildingId as any,
-    levelId: pascalLevelId as any,
-    zoneId: pascalZoneId as any,
-    selectedIds: pascalSelectedIds as any,
-  });
-  _syncingFromUs = false;
-}
-
-function syncCameraModeToPascal(mode: CameraMode): void {
-  pascalUseViewer.getState().setCameraMode(mode);
-}
-
-function syncLevelModeToPascal(mode: LevelMode): void {
-  // Pascal supports "manual" mode too; map our modes directly
-  pascalUseViewer.getState().setLevelMode(mode);
-}
-
-function syncVisibilityToPascal(key: VisibilityKey, value: boolean): void {
-  const pv = pascalUseViewer.getState();
-  if (key === "showScans") { pv.setShowScans(value); return; }
-  if (key === "showGuides") { pv.setShowGuides(value); return; }
-  if (key === "showGrid") { pv.setShowGrid(value); return; }
-
-  // For node-type visibility, batch-update `visible` on matching nodes in Pascal's scene store
-  const typeMap: Record<string, string> = {
-    showWalls: "wall",
-    showSlabs: "slab",
-    showCeilings: "ceiling",
-    showRoofs: "roof",
-    showItems: "item",
-    showZones: "zone",
-  };
-  const nodeType = typeMap[key];
-  if (!nodeType) return;
-
-  const sceneStore = pascalUseScene.getState();
-  const updates: Array<{ id: AnyNodeId; data: { visible: boolean } }> = [];
-  for (const node of Object.values(sceneStore.nodes)) {
-    if (node.type === nodeType) {
-      updates.push({ id: node.id as AnyNodeId, data: { visible: value } });
-    }
-  }
-  if (updates.length > 0) {
-    sceneStore.updateNodes(updates);
-  }
-}
-
-function syncWallModeToPascal(mode: WallMode): void {
-  pascalUseViewer.getState().setWallMode(mode);
-}
-
-function syncHoveredToPascal(id: string | null): void {
-  const pascalId = id ? getPascalIdFromOur(id) ?? null : null;
-  pascalUseViewer.getState().setHoveredId(pascalId as any);
-}
+function syncCameraModeToPascal(_mode: CameraMode): void {}
+function syncLevelModeToPascal(_mode: LevelMode): void {}
+function syncVisibilityToPascal(_key: VisibilityKey, _value: boolean): void {}
+function syncWallModeToPascal(_mode: WallMode): void {}
+function syncHoveredToPascal(_id: string | null): void {}
 
 export const useViewer = create<ViewerState>((set, get) => ({
   selectedIds: [],
@@ -229,12 +163,10 @@ export const useViewer = create<ViewerState>((set, get) => ({
   },
   setTheme: (theme) => {
     set({ theme });
-    pascalUseViewer.getState().setTheme(theme);
   },
   toggleTheme: () => {
     const next = get().theme === "light" ? "dark" : "light";
     set({ theme: next });
-    pascalUseViewer.getState().setTheme(next);
   },
   toggleVisibility: (key) =>
     set((s) => {
@@ -249,30 +181,9 @@ export const useViewer = create<ViewerState>((set, get) => ({
 }));
 
 /**
- * Subscribe to Pascal's viewer store selection changes and reflect them
- * back into our store. Returns an unsubscribe function.
- *
- * This creates the "Pascal -> Our Store" half of bidirectional selection sync.
- * The "Our Store -> Pascal" half is handled by `syncSelectionToPascal` above,
- * guarded by the `_syncingFromUs` flag to prevent infinite loops.
+ * No-op — there is no external Pascal viewer store to subscribe to.
+ * Selection is managed entirely within our local useViewer store.
  */
 export function initPascalSelectionSync(): () => void {
-  const unsub = pascalUseViewer.subscribe((state, prevState) => {
-    if (_syncingFromUs) return;
-
-    const pascalIds = state.selection.selectedIds;
-    const prevPascalIds = prevState.selection.selectedIds;
-
-    // Only act when the selected IDs actually changed
-    if (pascalIds === prevPascalIds) return;
-
-    // Translate Pascal IDs back to our UUIDs
-    const ourIds = pascalIds
-      .map((pid: string) => getOurIdFromPascal(pid))
-      .filter((id): id is string => id != null);
-
-    // Update our store without triggering a sync back to Pascal
-    useViewer.setState({ selectedIds: ourIds });
-  });
-  return unsub;
+  return () => {};
 }

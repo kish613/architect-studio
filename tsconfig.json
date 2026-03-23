@@ -17,6 +17,8 @@
     "baseUrl": ".",
     "types": ["node", "vite/client"],
     "paths": {
+      "@pascal-app/core": ["./client/src/lib/pascal-app/core"],
+      "@pascal-app/viewer": ["./client/src/lib/pascal-app/viewer"],
       "@/*": ["./client/src/*"],
       "@shared/*": ["./shared/*"]
     }

@@ -16,6 +16,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      "@pascal-app/core": path.resolve(import.meta.dirname, "client", "src", "lib", "pascal-app", "core"),
+      "@pascal-app/viewer": path.resolve(import.meta.dirname, "client", "src", "lib", "pascal-app", "viewer"),
       "@": path.resolve(import.meta.dirname, "client", "src"),
       "@shared": path.resolve(import.meta.dirname, "shared"),
       "@assets": path.resolve(import.meta.dirname, "attached_assets"),

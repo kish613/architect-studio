@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Viewer } from "@pascal-app/viewer";
 import { DrawingInteraction } from "./DrawingInteraction";
 import { EditOverlay } from "./EditOverlay";
+import { ViewerToolbar } from "./ViewerToolbar";
 import { initPascalSelectionSync } from "@/stores/use-viewer";
 
 interface FloorplanCanvasProps {
@@ -21,6 +22,7 @@ export function FloorplanCanvas({ className = "", showToolbar = false }: Floorpl
         <DrawingInteraction />
         <EditOverlay />
       </Viewer>
+      {showToolbar && <ViewerToolbar />}
     </div>
   );
 }

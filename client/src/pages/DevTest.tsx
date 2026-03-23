@@ -57,7 +57,7 @@ export function DevTest() {
 
   return (
     <div className="w-screen h-screen bg-[#0A0A0A]">
-      <FloorplanCanvas className="w-full h-full" />
+      <FloorplanCanvas className="w-full h-full" showToolbar />
     </div>
   );
 }

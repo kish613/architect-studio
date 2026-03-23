@@ -842,7 +842,7 @@ export function Viewer() {
                   className="w-full h-full z-10 relative"
                 >
                   {hasPascal ? (
-                    <FloorplanCanvas />
+                    <FloorplanCanvas showToolbar />
                   ) : has3D ? (
                     <Model3DViewer modelUrl={model.model3dUrl!} isometricUrl={model.isometricUrl || undefined} />
                   ) : (

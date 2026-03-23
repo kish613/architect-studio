@@ -6,6 +6,7 @@ import {
   type ItemNode,
   type LevelNode,
   type SceneData,
+  type SlabNode,
   type SiteNode,
   type WallNode,
   type WindowNode,
@@ -301,7 +302,8 @@ Rules:
 
   const body = await response.json();
   const jsonText = extractGeminiFloorplanText(body);
-  return parseGeminiFloorplanJson(jsonText);
+  const raw = parseGeminiFloorplanJson(jsonText);
+  return postProcessGeminiData(raw);
 }
 
 function createBaseNode(type: string, name?: string) {
@@ -314,6 +316,163 @@ function createBaseNode(type: string, name?: string) {
     visible: true,
     locked: false,
   };
+}
+
+// ---------- Geometry post-processing ----------
+
+/** Snap tolerance in meters — endpoints closer than this get merged. */
+const SNAP_TOLERANCE = 0.05;
+
+/** Minimum wall length in meters — shorter walls are removed. */
+const MIN_WALL_LENGTH = 0.05;
+
+function wallLength(w: GeminiWall): number {
+  const dx = w.endX - w.startX;
+  const dz = w.endZ - w.startZ;
+  return Math.sqrt(dx * dx + dz * dz);
+}
+
+/**
+ * Post-process Gemini floorplan data to improve geometry quality:
+ * 1. Remove degenerate (zero/near-zero length) walls
+ * 2. Snap wall endpoints that are close together
+ * 3. Center all coordinates around the origin so the viewer camera can see the scene
+ */
+export function postProcessGeminiData(data: GeminiFloorplanData): GeminiFloorplanData {
+  const levels = data.levels.map((level) => {
+    // Step 1: Remove degenerate walls
+    let walls = level.walls.filter((w) => wallLength(w) >= MIN_WALL_LENGTH);
+
+    // Build a map from old wall index → new wall index for door/window references
+    const oldToNew = new Map<number, number>();
+    let newIdx = 0;
+    for (let oldIdx = 0; oldIdx < level.walls.length; oldIdx++) {
+      if (wallLength(level.walls[oldIdx]) >= MIN_WALL_LENGTH) {
+        oldToNew.set(oldIdx, newIdx++);
+      }
+    }
+
+    // Step 2: Snap endpoints — collect all unique endpoints and cluster nearby ones
+    const endpoints: Array<{ x: number; z: number }> = [];
+    for (const w of walls) {
+      endpoints.push({ x: w.startX, z: w.startZ });
+      endpoints.push({ x: w.endX, z: w.endZ });
+    }
+
+    // Greedy clustering: for each point, find or create a cluster centroid
+    const centroids: Array<{ x: number; z: number }> = [];
+    const pointToCluster: number[] = [];
+    for (const pt of endpoints) {
+      let bestIdx = -1;
+      let bestDist = SNAP_TOLERANCE;
+      for (let i = 0; i < centroids.length; i++) {
+        const dx = pt.x - centroids[i].x;
+        const dz = pt.z - centroids[i].z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestIdx = i;
+        }
+      }
+      if (bestIdx >= 0) {
+        pointToCluster.push(bestIdx);
+      } else {
+        pointToCluster.push(centroids.length);
+        centroids.push({ x: pt.x, z: pt.z });
+      }
+    }
+
+    // Apply snapped coordinates back to walls
+    walls = walls.map((w, i) => ({
+      ...w,
+      startX: centroids[pointToCluster[i * 2]].x,
+      startZ: centroids[pointToCluster[i * 2]].z,
+      endX: centroids[pointToCluster[i * 2 + 1]].x,
+      endZ: centroids[pointToCluster[i * 2 + 1]].z,
+    }));
+
+    // Re-filter: snapping may have created zero-length walls
+    const snappedWalls: GeminiWall[] = [];
+    const snappedOldToNew = new Map<number, number>();
+    let finalIdx = 0;
+    for (let i = 0; i < walls.length; i++) {
+      if (wallLength(walls[i]) >= MIN_WALL_LENGTH) {
+        snappedWalls.push(walls[i]);
+        // Find the original old index for this wall
+        for (const [oldKey, newVal] of oldToNew.entries()) {
+          if (newVal === i) {
+            snappedOldToNew.set(oldKey, finalIdx);
+            break;
+          }
+        }
+        finalIdx++;
+      }
+    }
+
+    // Remap door/window wallIndex references
+    const doors = level.doors
+      .map((d) => {
+        const mapped = snappedOldToNew.get(d.wallIndex);
+        return mapped !== undefined ? { ...d, wallIndex: mapped } : null;
+      })
+      .filter((d): d is GeminiDoor => d !== null);
+
+    const windows = level.windows
+      .map((w) => {
+        const mapped = snappedOldToNew.get(w.wallIndex);
+        return mapped !== undefined ? { ...w, wallIndex: mapped } : null;
+      })
+      .filter((w): w is GeminiWindow => w !== null);
+
+    return { ...level, walls: snappedWalls, doors, windows };
+  });
+
+  // Step 3: Center all geometry around the origin
+  const allXs: number[] = [];
+  const allZs: number[] = [];
+  for (const level of levels) {
+    for (const w of level.walls) {
+      allXs.push(w.startX, w.endX);
+      allZs.push(w.startZ, w.endZ);
+    }
+  }
+
+  if (allXs.length === 0) {
+    return { levels };
+  }
+
+  const minX = Math.min(...allXs);
+  const maxX = Math.max(...allXs);
+  const minZ = Math.min(...allZs);
+  const maxZ = Math.max(...allZs);
+  const offsetX = (minX + maxX) / 2;
+  const offsetZ = (minZ + maxZ) / 2;
+
+  // Only shift if the center is notably off-origin (> 1m)
+  if (Math.abs(offsetX) < 1 && Math.abs(offsetZ) < 1) {
+    return { levels };
+  }
+
+  const centeredLevels = levels.map((level) => ({
+    ...level,
+    walls: level.walls.map((w) => ({
+      ...w,
+      startX: w.startX - offsetX,
+      startZ: w.startZ - offsetZ,
+      endX: w.endX - offsetX,
+      endZ: w.endZ - offsetZ,
+    })),
+    rooms: level.rooms.map((r) => ({
+      ...r,
+      points: r.points.map((p) => ({ x: p.x - offsetX, z: p.z - offsetZ })),
+    })),
+    items: level.items.map((item) => ({
+      ...item,
+      position: { x: item.position.x - offsetX, z: item.position.z - offsetZ },
+    })),
+  }));
+
+  return { levels: centeredLevels };
 }
 
 export function buildSceneFromGemini(geminiData: GeminiFloorplanData): SceneData {
@@ -425,6 +584,24 @@ export function buildSceneFromGemini(geminiData: GeminiFloorplanData): SceneData
 
       nodes[zone.id] = zone;
       level.childIds.push(zone.id);
+
+      // Generate a floor slab from the room polygon (needs ≥ 3 points)
+      if (roomData.points.length >= 3) {
+        const slab: SlabNode = {
+          ...createBaseNode("slab", `${roomData.name} Floor`),
+          type: "slab",
+          parentId: level.id,
+          points: roomData.points.map((point) => ({ x: point.x, y: 0, z: point.z })),
+          thickness: 0.2,
+          material: "concrete",
+          finishId: "slab-concrete",
+          finishVariantId: "smooth",
+          transform: { ...defaultTransform },
+        };
+
+        nodes[slab.id] = slab;
+        level.childIds.push(slab.id);
+      }
     }
 
     for (const itemData of levelData.items) {
@@ -506,6 +683,7 @@ export function summarizeSceneData(sceneData: SceneData) {
     doorCount: nodes.filter((node) => node.type === "door").length,
     windowCount: nodes.filter((node) => node.type === "window").length,
     zoneCount: nodes.filter((node) => node.type === "zone").length,
+    slabCount: nodes.filter((node) => node.type === "slab").length,
     itemCount: nodes.filter((node) => node.type === "item").length,
   };
 }

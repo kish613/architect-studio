@@ -18,8 +18,8 @@ import type { AnyNode as OurAnyNode, SceneData as OurSceneData } from "@/lib/pas
 import type { AnyNode as PascalAnyNode, AnyNodeId } from "@pascal-app/core";
 import { useScene as pascalUseScene } from "@pascal-app/core";
 
-// Re-export Pascal's useScene directly so consumers can use it
-export { useScene as pascalUseScene } from "@pascal-app/core";
+// Re-export Pascal's useScene and sceneRegistry directly so consumers can use it
+export { useScene as pascalUseScene, sceneRegistry as pascalSceneRegistry } from "@pascal-app/core";
 
 // ---------- ID mapping ----------
 
@@ -79,11 +79,33 @@ export function convertOurNodeToPascal(
 
   switch (node.type) {
     case "site": {
-      // Pascal sites use flat node map + parentId relationships; children should be empty
+      // Site must have children (building IDs) for the SiteRenderer to traverse the tree,
+      // and a polygon so the renderer doesn't early-return.
+      const mappedChildIds = node.childIds
+        .map((cid) => allNodes[cid])
+        .filter(Boolean)
+        .map((child) => toPascalId(child.id, child.type));
+      // Compute a bounding polygon from all walls in the scene for the site ground plane
+      const allWalls = Object.values(allNodes).filter((n) => n.type === "wall");
+      const xs = allWalls.flatMap((w) => [w.start?.x ?? 0, w.end?.x ?? 0]);
+      const zs = allWalls.flatMap((w) => [w.start?.z ?? 0, w.end?.z ?? 0]);
+      const padding = 2;
+      const minX = xs.length > 0 ? Math.min(...xs) - padding : -10;
+      const maxX = xs.length > 0 ? Math.max(...xs) + padding : 10;
+      const minZ = zs.length > 0 ? Math.min(...zs) - padding : -10;
+      const maxZ = zs.length > 0 ? Math.max(...zs) + padding : 10;
       return {
         ...base,
         type: "site",
-        children: [],
+        children: mappedChildIds,
+        polygon: {
+          points: [
+            [minX, minZ],
+            [maxX, minZ],
+            [maxX, maxZ],
+            [minX, maxZ],
+          ] as [number, number][],
+        },
       } as unknown as PascalAnyNode;
     }
 
@@ -139,6 +161,8 @@ export function convertOurNodeToPascal(
         end: [node.end.x, node.end.z] as [number, number],
         thickness: node.thickness,
         height: node.height,
+        frontSide: "interior" as const,
+        backSide: "exterior" as const,
       } as unknown as PascalAnyNode;
     }
 

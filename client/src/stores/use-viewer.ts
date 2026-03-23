@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { useViewer as pascalUseViewer } from "@pascal-app/viewer";
-import { getPascalIdFromOur } from "@/stores/pascal-bridge";
+import { getPascalIdFromOur, getOurIdFromPascal } from "@/stores/pascal-bridge";
 
 export type CameraMode = "perspective" | "orthographic";
 export type LevelMode = "stacked" | "exploded" | "solo";
@@ -51,6 +51,9 @@ interface ViewerState {
   setVisibility: (key: VisibilityKey, visible: boolean) => void;
 }
 
+// Guard flag to prevent infinite selection sync loops between our store and Pascal's.
+let _syncingFromUs = false;
+
 /**
  * Sync selection state to Pascal's viewer store.
  * Pascal uses a nested `selection` object and Pascal-prefixed IDs.
@@ -68,12 +71,14 @@ function syncSelectionToPascal(
   const pascalLevelId = levelId ? getPascalIdFromOur(levelId) ?? null : null;
   const pascalZoneId = zoneId ? getPascalIdFromOur(zoneId) ?? null : null;
 
+  _syncingFromUs = true;
   pascalUseViewer.getState().setSelection({
     buildingId: pascalBuildingId as any,
     levelId: pascalLevelId as any,
     zoneId: pascalZoneId as any,
     selectedIds: pascalSelectedIds as any,
   });
+  _syncingFromUs = false;
 }
 
 function syncCameraModeToPascal(mode: CameraMode): void {
@@ -192,3 +197,32 @@ export const useViewer = create<ViewerState>((set, get) => ({
     syncVisibilityToPascal(key, visible);
   },
 }));
+
+/**
+ * Subscribe to Pascal's viewer store selection changes and reflect them
+ * back into our store. Returns an unsubscribe function.
+ *
+ * This creates the "Pascal -> Our Store" half of bidirectional selection sync.
+ * The "Our Store -> Pascal" half is handled by `syncSelectionToPascal` above,
+ * guarded by the `_syncingFromUs` flag to prevent infinite loops.
+ */
+export function initPascalSelectionSync(): () => void {
+  const unsub = pascalUseViewer.subscribe((state, prevState) => {
+    if (_syncingFromUs) return;
+
+    const pascalIds = state.selection.selectedIds;
+    const prevPascalIds = prevState.selection.selectedIds;
+
+    // Only act when the selected IDs actually changed
+    if (pascalIds === prevPascalIds) return;
+
+    // Translate Pascal IDs back to our UUIDs
+    const ourIds = pascalIds
+      .map((pid: string) => getOurIdFromPascal(pid))
+      .filter((id): id is string => id != null);
+
+    // Update our store without triggering a sync back to Pascal
+    useViewer.setState({ selectedIds: ourIds });
+  });
+  return unsub;
+}

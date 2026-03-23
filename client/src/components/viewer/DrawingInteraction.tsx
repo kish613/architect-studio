@@ -1,12 +1,23 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useMemo } from "react";
 import { useThree } from "@react-three/fiber";
-import { Line } from "@react-three/drei";
 import * as THREE from "three";
 import { useEditor } from "@/stores/use-editor";
 import { useScene } from "@/stores/use-scene";
 import { useViewer } from "@/stores/use-viewer";
 import { createNode } from "@/lib/pascal/schemas";
 import { createCatalogPlacementNode } from "@/lib/pascal/item-placement";
+
+function NativeLine({ points, color }: { points: [number, number, number][]; color: string }) {
+  const lineObj = useMemo(() => {
+    const geometry = new THREE.BufferGeometry().setFromPoints(
+      points.map(p => new THREE.Vector3(...p))
+    );
+    const material = new THREE.LineBasicMaterial({ color });
+    return new THREE.Line(geometry, material);
+  }, [JSON.stringify(points), color]);
+
+  return <primitive object={lineObj} />;
+}
 
 const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const raycaster = new THREE.Raycaster();
@@ -141,7 +152,7 @@ export function DrawingInteraction() {
     <>
       {/* Drawing path line */}
       {linePoints.length >= 2 && (
-        <Line points={linePoints} color="#4A90FF" lineWidth={2} />
+        <NativeLine points={linePoints} color="#4A90FF" />
       )}
 
       {/* Point markers */}

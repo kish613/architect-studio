@@ -10,6 +10,10 @@ export default defineConfig({
     tailwindcss(),
     metaImagesPlugin(),
   ],
+  define: {
+    "process.env": {},
+    "process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV ?? "development"),
+  },
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
@@ -33,6 +37,12 @@ export default defineConfig({
     fs: {
       strict: true,
       deny: ["**/.*"],
+      allow: [
+        path.resolve(import.meta.dirname, "client"),
+        path.resolve(import.meta.dirname, "node_modules"),
+        path.resolve(import.meta.dirname, "shared"),
+        path.resolve(import.meta.dirname, "attached_assets"),
+      ],
     },
     proxy: {
       "/api": {

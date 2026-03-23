@@ -1,7 +1,11 @@
 import { create } from "zustand";
+import { useViewer as pascalUseViewer } from "@pascal-app/viewer";
+import type { AnyNodeId } from "@pascal-app/core";
+import { getPascalIdFromOur, getOurIdFromPascal, pascalUseScene } from "@/stores/pascal-bridge";
 
 export type CameraMode = "perspective" | "orthographic";
 export type LevelMode = "stacked" | "exploded" | "solo";
+export type WallMode = "up" | "cutaway" | "down";
 type VisibilityKey =
   | "showWalls" | "showCeilings" | "showSlabs" | "showRoofs"
   | "showItems" | "showZones" | "showGuides" | "showScans"
@@ -30,6 +34,7 @@ interface ViewerState {
   showScans: boolean;
   showGrid: boolean;
   showDimensions: boolean;
+  wallMode: WallMode;
 
   select: (nodeIds: string[]) => void;
   addToSelection: (nodeId: string) => void;
@@ -45,11 +50,90 @@ interface ViewerState {
   setLevelMode: (mode: LevelMode) => void;
   setSoloLevel: (levelId: string | null) => void;
   setExplodedSpacing: (spacing: number) => void;
+  setWallMode: (mode: WallMode) => void;
   toggleVisibility: (key: VisibilityKey) => void;
   setVisibility: (key: VisibilityKey, visible: boolean) => void;
 }
 
-export const useViewer = create<ViewerState>((set) => ({
+// Guard flag to prevent infinite selection sync loops between our store and Pascal's.
+let _syncingFromUs = false;
+
+/**
+ * Sync selection state to Pascal's viewer store.
+ * Pascal uses a nested `selection` object and Pascal-prefixed IDs.
+ */
+function syncSelectionToPascal(
+  selectedIds: string[],
+  buildingId: string | null,
+  levelId: string | null,
+  zoneId: string | null,
+): void {
+  const pascalSelectedIds = selectedIds
+    .map((id) => getPascalIdFromOur(id))
+    .filter((id): id is string => id != null);
+  const pascalBuildingId = buildingId ? getPascalIdFromOur(buildingId) ?? null : null;
+  const pascalLevelId = levelId ? getPascalIdFromOur(levelId) ?? null : null;
+  const pascalZoneId = zoneId ? getPascalIdFromOur(zoneId) ?? null : null;
+
+  _syncingFromUs = true;
+  pascalUseViewer.getState().setSelection({
+    buildingId: pascalBuildingId as any,
+    levelId: pascalLevelId as any,
+    zoneId: pascalZoneId as any,
+    selectedIds: pascalSelectedIds as any,
+  });
+  _syncingFromUs = false;
+}
+
+function syncCameraModeToPascal(mode: CameraMode): void {
+  pascalUseViewer.getState().setCameraMode(mode);
+}
+
+function syncLevelModeToPascal(mode: LevelMode): void {
+  // Pascal supports "manual" mode too; map our modes directly
+  pascalUseViewer.getState().setLevelMode(mode);
+}
+
+function syncVisibilityToPascal(key: VisibilityKey, value: boolean): void {
+  const pv = pascalUseViewer.getState();
+  if (key === "showScans") { pv.setShowScans(value); return; }
+  if (key === "showGuides") { pv.setShowGuides(value); return; }
+  if (key === "showGrid") { pv.setShowGrid(value); return; }
+
+  // For node-type visibility, batch-update `visible` on matching nodes in Pascal's scene store
+  const typeMap: Record<string, string> = {
+    showWalls: "wall",
+    showSlabs: "slab",
+    showCeilings: "ceiling",
+    showRoofs: "roof",
+    showItems: "item",
+    showZones: "zone",
+  };
+  const nodeType = typeMap[key];
+  if (!nodeType) return;
+
+  const sceneStore = pascalUseScene.getState();
+  const updates: Array<{ id: AnyNodeId; data: { visible: boolean } }> = [];
+  for (const node of Object.values(sceneStore.nodes)) {
+    if (node.type === nodeType) {
+      updates.push({ id: node.id as AnyNodeId, data: { visible: value } });
+    }
+  }
+  if (updates.length > 0) {
+    sceneStore.updateNodes(updates);
+  }
+}
+
+function syncWallModeToPascal(mode: WallMode): void {
+  pascalUseViewer.getState().setWallMode(mode);
+}
+
+function syncHoveredToPascal(id: string | null): void {
+  const pascalId = id ? getPascalIdFromOur(id) ?? null : null;
+  pascalUseViewer.getState().setHoveredId(pascalId as any);
+}
+
+export const useViewer = create<ViewerState>((set, get) => ({
   selectedIds: [],
   hoveredId: null,
   activeBuildingId: null,
@@ -70,26 +154,112 @@ export const useViewer = create<ViewerState>((set) => ({
   showScans: true,
   showGrid: true,
   showDimensions: true,
+  wallMode: "up",
 
-  select: (nodeIds) => set({ selectedIds: nodeIds }),
+  select: (nodeIds) => {
+    set({ selectedIds: nodeIds });
+    const s = get();
+    syncSelectionToPascal(nodeIds, s.activeBuildingId, s.activeLevelId, s.activeZoneId);
+  },
   addToSelection: (nodeId) =>
-    set((s) => ({
-      selectedIds: s.selectedIds.includes(nodeId) ? s.selectedIds : [...s.selectedIds, nodeId],
-    })),
+    set((s) => {
+      const selectedIds = s.selectedIds.includes(nodeId) ? s.selectedIds : [...s.selectedIds, nodeId];
+      syncSelectionToPascal(selectedIds, s.activeBuildingId, s.activeLevelId, s.activeZoneId);
+      return { selectedIds };
+    }),
   removeFromSelection: (nodeId) =>
-    set((s) => ({ selectedIds: s.selectedIds.filter((id) => id !== nodeId) })),
-  clearSelection: () => set({ selectedIds: [] }),
-  setHovered: (nodeId) => set({ hoveredId: nodeId }),
-  setActiveBuilding: (id) => set({ activeBuildingId: id }),
-  setActiveLevel: (id) => set({ activeLevelId: id }),
-  setActiveZone: (id) => set({ activeZoneId: id }),
-  setCameraMode: (mode) => set({ cameraMode: mode }),
+    set((s) => {
+      const selectedIds = s.selectedIds.filter((id) => id !== nodeId);
+      syncSelectionToPascal(selectedIds, s.activeBuildingId, s.activeLevelId, s.activeZoneId);
+      return { selectedIds };
+    }),
+  clearSelection: () => {
+    set({ selectedIds: [] });
+    const s = get();
+    syncSelectionToPascal([], s.activeBuildingId, s.activeLevelId, s.activeZoneId);
+  },
+  setHovered: (nodeId) => {
+    set({ hoveredId: nodeId });
+    syncHoveredToPascal(nodeId);
+  },
+  setActiveBuilding: (id) => {
+    set({ activeBuildingId: id });
+    const s = get();
+    syncSelectionToPascal(s.selectedIds, id, s.activeLevelId, s.activeZoneId);
+  },
+  setActiveLevel: (id) => {
+    set({ activeLevelId: id });
+    const s = get();
+    syncSelectionToPascal(s.selectedIds, s.activeBuildingId, id, s.activeZoneId);
+  },
+  setActiveZone: (id) => {
+    set({ activeZoneId: id });
+    const s = get();
+    syncSelectionToPascal(s.selectedIds, s.activeBuildingId, s.activeLevelId, id);
+  },
+  setCameraMode: (mode) => {
+    set({ cameraMode: mode });
+    syncCameraModeToPascal(mode);
+  },
   toggleCameraMode: () =>
-    set((s) => ({ cameraMode: s.cameraMode === "perspective" ? "orthographic" : "perspective" })),
+    set((s) => {
+      const mode = s.cameraMode === "perspective" ? "orthographic" : "perspective";
+      syncCameraModeToPascal(mode);
+      return { cameraMode: mode };
+    }),
   setCameraPreset: (preset) => set({ cameraPreset: preset }),
-  setLevelMode: (mode) => set({ levelMode: mode }),
-  setSoloLevel: (levelId) => set({ soloLevelId: levelId, levelMode: "solo" }),
+  setLevelMode: (mode) => {
+    set({ levelMode: mode });
+    syncLevelModeToPascal(mode);
+  },
+  setSoloLevel: (levelId) => {
+    set({ soloLevelId: levelId, levelMode: "solo" });
+    syncLevelModeToPascal("solo");
+    const s = get();
+    syncSelectionToPascal(s.selectedIds, s.activeBuildingId, levelId, s.activeZoneId);
+  },
   setExplodedSpacing: (spacing) => set({ explodedSpacing: spacing }),
-  toggleVisibility: (key) => set((s) => ({ [key]: !s[key] })),
-  setVisibility: (key, visible) => set({ [key]: visible }),
+  setWallMode: (mode) => {
+    set({ wallMode: mode });
+    syncWallModeToPascal(mode);
+  },
+  toggleVisibility: (key) =>
+    set((s) => {
+      const newVal = !s[key];
+      syncVisibilityToPascal(key, newVal);
+      return { [key]: newVal } as Record<string, boolean>;
+    }),
+  setVisibility: (key, visible) => {
+    set({ [key]: visible } as Record<string, boolean>);
+    syncVisibilityToPascal(key, visible);
+  },
 }));
+
+/**
+ * Subscribe to Pascal's viewer store selection changes and reflect them
+ * back into our store. Returns an unsubscribe function.
+ *
+ * This creates the "Pascal -> Our Store" half of bidirectional selection sync.
+ * The "Our Store -> Pascal" half is handled by `syncSelectionToPascal` above,
+ * guarded by the `_syncingFromUs` flag to prevent infinite loops.
+ */
+export function initPascalSelectionSync(): () => void {
+  const unsub = pascalUseViewer.subscribe((state, prevState) => {
+    if (_syncingFromUs) return;
+
+    const pascalIds = state.selection.selectedIds;
+    const prevPascalIds = prevState.selection.selectedIds;
+
+    // Only act when the selected IDs actually changed
+    if (pascalIds === prevPascalIds) return;
+
+    // Translate Pascal IDs back to our UUIDs
+    const ourIds = pascalIds
+      .map((pid: string) => getOurIdFromPascal(pid))
+      .filter((id): id is string => id != null);
+
+    // Update our store without triggering a sync back to Pascal
+    useViewer.setState({ selectedIds: ourIds });
+  });
+  return unsub;
+}

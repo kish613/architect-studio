@@ -40,14 +40,16 @@ const transformSchema = z.object({
   scale: vec3Schema.default({ x: 1, y: 1, z: 1 }),
 });
 
+const defaultTransform = { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 } } as const;
+
 export const siteNodeSchema = baseNodeSchema.extend({
   type: z.literal("site"),
-  transform: transformSchema.default({}),
+  transform: transformSchema.default(defaultTransform),
 });
 
 export const buildingNodeSchema = baseNodeSchema.extend({
   type: z.literal("building"),
-  transform: transformSchema.default({}),
+  transform: transformSchema.default(defaultTransform),
 });
 
 export const levelNodeSchema = baseNodeSchema.extend({
@@ -56,7 +58,7 @@ export const levelNodeSchema = baseNodeSchema.extend({
   height: z.number().default(2.7),
   index: z.number().default(0),
   assemblyId: z.string().optional(),
-  transform: transformSchema.default({}),
+  transform: transformSchema.default(defaultTransform),
 });
 
 export const zoneNodeSchema = baseNodeSchema.extend({
@@ -78,7 +80,7 @@ export const zoneNodeSchema = baseNodeSchema.extend({
   color: z.string().default("#4A90D9"),
   points: z.array(vec3Schema).default([]),
   assemblyId: z.string().optional(),
-  transform: transformSchema.default({}),
+  transform: transformSchema.default(defaultTransform),
 });
 
 export const wallNodeSchema = baseNodeSchema.extend({
@@ -92,7 +94,7 @@ export const wallNodeSchema = baseNodeSchema.extend({
   finishVariantId: z.string().optional(),
   assemblyId: z.string().optional(),
   uvScale: uvScaleSchema.optional(),
-  transform: transformSchema.default({}),
+  transform: transformSchema.default(defaultTransform),
 });
 
 export const ceilingNodeSchema = baseNodeSchema.extend({
@@ -104,7 +106,7 @@ export const ceilingNodeSchema = baseNodeSchema.extend({
   finishVariantId: z.string().optional(),
   assemblyId: z.string().optional(),
   uvScale: uvScaleSchema.optional(),
-  transform: transformSchema.default({}),
+  transform: transformSchema.default(defaultTransform),
 });
 
 export const slabNodeSchema = baseNodeSchema.extend({
@@ -116,7 +118,7 @@ export const slabNodeSchema = baseNodeSchema.extend({
   finishVariantId: z.string().optional(),
   assemblyId: z.string().optional(),
   uvScale: uvScaleSchema.optional(),
-  transform: transformSchema.default({}),
+  transform: transformSchema.default(defaultTransform),
 });
 
 export const roofNodeSchema = baseNodeSchema.extend({
@@ -130,7 +132,7 @@ export const roofNodeSchema = baseNodeSchema.extend({
   finishVariantId: z.string().optional(),
   assemblyId: z.string().optional(),
   uvScale: uvScaleSchema.optional(),
-  transform: transformSchema.default({}),
+  transform: transformSchema.default(defaultTransform),
 });
 
 export const doorNodeSchema = baseNodeSchema.extend({
@@ -141,7 +143,7 @@ export const doorNodeSchema = baseNodeSchema.extend({
   height: z.number().default(2.1),
   doorType: z.enum(["single", "double", "sliding", "french", "bifold"]).default("single"),
   swing: z.enum(["left", "right"]).default("left"),
-  transform: transformSchema.default({}),
+  transform: transformSchema.default(defaultTransform),
 });
 
 export const windowNodeSchema = baseNodeSchema.extend({
@@ -154,7 +156,7 @@ export const windowNodeSchema = baseNodeSchema.extend({
   windowType: z
     .enum(["fixed", "casement", "sash", "sliding", "bay", "skylight"])
     .default("casement"),
-  transform: transformSchema.default({}),
+  transform: transformSchema.default(defaultTransform),
 });
 
 export const guideNodeSchema = baseNodeSchema.extend({
@@ -162,7 +164,7 @@ export const guideNodeSchema = baseNodeSchema.extend({
   guideType: z.enum(["line", "grid", "reference"]).default("line"),
   start: vec3Schema.default({ x: 0, y: 0, z: 0 }),
   end: vec3Schema.default({ x: 1, y: 0, z: 0 }),
-  transform: transformSchema.default({}),
+  transform: transformSchema.default(defaultTransform),
 });
 
 export const scanNodeSchema = baseNodeSchema.extend({
@@ -171,7 +173,7 @@ export const scanNodeSchema = baseNodeSchema.extend({
   width: z.number().default(10),
   height: z.number().default(10),
   opacity: z.number().min(0).max(1).default(0.5),
-  transform: transformSchema.default({}),
+  transform: transformSchema.default(defaultTransform),
 });
 
 export const itemNodeSchema = baseNodeSchema.extend({
@@ -187,7 +189,7 @@ export const itemNodeSchema = baseNodeSchema.extend({
   assetQualityTier: z.enum(["placeholder", "draft", "production"]).default("placeholder"),
   assetStyleTier: z.enum(["realistic", "stylized"]).default("realistic"),
   bimRef: bimRefSchema.optional(),
-  transform: transformSchema.default({}),
+  transform: transformSchema.default(defaultTransform),
 });
 
 export const anyNodeSchema = z.discriminatedUnion("type", [

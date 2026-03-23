@@ -79,22 +79,21 @@ export function convertOurNodeToPascal(
 
   switch (node.type) {
     case "site": {
-      const children = node.childIds
-        .map((cid) => allNodes[cid])
-        .filter(Boolean)
-        .map((child) => toPascalId(child.id, child.type));
+      // Pascal sites use flat node map + parentId relationships; children should be empty
       return {
         ...base,
         type: "site",
-        children,
+        children: [],
       } as unknown as PascalAnyNode;
     }
 
     case "building": {
-      const children = node.childIds
+      const mappedChildIds = node.childIds
         .map((cid) => allNodes[cid])
         .filter(Boolean)
         .map((child) => toPascalId(child.id, child.type));
+      // Buildings only accept level children
+      const children = mappedChildIds.filter((id) => id.startsWith("level_"));
       const pos = node.transform?.position ?? { x: 0, y: 0, z: 0 };
       const rot = node.transform?.rotation ?? { x: 0, y: 0, z: 0 };
       return {
@@ -107,10 +106,16 @@ export function convertOurNodeToPascal(
     }
 
     case "level": {
-      const children = node.childIds
+      const mappedChildIds = node.childIds
         .map((cid) => allNodes[cid])
         .filter(Boolean)
         .map((child) => toPascalId(child.id, child.type));
+      // Levels only accept these child types; doors/windows attach via wallId,
+      // items reference levels via parentId but don't appear in children
+      const validLevelChildPrefixes = ["wall_", "zone_", "slab_", "ceiling_", "roof_", "scan_", "guide_"];
+      const children = mappedChildIds.filter((id) =>
+        validLevelChildPrefixes.some((prefix) => id.startsWith(prefix)),
+      );
       return {
         ...base,
         type: "level",
@@ -120,10 +125,12 @@ export function convertOurNodeToPascal(
     }
 
     case "wall": {
-      const children = node.childIds
+      const mappedChildIds = node.childIds
         .map((cid) => allNodes[cid])
         .filter(Boolean)
         .map((child) => toPascalId(child.id, child.type));
+      // Walls only accept item children; doors/windows attach via their own wallId field
+      const children = mappedChildIds.filter((id) => id.startsWith("item_"));
       return {
         ...base,
         type: "wall",
@@ -403,6 +410,19 @@ export function loadSceneIntoPascal(sceneData: OurSceneData): void {
   for (const rootId of sceneData.rootNodeIds) {
     const mapped = ourToPascalId.get(rootId);
     if (mapped) pascalRootIds.push(mapped);
+  }
+
+  // Debug: log scene summary before loading
+  if (import.meta.env.DEV) {
+    const typeCounts: Record<string, number> = {};
+    for (const node of Object.values(pascalNodes)) {
+      typeCounts[node.type] = (typeCounts[node.type] || 0) + 1;
+    }
+    console.log("[pascal-bridge] Loading scene into Pascal:", {
+      totalNodes: Object.keys(pascalNodes).length,
+      rootNodeIds: pascalRootIds,
+      typeCounts,
+    });
   }
 
   // Load into Pascal's store

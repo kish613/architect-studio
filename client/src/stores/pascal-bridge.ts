@@ -464,6 +464,8 @@ export function loadSceneIntoPascal(sceneData: OurSceneData): void {
     pascalUseViewer.getState().setSelection({
       buildingId: buildingNode.id as any,
       levelId: levelNode?.id as any ?? null,
+      zoneId: null,
+      selectedIds: [],
     });
   }
 }

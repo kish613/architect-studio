@@ -309,10 +309,6 @@ export function Viewer() {
     }
 
     loadScene(pascalLoadResult.sceneData);
-    const buildingNode = Object.values(pascalLoadResult.sceneData.nodes).find((node) => node.type === "building");
-    const levelNode = Object.values(pascalLoadResult.sceneData.nodes).find((node) => node.type === "level");
-    if (buildingNode) useViewer.getState().setActiveBuilding(buildingNode.id);
-    if (levelNode) useViewer.getState().setActiveLevel(levelNode.id);
   }, [hasPascal, loadScene, pascalLoadResult, resetPascalWorkspace]);
 
   useEffect(() => () => resetPascalWorkspace(), [resetPascalWorkspace]);

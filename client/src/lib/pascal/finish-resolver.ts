@@ -323,21 +323,27 @@ export function createFinishMaterial(
   options: CreateFinishMaterialOptions = {}
 ): THREE.MeshPhysicalMaterial {
   if (options.selected) {
-    return new THREE.MeshPhysicalMaterial({
+    const materialOptions: THREE.MeshPhysicalMaterialParameters = {
       color: "#4A90FF",
       roughness: 0.5,
       metalness: 0.1,
-      side: options.side,
-    });
+    };
+    if (options.side !== undefined) {
+      materialOptions.side = options.side;
+    }
+    return new THREE.MeshPhysicalMaterial(materialOptions);
   }
 
   if (options.hovered) {
-    return new THREE.MeshPhysicalMaterial({
+    const materialOptions: THREE.MeshPhysicalMaterialParameters = {
       color: "#78B4FF",
       roughness: 0.5,
       metalness: 0.1,
-      side: options.side,
-    });
+    };
+    if (options.side !== undefined) {
+      materialOptions.side = options.side;
+    }
+    return new THREE.MeshPhysicalMaterial(materialOptions);
   }
 
   const resolved = resolveNodeFinish(node, surface, options.slotId);
@@ -362,8 +368,11 @@ export function createFinishMaterial(
     roughness: resolved.variant.roughness,
     metalness: resolved.variant.metalness,
     envMapIntensity: resolved.variant.envMapIntensity ?? 0.4,
-    side: options.side,
   };
+
+  if (options.side !== undefined) {
+    materialOptions.side = options.side;
+  }
 
   if (map) {
     materialOptions.map = map;

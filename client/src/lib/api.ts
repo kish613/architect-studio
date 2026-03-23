@@ -6,13 +6,13 @@ export interface ProjectWithModels extends Project {
 
 export async function fetchProjects(): Promise<ProjectWithModels[]> {
   const response = await fetch('/api/projects');
-  if (!response.ok) throw new Error('Failed to fetch projects');
+  if (!response.ok) await handleApiError(response, 'Failed to fetch projects');
   return response.json();
 }
 
 export async function fetchProject(id: number): Promise<ProjectWithModels> {
   const response = await fetch(`/api/projects/${id}`);
-  if (!response.ok) throw new Error('Failed to fetch project');
+  if (!response.ok) await handleApiError(response, 'Failed to fetch project');
   return response.json();
 }
 
@@ -609,13 +609,17 @@ export interface FloorplanDesign {
 async function handleApiError(response: Response, fallback: string): Promise<never> {
   const text = await response.text();
   let errorMessage = fallback;
+  let diagnostics: unknown;
   try {
     const error = JSON.parse(text);
     errorMessage = error.error || error.message || fallback;
+    diagnostics = error.diagnostics;
   } catch {
     if (text && text.length < 200) errorMessage = text;
   }
-  throw new Error(errorMessage);
+  const error = new Error(errorMessage) as Error & { diagnostics?: unknown };
+  error.diagnostics = diagnostics;
+  throw error;
 }
 
 export async function createFloorplan(data: {
@@ -634,7 +638,7 @@ export async function createFloorplan(data: {
 
 export async function fetchFloorplan(id: number): Promise<FloorplanDesign> {
   const response = await fetch(`/api/floorplans/${id}`);
-  if (!response.ok) throw new Error("Failed to fetch floorplan");
+  if (!response.ok) await handleApiError(response, "Failed to fetch floorplan");
   return response.json();
 }
 
@@ -658,7 +662,7 @@ export async function deleteFloorplan(id: number): Promise<void> {
 
 export async function fetchProjectFloorplans(projectId: number): Promise<FloorplanDesign[]> {
   const response = await fetch(`/api/floorplans/project/${projectId}`);
-  if (!response.ok) throw new Error("Failed to fetch project floorplans");
+  if (!response.ok) await handleApiError(response, "Failed to fetch project floorplans");
   return response.json();
 }
 

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export const CURRENT_SCENE_SCHEMA_VERSION = 1;
+
 const baseNodeSchema = z.object({
   id: z.string().uuid(),
   parentId: z.string().uuid().nullable(),
@@ -226,6 +228,7 @@ export type NodeType = AnyNode["type"];
 export type Vec3 = z.infer<typeof vec3Schema>;
 
 export const sceneDataSchema = z.object({
+  schemaVersion: z.number().int().positive().default(CURRENT_SCENE_SCHEMA_VERSION),
   nodes: z.record(z.string(), anyNodeSchema),
   rootNodeIds: z.array(z.string()),
 });
@@ -281,6 +284,7 @@ export function createEmptyScene(): SceneData {
   building.childIds = [level.id];
 
   return {
+    schemaVersion: CURRENT_SCENE_SCHEMA_VERSION,
     nodes: {
       [site.id]: site,
       [building.id]: building,

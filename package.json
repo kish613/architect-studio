@@ -5,6 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite dev --port 5000",
+    "dev:full": "vercel dev --listen 5000",
     "build": "vite build",
     "preview": "vite preview",
     "check": "tsc",
@@ -14,6 +15,9 @@
     "db:push": "node --import tsx ./node_modules/drizzle-kit/bin.cjs push",
     "db:generate": "node --import tsx ./node_modules/drizzle-kit/bin.cjs generate",
     "db:migrate": "node --import tsx ./node_modules/drizzle-kit/bin.cjs migrate",
+    "audit:pascal-scenes": "tsx scripts/pascal-scenes.ts audit",
+    "repair:pascal-scenes": "tsx scripts/pascal-scenes.ts repair",
+    "repair:pascal-scenes:apply": "tsx scripts/pascal-scenes.ts repair --apply",
     "video:studio": "remotion studio remotion/index.ts",
     "video:render": "remotion render remotion/index.ts PromoVideo out/promo.mp4 --gl=angle",
     "test": "vitest run",

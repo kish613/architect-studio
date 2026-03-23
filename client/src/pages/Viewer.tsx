@@ -1,10 +1,10 @@
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "wouter";
 import { Layout } from "@/components/layout/Layout";
 import { WorkspaceLayout } from "@/components/layout/WorkspaceLayout";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Share2, Loader2, Sparkles, Box, RotateCw, Check, Paintbrush, Undo2, ZoomIn, ZoomOut, Expand, Layers, Eye, ArrowUp, ArrowRight, Grid3x3, SlidersHorizontal } from "lucide-react";
 import { TransformWrapper, TransformComponent, useControls } from "react-zoom-pan-pinch";
-import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchProject, generateIsometric, generate3D, generate3DTrellis, generatePascalModel, checkModelStatus, retextureModel, checkRetextureStatus, revertTexture } from "@/lib/api";
@@ -21,6 +21,10 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { useViewer } from "@/stores/use-viewer";
 import { PageTransition } from "@/components/ui/page-transition";
 import { FurnitureCatalogPanel } from "@/components/editor/FurnitureCatalogPanel";
+import { useEditor } from "@/stores/use-editor";
+import { loadPascalScene } from "@shared/pascal-load";
+import { PascalRecoveryPanel } from "@/components/pascal/PascalRecoveryPanel";
+import { PascalRenderBoundary } from "@/components/pascal/PascalRenderBoundary";
 
 type ViewMode = 'original' | 'isometric' | '3d' | 'split';
 type Provider3D = 'meshy' | 'trellis';
@@ -113,11 +117,18 @@ export function Viewer() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { subscription, invalidate: invalidateSubscription } = useSubscription();
-  const { loadScene } = useScene();
+  const { loadScene, resetSceneState } = useScene();
+  const resetViewState = useViewer((state) => state.resetViewState);
+  const resetEditorState = useEditor((state) => state.resetEditorState);
   const is3DGenerationStatus = (status?: string | null) =>
     status === "generating_3d" ||
     status === "generating_3d_meshy" ||
     status === "generating_3d_trellis";
+  const resetPascalWorkspace = useCallback(() => {
+    resetSceneState();
+    resetViewState();
+    resetEditorState();
+  }, [resetEditorState, resetSceneState, resetViewState]);
 
   const { data: project, isLoading, refetch } = useQuery({
     queryKey: ['project', id],
@@ -281,24 +292,30 @@ export function Viewer() {
   const hasIsometric = !!model?.isometricUrl;
   const has3D = !!model?.model3dUrl;
   const hasPascal = !!model?.pascalData;
+  const pascalLoadResult = useMemo(() => {
+    if (!model?.pascalData) {
+      return null;
+    }
+
+    return loadPascalScene(model.pascalData);
+  }, [model?.pascalData]);
+  const hasRenderablePascal = pascalLoadResult !== null && pascalLoadResult.status !== "error";
 
   // Load Pascal geometry into scene store when available
   useEffect(() => {
-    if (model?.pascalData) {
-      try {
-        const parsed = JSON.parse(model.pascalData);
-        loadScene(parsed);
-
-        // Set active building/level in our store for sidebar controls
-        const buildingNode = Object.values(parsed.nodes as Record<string, any>).find((n: any) => n.type === "building");
-        const levelNode = Object.values(parsed.nodes as Record<string, any>).find((n: any) => n.type === "level");
-        if (buildingNode) useViewer.getState().setActiveBuilding((buildingNode as any).id);
-        if (levelNode) useViewer.getState().setActiveLevel((levelNode as any).id);
-      } catch (e) {
-        console.error('Failed to parse pascal data:', e);
-      }
+    if (!hasPascal || !pascalLoadResult || pascalLoadResult.status === "error") {
+      resetPascalWorkspace();
+      return;
     }
-  }, [model?.pascalData, loadScene]);
+
+    loadScene(pascalLoadResult.sceneData);
+    const buildingNode = Object.values(pascalLoadResult.sceneData.nodes).find((node) => node.type === "building");
+    const levelNode = Object.values(pascalLoadResult.sceneData.nodes).find((node) => node.type === "level");
+    if (buildingNode) useViewer.getState().setActiveBuilding(buildingNode.id);
+    if (levelNode) useViewer.getState().setActiveLevel(levelNode.id);
+  }, [hasPascal, loadScene, pascalLoadResult, resetPascalWorkspace]);
+
+  useEffect(() => () => resetPascalWorkspace(), [resetPascalWorkspace]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -468,7 +485,7 @@ export function Viewer() {
       </div>
 
       {/* Scene Controls - visibility, camera presets, exploded view */}
-      {viewMode === '3d' && hasPascal && (
+      {viewMode === '3d' && hasRenderablePascal && (
         <div className="pt-6 border-t border-white/[0.04]">
           <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-1">Scene Controls</div>
 
@@ -535,6 +552,16 @@ export function Viewer() {
               </div>
 
               <div className="space-y-5">
+                {pascalLoadResult?.status === "error" && (
+                  <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-amber-300">
+                      Saved Pascal scene is invalid
+                    </p>
+                    <p className="mt-2 text-xs leading-5 text-amber-100/80">
+                      Re-run the geometric pipeline to replace the broken Pascal payload and restore the interactive canvas.
+                    </p>
+                  </div>
+                )}
                 <Button
                   onClick={() => generatePascalMutation.mutate(model.id)}
                   disabled={generatePascalMutation.isPending}
@@ -841,8 +868,58 @@ export function Viewer() {
                   exit={{ opacity: 0 }}
                   className="w-full h-full z-10 relative"
                 >
-                  {hasPascal ? (
-                    <FloorplanCanvas showToolbar />
+                  {hasRenderablePascal ? (
+                    <PascalRenderBoundary
+                      title="Pascal viewer crashed while rendering"
+                      description="The Pascal canvas hit a runtime error for this project, so the route fell back to a contained recovery state instead of a blank white screen."
+                      onReset={resetPascalWorkspace}
+                      resetKeys={[model.id, model.sceneVersion, model.createdAt]}
+                      primaryAction={{
+                        label: "Open Original View",
+                        onClick: () => setViewMode('original'),
+                        variant: "outline",
+                      }}
+                    >
+                      <FloorplanCanvas showToolbar />
+                    </PascalRenderBoundary>
+                  ) : pascalLoadResult?.status === "error" ? (
+                    has3D ? (
+                      <div className="relative h-full w-full">
+                        <Model3DViewer modelUrl={model.model3dUrl!} isometricUrl={model.isometricUrl || undefined} />
+                        <div className="absolute left-4 top-4 z-20 max-w-xl">
+                          <PascalRecoveryPanel
+                            compact
+                            title="Pascal scene could not be rendered safely"
+                            description="The saved Pascal scene is malformed, so the route fell back to the regular 3D model viewer instead of mounting the Pascal canvas."
+                            diagnostics={pascalLoadResult.diagnostics}
+                            primaryAction={{
+                              label: "Run Geometric Pipeline",
+                              onClick: () => generatePascalMutation.mutate(model.id),
+                            }}
+                            secondaryAction={{
+                              label: "Open Original View",
+                              onClick: () => setViewMode('original'),
+                              variant: "outline",
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <PascalRecoveryPanel
+                        title="Pascal scene could not be rendered safely"
+                        description="The saved Pascal scene is malformed, so the Pascal canvas stayed unmounted instead of taking down the route."
+                        diagnostics={pascalLoadResult.diagnostics}
+                        primaryAction={{
+                          label: "Run Geometric Pipeline",
+                          onClick: () => generatePascalMutation.mutate(model.id),
+                        }}
+                        secondaryAction={{
+                          label: "Open Original View",
+                          onClick: () => setViewMode('original'),
+                          variant: "outline",
+                        }}
+                      />
+                    )
                   ) : has3D ? (
                     <Model3DViewer modelUrl={model.model3dUrl!} isometricUrl={model.isometricUrl || undefined} />
                   ) : (

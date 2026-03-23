@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { temporal } from "zundo";
 import type { AnyNode, SceneData } from "@/lib/pascal/schemas";
-import { createEmptyScene } from "@/lib/pascal/schemas";
+import { createEmptyScene, CURRENT_SCENE_SCHEMA_VERSION } from "@/lib/pascal/schemas";
 import { eventBus } from "@/lib/pascal/event-bus";
 import { useViewer } from "@/stores/use-viewer";
 import { deriveSceneContext } from "@/lib/pascal/scene-context";
@@ -34,6 +34,7 @@ interface SceneState {
   // Bulk operations
   loadScene: (data: SceneData, floorplanId?: number) => void;
   clearScene: () => void;
+  resetSceneState: () => void;
   getSceneData: () => SceneData;
 
   // Dirty tracking
@@ -276,9 +277,23 @@ export const useScene = create<SceneState>()(
           loadSceneIntoPascal(emptyScene);
         },
 
+        resetSceneState: () => {
+          const emptyScene = createEmptyScene();
+          set({
+            nodes: emptyScene.nodes,
+            rootNodeIds: emptyScene.rootNodeIds,
+            dirtyNodeIds: new Set(),
+            floorplanId: null,
+            lastSavedAt: null,
+            isSaving: false,
+            hasUnsavedChanges: false,
+          });
+        },
+
         getSceneData: () => ({
           nodes: get().nodes,
           rootNodeIds: get().rootNodeIds,
+          schemaVersion: CURRENT_SCENE_SCHEMA_VERSION,
         }),
 
         markDirty: (nodeId) => {

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import {
-  sceneDataSchema,
+  CURRENT_SCENE_SCHEMA_VERSION,
   type BuildingNode,
   type DoorNode,
   type ItemNode,
@@ -11,6 +11,7 @@ import {
   type WindowNode,
   type ZoneNode,
 } from "../shared/pascal-scene.js";
+import { ensurePascalScene } from "../shared/pascal-load.js";
 import { matchCatalogItem } from "../shared/furniture-catalog.js";
 
 const defaultTransform = {
@@ -465,13 +466,14 @@ export function buildSceneFromGemini(geminiData: GeminiFloorplanData): SceneData
   }
 
   return validateSceneData({
+    schemaVersion: CURRENT_SCENE_SCHEMA_VERSION,
     nodes,
     rootNodeIds: [site.id],
   });
 }
 
 export function validateSceneData(sceneData: SceneData): SceneData {
-  const parsed = sceneDataSchema.parse(sceneData);
+  const parsed = ensurePascalScene(sceneData).sceneData;
 
   for (const node of Object.values(parsed.nodes)) {
     if (node.type === "door" || node.type === "window") {

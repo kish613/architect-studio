@@ -1,10 +1,23 @@
 import { create } from "zustand";
 import type { CatalogItem } from "@/lib/pascal/furniture-catalog";
 
-export type EditorTool =
-  | "select" | "wall" | "door" | "window" | "slab"
-  | "ceiling" | "roof" | "zone" | "item" | "guide"
-  | "scan" | "measure" | "pan" | "eraser";
+export const EDITOR_TOOL_IDS = [
+  "select",
+  "wall",
+  "door",
+  "window",
+  "slab",
+  "ceiling",
+  "roof",
+  "zone",
+  "item",
+  "guide",
+  "scan",
+  "measure",
+  "eraser",
+] as const;
+
+export type EditorTool = (typeof EDITOR_TOOL_IDS)[number];
 
 export type EditorPhase = "idle" | "placing" | "drawing" | "dragging";
 export type PanelId = "properties" | "levels" | "ai" | "layers" | "catalog";
@@ -27,6 +40,7 @@ interface EditorState {
   togglePanel: (panel: PanelId) => void;
   showPanel: (panel: PanelId) => void;
   hidePanel: (panel: PanelId) => void;
+  resetEditorState: () => void;
 }
 
 export const useEditor = create<EditorState>((set) => ({
@@ -62,4 +76,13 @@ export const useEditor = create<EditorState>((set) => ({
     set((s) => { const next = new Set(s.visiblePanels); next.add(panel); return { visiblePanels: next }; }),
   hidePanel: (panel) =>
     set((s) => { const next = new Set(s.visiblePanels); next.delete(panel); return { visiblePanels: next }; }),
+  resetEditorState: () =>
+    set({
+      activeTool: "select",
+      phase: "idle",
+      drawingPoints: [],
+      previewPoint: null,
+      placingCatalogItem: null,
+      visiblePanels: new Set<PanelId>(["properties", "levels"]),
+    }),
 }));

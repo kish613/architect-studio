@@ -131,13 +131,21 @@ After deployment, update your Google OAuth credentials with the actual Vercel UR
 
 1. Copy `.env.example` to `.env.local`
 2. Fill in all the environment variables
-3. Run the development server:
+3. Run the supported full-stack Pascal development server:
+
+```bash
+npm run dev:full
+```
+
+This starts Vercel's local runtime on `http://localhost:5000` so authenticated API routes, Pascal scene persistence, and recovery behavior match production.
+
+4. For frontend-only UI work that does not touch Pascal APIs, you can still run:
 
 ```bash
 npm run dev
 ```
 
-The app will be available at `http://localhost:5000`
+That Vite-only server may move to another port if `5000` is taken and is not sufficient for Pascal API/auth debugging.
 
 ## Generation Paths
 
@@ -186,6 +194,5 @@ Make sure the redirect URI in Google Cloud Console exactly matches your deployme
                      │ - Stripe        │
                      └─────────────────┘
 ```
-
 
 

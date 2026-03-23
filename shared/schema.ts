@@ -220,7 +220,7 @@ export const floorplanDesigns = pgTable("floorplan_designs", {
   projectId: integer("project_id").references(() => projects.id, { onDelete: "cascade" }),
   userId: varchar("user_id").notNull(),
   name: text("name").notNull().default("Untitled Floorplan"),
-  sceneData: text("scene_data").notNull().default('{"nodes":{},"rootNodeIds":[]}'),
+  sceneData: text("scene_data").notNull().default('{"schemaVersion":1,"nodes":{},"rootNodeIds":[]}'),
   thumbnailUrl: text("thumbnail_url"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

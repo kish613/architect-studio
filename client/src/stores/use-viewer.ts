@@ -21,6 +21,7 @@ interface ViewerState {
   activeZoneId: string | null;
   cameraMode: CameraMode;
   cameraPreset: CameraPreset;
+  isCameraNavigating: boolean;
   levelMode: LevelMode;
   soloLevelId: string | null;
   explodedSpacing: number;
@@ -48,6 +49,7 @@ interface ViewerState {
   setCameraMode: (mode: CameraMode) => void;
   toggleCameraMode: () => void;
   setCameraPreset: (preset: CameraPreset) => void;
+  setCameraNavigating: (isNavigating: boolean) => void;
   setLevelMode: (mode: LevelMode) => void;
   setSoloLevel: (levelId: string | null) => void;
   setExplodedSpacing: (spacing: number) => void;
@@ -56,6 +58,7 @@ interface ViewerState {
   toggleTheme: () => void;
   toggleVisibility: (key: VisibilityKey) => void;
   setVisibility: (key: VisibilityKey, visible: boolean) => void;
+  resetViewState: () => void;
 }
 
 // Guard flag to prevent infinite selection sync loops between our store and Pascal's.
@@ -144,6 +147,7 @@ export const useViewer = create<ViewerState>((set, get) => ({
   activeZoneId: null,
   cameraMode: "perspective",
   cameraPreset: null,
+  isCameraNavigating: false,
   levelMode: "stacked",
   soloLevelId: null,
   explodedSpacing: 3,
@@ -212,6 +216,7 @@ export const useViewer = create<ViewerState>((set, get) => ({
       return { cameraMode: mode };
     }),
   setCameraPreset: (preset) => set({ cameraPreset: preset }),
+  setCameraNavigating: (isNavigating) => set({ isCameraNavigating: isNavigating }),
   setLevelMode: (mode) => {
     set({ levelMode: mode });
     syncLevelModeToPascal(mode);
@@ -246,6 +251,32 @@ export const useViewer = create<ViewerState>((set, get) => ({
     set({ [key]: visible } as Record<string, boolean>);
     syncVisibilityToPascal(key, visible);
   },
+  resetViewState: () =>
+    set({
+      selectedIds: [],
+      hoveredId: null,
+      activeBuildingId: null,
+      activeLevelId: null,
+      activeZoneId: null,
+      cameraMode: "perspective",
+      cameraPreset: null,
+      isCameraNavigating: false,
+      levelMode: "stacked",
+      soloLevelId: null,
+      explodedSpacing: 3,
+      showWalls: true,
+      showCeilings: true,
+      showSlabs: true,
+      showRoofs: true,
+      showItems: true,
+      showZones: true,
+      showGuides: true,
+      showScans: true,
+      showGrid: true,
+      showDimensions: true,
+      wallMode: "up",
+      theme: "light",
+    }),
 }));
 
 /**

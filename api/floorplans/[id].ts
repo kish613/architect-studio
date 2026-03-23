@@ -4,6 +4,7 @@ import { put } from "@vercel/blob";
 import { requireAuth } from "../lib/auth.js";
 import { db } from "../lib/db.js";
 import { floorplanDesigns } from "../../shared/schema.js";
+import { ensurePascalScene } from "../../shared/pascal-load.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { id } = req.query;
@@ -36,7 +37,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       };
 
       const updates: Record<string, unknown> = { updatedAt: new Date() };
-      if (sceneData !== undefined) updates.sceneData = sceneData;
+      if (sceneData !== undefined) {
+        updates.sceneData = JSON.stringify(ensurePascalScene(sceneData).sceneData);
+      }
       if (name !== undefined) updates.name = name;
 
       if (thumbnail && typeof thumbnail === "string" && thumbnail.startsWith("data:")) {
@@ -58,6 +61,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!updated) return res.status(404).json({ error: "Floorplan not found" });
       return res.json(updated);
     } catch (error) {
+      const diagnostics = (error as Error & { diagnostics?: unknown }).diagnostics;
+      if (diagnostics) {
+        return res.status(400).json({
+          error: error instanceof Error ? error.message : "Invalid Pascal scene data",
+          diagnostics,
+        });
+      }
       console.error("Error saving floorplan:", error);
       return res.status(500).json({ error: "Failed to save floorplan" });
     }

@@ -2,9 +2,9 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useScene } from "@/stores/use-scene";
 import { generateFloorplanFromImage } from "@/lib/api";
-import { sceneDataSchema } from "@/lib/pascal/schemas";
 import { Upload, Sparkles, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { loadPascalScene } from "@shared/pascal-load";
 
 export function AIGeneratePanel() {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -27,11 +27,11 @@ export function AIGeneratePanel() {
     setIsGenerating(true);
     try {
       const result = await generateFloorplanFromImage(floorplanId, file);
-      const parsed = sceneDataSchema.safeParse(JSON.parse(result.sceneData));
-      if (!parsed.success) {
-        throw new Error("AI returned invalid scene data");
+      const parsed = loadPascalScene(result.sceneData);
+      if (parsed.status === "error") {
+        throw new Error(parsed.diagnostics.map((diagnostic) => diagnostic.message).join(" | "));
       }
-      loadScene(parsed.data, floorplanId);
+      loadScene(parsed.sceneData, floorplanId);
       toast({ title: "Floorplan generated!", description: "Your 2D floorplan has been converted to 3D." });
     } catch (err) {
       toast({

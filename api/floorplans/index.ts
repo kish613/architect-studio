@@ -4,6 +4,8 @@ import { z } from "zod";
 import { requireAuth } from "../lib/auth.js";
 import { db } from "../lib/db.js";
 import { floorplanDesigns } from "../../shared/schema.js";
+import { ensurePascalScene } from "../../shared/pascal-load.js";
+import { createEmptyScene } from "../../shared/pascal-scene.js";
 
 const createSchema = z.object({
   name: z.string().min(1).default("Untitled Floorplan"),
@@ -18,18 +20,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === "POST") {
     try {
       const data = createSchema.parse(req.body);
+      const canonicalScene = data.sceneData
+        ? ensurePascalScene(data.sceneData).sceneData
+        : createEmptyScene();
       const [floorplan] = await db
         .insert(floorplanDesigns)
         .values({
           userId: session.userId,
           name: data.name,
           projectId: data.projectId ?? null,
-          sceneData: data.sceneData || '{"nodes":{},"rootNodeIds":[]}',
+          sceneData: JSON.stringify(canonicalScene),
         })
         .returning();
       return res.status(201).json(floorplan);
     } catch (error) {
       if (error instanceof z.ZodError) return res.status(400).json({ error: error.issues });
+      const diagnostics = (error as Error & { diagnostics?: unknown }).diagnostics;
+      if (diagnostics) {
+        return res.status(400).json({
+          error: error instanceof Error ? error.message : "Invalid Pascal scene data",
+          diagnostics,
+        });
+      }
       console.error("Error creating floorplan:", error);
       return res.status(500).json({ error: "Failed to create floorplan" });
     }

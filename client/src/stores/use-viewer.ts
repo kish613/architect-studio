@@ -1,9 +1,11 @@
 import { create } from "zustand";
 import { useViewer as pascalUseViewer } from "@pascal-app/viewer";
-import { getPascalIdFromOur, getOurIdFromPascal } from "@/stores/pascal-bridge";
+import type { AnyNodeId } from "@pascal-app/core";
+import { getPascalIdFromOur, getOurIdFromPascal, pascalUseScene } from "@/stores/pascal-bridge";
 
 export type CameraMode = "perspective" | "orthographic";
 export type LevelMode = "stacked" | "exploded" | "solo";
+export type WallMode = "up" | "cutaway" | "down";
 type VisibilityKey =
   | "showWalls" | "showCeilings" | "showSlabs" | "showRoofs"
   | "showItems" | "showZones" | "showGuides" | "showScans"
@@ -32,6 +34,7 @@ interface ViewerState {
   showScans: boolean;
   showGrid: boolean;
   showDimensions: boolean;
+  wallMode: WallMode;
 
   select: (nodeIds: string[]) => void;
   addToSelection: (nodeId: string) => void;
@@ -47,6 +50,7 @@ interface ViewerState {
   setLevelMode: (mode: LevelMode) => void;
   setSoloLevel: (levelId: string | null) => void;
   setExplodedSpacing: (spacing: number) => void;
+  setWallMode: (mode: WallMode) => void;
   toggleVisibility: (key: VisibilityKey) => void;
   setVisibility: (key: VisibilityKey, visible: boolean) => void;
 }
@@ -92,10 +96,36 @@ function syncLevelModeToPascal(mode: LevelMode): void {
 
 function syncVisibilityToPascal(key: VisibilityKey, value: boolean): void {
   const pv = pascalUseViewer.getState();
-  if (key === "showScans") pv.setShowScans(value);
-  else if (key === "showGuides") pv.setShowGuides(value);
-  else if (key === "showGrid") pv.setShowGrid(value);
-  // Pascal doesn't have showWalls/showSlabs/etc toggles -- those are handled by our SceneRenderer
+  if (key === "showScans") { pv.setShowScans(value); return; }
+  if (key === "showGuides") { pv.setShowGuides(value); return; }
+  if (key === "showGrid") { pv.setShowGrid(value); return; }
+
+  // For node-type visibility, batch-update `visible` on matching nodes in Pascal's scene store
+  const typeMap: Record<string, string> = {
+    showWalls: "wall",
+    showSlabs: "slab",
+    showCeilings: "ceiling",
+    showRoofs: "roof",
+    showItems: "item",
+    showZones: "zone",
+  };
+  const nodeType = typeMap[key];
+  if (!nodeType) return;
+
+  const sceneStore = pascalUseScene.getState();
+  const updates: Array<{ id: AnyNodeId; data: { visible: boolean } }> = [];
+  for (const node of Object.values(sceneStore.nodes)) {
+    if (node.type === nodeType) {
+      updates.push({ id: node.id as AnyNodeId, data: { visible: value } });
+    }
+  }
+  if (updates.length > 0) {
+    sceneStore.updateNodes(updates);
+  }
+}
+
+function syncWallModeToPascal(mode: WallMode): void {
+  pascalUseViewer.getState().setWallMode(mode);
 }
 
 function syncHoveredToPascal(id: string | null): void {
@@ -124,6 +154,7 @@ export const useViewer = create<ViewerState>((set, get) => ({
   showScans: true,
   showGrid: true,
   showDimensions: true,
+  wallMode: "up",
 
   select: (nodeIds) => {
     set({ selectedIds: nodeIds });
@@ -184,8 +215,14 @@ export const useViewer = create<ViewerState>((set, get) => ({
   setSoloLevel: (levelId) => {
     set({ soloLevelId: levelId, levelMode: "solo" });
     syncLevelModeToPascal("solo");
+    const s = get();
+    syncSelectionToPascal(s.selectedIds, s.activeBuildingId, levelId, s.activeZoneId);
   },
   setExplodedSpacing: (spacing) => set({ explodedSpacing: spacing }),
+  setWallMode: (mode) => {
+    set({ wallMode: mode });
+    syncWallModeToPascal(mode);
+  },
   toggleVisibility: (key) =>
     set((s) => {
       const newVal = !s[key];

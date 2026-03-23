@@ -35,6 +35,7 @@ interface ViewerState {
   showGrid: boolean;
   showDimensions: boolean;
   wallMode: WallMode;
+  theme: "dark" | "light";
 
   select: (nodeIds: string[]) => void;
   addToSelection: (nodeId: string) => void;
@@ -51,6 +52,8 @@ interface ViewerState {
   setSoloLevel: (levelId: string | null) => void;
   setExplodedSpacing: (spacing: number) => void;
   setWallMode: (mode: WallMode) => void;
+  setTheme: (theme: "dark" | "light") => void;
+  toggleTheme: () => void;
   toggleVisibility: (key: VisibilityKey) => void;
   setVisibility: (key: VisibilityKey, visible: boolean) => void;
 }
@@ -155,6 +158,7 @@ export const useViewer = create<ViewerState>((set, get) => ({
   showGrid: true,
   showDimensions: true,
   wallMode: "up",
+  theme: "light",
 
   select: (nodeIds) => {
     set({ selectedIds: nodeIds });
@@ -222,6 +226,15 @@ export const useViewer = create<ViewerState>((set, get) => ({
   setWallMode: (mode) => {
     set({ wallMode: mode });
     syncWallModeToPascal(mode);
+  },
+  setTheme: (theme) => {
+    set({ theme });
+    pascalUseViewer.getState().setTheme(theme);
+  },
+  toggleTheme: () => {
+    const next = get().theme === "light" ? "dark" : "light";
+    set({ theme: next });
+    pascalUseViewer.getState().setTheme(next);
   },
   toggleVisibility: (key) =>
     set((s) => {

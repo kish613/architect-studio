@@ -7,6 +7,18 @@ import { useViewer } from "@/stores/use-viewer";
 import { createNode } from "@/lib/pascal/schemas";
 import { createCatalogPlacementNode } from "@/lib/pascal/item-placement";
 
+function NativeLine({ points, color }: { points: [number, number, number][]; color: string }) {
+  const lineObj = useMemo(() => {
+    const geometry = new THREE.BufferGeometry().setFromPoints(
+      points.map(p => new THREE.Vector3(...p))
+    );
+    const material = new THREE.LineBasicMaterial({ color });
+    return new THREE.Line(geometry, material);
+  }, [JSON.stringify(points), color]);
+
+  return <primitive object={lineObj} />;
+}
+
 const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
@@ -136,28 +148,11 @@ export function DrawingInteraction() {
     linePoints.push([previewPoint.x, 0.05, previewPoint.z]);
   }
 
-  // Build a THREE.Line object for WebGPU-compatible line rendering
-  // (drei's <Line> uses LineMaterial from three-stdlib which is a legacy GLSL shader)
-  const lineObject = useMemo(() => {
-    const geo = new THREE.BufferGeometry();
-    if (linePoints.length >= 2) {
-      const positions = new Float32Array(linePoints.length * 3);
-      for (let i = 0; i < linePoints.length; i++) {
-        positions[i * 3] = linePoints[i][0];
-        positions[i * 3 + 1] = linePoints[i][1];
-        positions[i * 3 + 2] = linePoints[i][2];
-      }
-      geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    }
-    const mat = new THREE.LineBasicMaterial({ color: "#4A90FF" });
-    return new THREE.Line(geo, mat);
-  }, [linePoints]);
-
   return (
     <>
-      {/* Drawing path line — using primitive THREE.Line for WebGPU compat */}
+      {/* Drawing path line */}
       {linePoints.length >= 2 && (
-        <primitive object={lineObject} />
+        <NativeLine points={linePoints} color="#4A90FF" />
       )}
 
       {/* Point markers */}

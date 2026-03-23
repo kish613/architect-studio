@@ -17,6 +17,7 @@
 import type { AnyNode as OurAnyNode, SceneData as OurSceneData } from "@/lib/pascal/schemas";
 import type { AnyNode as PascalAnyNode, AnyNodeId } from "@pascal-app/core";
 import { useScene as pascalUseScene } from "@pascal-app/core";
+import { useViewer as pascalUseViewer } from "@pascal-app/viewer";
 
 // Re-export Pascal's useScene and sceneRegistry directly so consumers can use it
 export { useScene as pascalUseScene, sceneRegistry as pascalSceneRegistry } from "@pascal-app/core";
@@ -455,4 +456,14 @@ export function loadSceneIntoPascal(sceneData: OurSceneData): void {
     pascalNodes as Record<AnyNodeId, PascalAnyNode>,
     pascalRootIds as AnyNodeId[],
   );
+
+  // Auto-set active building and level so Pascal's Viewer knows what to render
+  const buildingNode = Object.values(pascalNodes).find(n => n.type === "building");
+  const levelNode = Object.values(pascalNodes).find(n => n.type === "level");
+  if (buildingNode) {
+    pascalUseViewer.getState().setSelection({
+      buildingId: buildingNode.id as any,
+      levelId: levelNode?.id as any ?? null,
+    });
+  }
 }

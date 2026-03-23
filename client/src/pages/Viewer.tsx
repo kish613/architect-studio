@@ -286,7 +286,14 @@ export function Viewer() {
   useEffect(() => {
     if (model?.pascalData) {
       try {
-        loadScene(JSON.parse(model.pascalData));
+        const parsed = JSON.parse(model.pascalData);
+        loadScene(parsed);
+
+        // Set active building/level in our store for sidebar controls
+        const buildingNode = Object.values(parsed.nodes as Record<string, any>).find((n: any) => n.type === "building");
+        const levelNode = Object.values(parsed.nodes as Record<string, any>).find((n: any) => n.type === "level");
+        if (buildingNode) useViewer.getState().setActiveBuilding((buildingNode as any).id);
+        if (levelNode) useViewer.getState().setActiveLevel((levelNode as any).id);
       } catch (e) {
         console.error('Failed to parse pascal data:', e);
       }
@@ -835,7 +842,7 @@ export function Viewer() {
                   className="w-full h-full z-10 relative"
                 >
                   {hasPascal ? (
-                    <FloorplanCanvas />
+                    <FloorplanCanvas showToolbar />
                   ) : has3D ? (
                     <Model3DViewer modelUrl={model.model3dUrl!} isometricUrl={model.isometricUrl || undefined} />
                   ) : (

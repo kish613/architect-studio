@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { FloorplanCanvas } from "@/components/viewer/FloorplanCanvas";
 import { useScene } from "@/stores/use-scene";
-import { useViewer } from "@/stores/use-viewer";
 import { createEmptyScene, createNode } from "@/lib/pascal/schemas";
 import type { SceneData, WallNode, DoorNode, WindowNode, ItemNode, SlabNode } from "@/lib/pascal/schemas";
 
@@ -50,23 +49,15 @@ function buildTestScene(): SceneData {
 
 export function DevTest() {
   const loadScene = useScene((s) => s.loadScene);
-  const setActiveBuilding = useViewer((s) => s.setActiveBuilding);
-  const setActiveLevel = useViewer((s) => s.setActiveLevel);
 
   useEffect(() => {
     const scene = buildTestScene();
     loadScene(scene);
-
-    // Set active building and level so Pascal's Viewer knows what to render
-    const buildingNode = Object.values(scene.nodes).find((n) => n.type === "building");
-    const levelNode = Object.values(scene.nodes).find((n) => n.type === "level");
-    if (buildingNode) setActiveBuilding(buildingNode.id);
-    if (levelNode) setActiveLevel(levelNode.id);
-  }, [loadScene, setActiveBuilding, setActiveLevel]);
+  }, [loadScene]);
 
   return (
     <div className="w-screen h-screen bg-[#0A0A0A]">
-      <FloorplanCanvas className="w-full h-full" />
+      <FloorplanCanvas className="w-full h-full" showToolbar />
     </div>
   );
 }

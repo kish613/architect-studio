@@ -256,10 +256,11 @@ export const useScene = create<SceneState>()(
             floorplanId: floorplanId ?? null,
             hasUnsavedChanges: false,
           });
+          // Sync to Pascal FIRST so ID mappings exist before selection sync
+          loadSceneIntoPascal(data);
+          // NOW set active building/level (getPascalIdFromOur will work)
           useViewer.getState().setActiveBuilding(context.activeBuildingId);
           useViewer.getState().setActiveLevel(context.activeLevelId);
-          // Sync to Pascal's store so the Pascal <Viewer> renders our scene
-          loadSceneIntoPascal(data);
           eventBus.emit("scene:loaded", { nodeCount: Object.keys(data.nodes).length });
         },
 
@@ -288,6 +289,8 @@ export const useScene = create<SceneState>()(
             isSaving: false,
             hasUnsavedChanges: false,
           });
+          // Sync empty scene to Pascal so the <Viewer> clears properly
+          loadSceneIntoPascal(emptyScene);
         },
 
         getSceneData: () => ({

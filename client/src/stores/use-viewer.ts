@@ -74,6 +74,13 @@ function syncSelectionToPascal(
   levelId: string | null,
   zoneId: string | null,
 ): void {
+  if (import.meta.env.DEV) {
+    const unmappedSelected = selectedIds.filter(id => !getPascalIdFromOur(id));
+    const unmappedContext = [buildingId, levelId, zoneId].filter((id): id is string => id != null && !getPascalIdFromOur(id));
+    if (unmappedSelected.length > 0 || unmappedContext.length > 0) {
+      console.warn('[use-viewer] syncSelectionToPascal: unmapped IDs (ID mappings not yet created?):', [...unmappedSelected, ...unmappedContext]);
+    }
+  }
   const pascalSelectedIds = selectedIds
     .map((id) => getPascalIdFromOur(id))
     .filter((id): id is string => id != null);

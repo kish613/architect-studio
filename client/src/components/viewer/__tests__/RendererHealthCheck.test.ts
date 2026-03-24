@@ -22,8 +22,8 @@ describe("RendererHealthCheck", () => {
     vi.clearAllMocks();
   });
 
-  it("returns 'r3f' by default when no preference cached", () => {
-    expect(getPreferredRenderer()).toBe("r3f");
+  it("returns 'pascal' by default when no preference cached", () => {
+    expect(getPreferredRenderer()).toBe("pascal");
   });
 
   it("returns cached preference", () => {
@@ -38,6 +38,6 @@ describe("RendererHealthCheck", () => {
 
   it("ignores invalid localStorage values", () => {
     localStorageMock.setItem(RENDERER_KEY, "invalid");
-    expect(getPreferredRenderer()).toBe("r3f");
+    expect(getPreferredRenderer()).toBe("pascal");
   });
 });

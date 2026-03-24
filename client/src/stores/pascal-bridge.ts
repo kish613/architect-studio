@@ -48,6 +48,11 @@ function toPascalId(ourId: string, type: string): string {
   return pascalId;
 }
 
+function computeWallRotation(wall: { start: { x: number; z: number }; end: { x: number; z: number } }): [number, number, number] {
+  const angle = Math.atan2(wall.end.z - wall.start.z, wall.end.x - wall.start.x);
+  return [0, angle, 0];
+}
+
 export function getOurIdFromPascal(pascalId: string): string | undefined {
   return pascalToOurId.get(pascalId);
 }
@@ -107,6 +112,7 @@ export function convertOurNodeToPascal(
         type: "site",
         children: mappedChildIds,
         polygon: {
+          type: "polygon" as const,
           points: [
             [minX, minZ],
             [maxX, minZ],
@@ -142,7 +148,7 @@ export function convertOurNodeToPascal(
         .map((child) => toPascalId(child.id, child.type));
       // Levels only accept these child types; doors/windows attach via wallId,
       // items reference levels via parentId but don't appear in children
-      const validLevelChildPrefixes = ["wall_", "zone_", "slab_", "ceiling_", "roof_", "scan_", "guide_"];
+      const validLevelChildPrefixes = ["wall_", "zone_", "slab_", "ceiling_", "roof_", "scan_", "guide_", "door_", "window_", "item_"];
       const children = mappedChildIds.filter((id) =>
         validLevelChildPrefixes.some((prefix) => id.startsWith(prefix)),
       );
@@ -180,41 +186,67 @@ export function convertOurNodeToPascal(
       // We need to compute the world position from the wall.
       const wall = node.wallId ? allNodes[node.wallId] : null;
       let worldPos: [number, number, number] = [0, 0, 0];
+      let wallRotation: [number, number, number] = [0, 0, 0];
       if (wall && wall.type === "wall") {
         const t = node.position ?? 0.5;
         const wx = wall.start.x + (wall.end.x - wall.start.x) * t;
         const wz = wall.start.z + (wall.end.z - wall.start.z) * t;
         worldPos = [wx, 0, wz];
+        wallRotation = computeWallRotation(wall);
       }
       return {
         ...base,
         type: "door",
         position: worldPos,
-        rotation: [0, 0, 0] as [number, number, number],
+        rotation: wallRotation,
         wallId: node.wallId ? toPascalId(node.wallId, "wall") : undefined,
-        width: node.width,
-        height: node.height,
+        width: node.width ?? 0.9,
+        height: node.height ?? 2.1,
         hingesSide: node.swing ?? "left",
+        swingDirection: "inward" as const,
+        frameThickness: 0.04,
+        frameDepth: 0.15,
+        threshold: false,
+        thresholdHeight: 0,
+        segments: [{ type: "panel" as const, ratio: 1 }],
+        handle: true,
+        handleHeight: 1.0,
+        handleSide: "opposite" as const,
+        contentPadding: { top: 0, bottom: 0, left: 0, right: 0 },
+        doorCloser: false,
+        panicBar: false,
+        panicBarHeight: 1.0,
       } as unknown as PascalAnyNode;
     }
 
     case "window": {
       const wall = node.wallId ? allNodes[node.wallId] : null;
       let worldPos: [number, number, number] = [0, 0, 0];
+      let wallRotation: [number, number, number] = [0, 0, 0];
       if (wall && wall.type === "wall") {
         const t = node.position ?? 0.5;
         const wx = wall.start.x + (wall.end.x - wall.start.x) * t;
         const wz = wall.start.z + (wall.end.z - wall.start.z) * t;
         worldPos = [wx, node.sillHeight ?? 0.9, wz];
+        wallRotation = computeWallRotation(wall);
       }
       return {
         ...base,
         type: "window",
         position: worldPos,
-        rotation: [0, 0, 0] as [number, number, number],
+        rotation: wallRotation,
         wallId: node.wallId ? toPascalId(node.wallId, "wall") : undefined,
-        width: node.width,
-        height: node.height,
+        width: node.width ?? 1.2,
+        height: node.height ?? 1.2,
+        frameThickness: 0.04,
+        frameDepth: 0.12,
+        columnRatios: [1],
+        rowRatios: [1],
+        columnDividerThickness: 0.02,
+        rowDividerThickness: 0.02,
+        sill: true,
+        sillDepth: 0.1,
+        sillThickness: 0.03,
       } as unknown as PascalAnyNode;
     }
 
@@ -296,6 +328,9 @@ export function convertOurNodeToPascal(
           thumbnail: "",
           src: node.modelUrl ?? "",
           dimensions: [dim.x, dim.y, dim.z] as [number, number, number],
+          offset: [0, 0, 0] as [number, number, number],
+          rotation: [0, 0, 0] as [number, number, number],
+          scale: [1, 1, 1] as [number, number, number],
         },
       } as unknown as PascalAnyNode;
     }

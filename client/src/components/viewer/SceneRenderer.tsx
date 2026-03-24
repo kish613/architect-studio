@@ -200,10 +200,36 @@ function ItemModelMesh({ node }: { node: ItemNode }) {
     normalized.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
+
+        const fixMaterial = (m: THREE.Material): THREE.Material => {
+          const cloned = m.clone();
+          // Detect pink error materials (#ff00ff)
+          if ('color' in cloned) {
+            const col = (cloned as THREE.MeshStandardMaterial).color;
+            if (col && col.r > 0.9 && col.g < 0.1 && col.b > 0.9) {
+              return new THREE.MeshStandardMaterial({
+                color: new THREE.Color("#b78d63"),
+                roughness: 0.58,
+                metalness: 0.02,
+              });
+            }
+          }
+          // Convert unlit (MeshBasicMaterial) to standard PBR
+          if (cloned.type === "MeshBasicMaterial") {
+            const basic = cloned as THREE.MeshBasicMaterial;
+            return new THREE.MeshStandardMaterial({
+              color: basic.color ?? new THREE.Color("#b78d63"),
+              roughness: 0.6,
+              metalness: 0.02,
+            });
+          }
+          return cloned;
+        };
+
         if (Array.isArray(mesh.material)) {
-          mesh.material = mesh.material.map((m) => m.clone());
+          mesh.material = mesh.material.map(fixMaterial);
         } else if (mesh.material) {
-          mesh.material = mesh.material.clone();
+          mesh.material = fixMaterial(mesh.material);
         }
         mesh.castShadow = true;
         mesh.receiveShadow = true;

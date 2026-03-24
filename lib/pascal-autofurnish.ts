@@ -31,13 +31,15 @@ export interface PlacedItem {
 // ─── Zone → Catalog ID Mapping ────────────────────────────
 
 const ZONE_FURNITURE: Record<string, string[]> = {
-  bedroom: ["bed-double-01", "nightstand-01", "wardrobe-01"],
-  kitchen: ["fridge-01", "oven-01", "sink-kitchen-01", "dining-table-01"],
-  bathroom: ["toilet-01", "vanity-01", "shower-01"],
-  living: ["sofa-01", "coffee-table-01", "tv-stand-01", "floor-lamp-01"],
-  office: ["office-desk-01", "office-chair-01", "bookshelf-01"],
-  hallway: ["coat-rack-01"],
-  room: ["sofa-01", "coffee-table-01"],
+  bedroom: ["bed-double-01", "nightstand-01", "wardrobe-01", "bedside-lamp-01", "blanket-chest-01"],
+  kitchen: ["fridge-01", "oven-01", "sink-kitchen-01", "dining-table-01", "microwave-01", "trash-can-01"],
+  bathroom: ["toilet-01", "vanity-01", "shower-01", "towel-rack-01", "medicine-cabinet-01"],
+  living: ["sofa-01", "coffee-table-01", "tv-stand-01", "floor-lamp-01", "area-rug-large-01", "accent-chair-01"],
+  office: ["office-desk-01", "office-chair-01", "bookshelf-01", "desk-lamp-01", "monitor-stand-01"],
+  hallway: ["coat-rack-01", "shoe-cabinet-01", "wall-mirror-01"],
+  room: ["sofa-01", "coffee-table-01", "floor-lamp-01"],
+  garage: ["tool-chest-01", "step-ladder-01", "storage-bin-01"],
+  utility: ["ironing-board-01", "storage-bin-01", "laundry-basket-01"],
 };
 
 // ─── Helpers ──────────────────────────────────────────────

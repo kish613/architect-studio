@@ -368,7 +368,9 @@ async function parseFloorplanWithGemini(imageBuffer: Buffer, mimeType: string) {
 
   const base64Image = imageBuffer.toString("base64");
 
-  const prompt = `Analyze this 2D architectural floor plan image and extract all structural elements, rooms/zones, and visible furniture as JSON.
+  const prompt = `You are an expert architectural floor plan analyzer. Your task is to PRECISELY extract the EXACT layout from this 2D floor plan image. Accuracy is critical — the output must faithfully represent the floor plan dimensions, room layout, wall positions, and proportions shown in the image.
+
+IMPORTANT: Study the image carefully. Read ALL room labels, dimensions, and annotations. Count every room, every wall segment, every door, and every window shown. The 3D model generated from your output will be compared directly against this floor plan — any missing rooms, wrong proportions, or misplaced walls will be immediately visible.
 
 Return ONLY a valid JSON object with no markdown, no code fences, no explanation text — just the raw JSON object.
 
@@ -499,6 +501,7 @@ Furniture / items:
     }],
     generationConfig: {
       responseMimeType: "application/json",
+      mediaResolution: "MEDIA_RESOLUTION_HIGH",
     },
   };
 

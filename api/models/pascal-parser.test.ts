@@ -117,26 +117,27 @@ describe("Pascal floorplan parsing", () => {
           },
         ],
       })
-    ).toThrow(/did not contain any walls/i);
+    ).toThrow(/no walls/i);
   });
 
-  it("rejects invalid wall references", () => {
-    expect(() =>
-      normalizeGeminiFloorplanData({
-        levels: [
-          {
-            name: "Ground Floor",
-            index: 0,
-            elevation: 0,
-            walls: [{ startX: 0, startZ: 0, endX: 4, endZ: 0 }],
-            doors: [{ wallIndex: 2, position: 0.5 }],
-            windows: [],
-            rooms: [],
-            items: [],
-          },
-        ],
-      })
-    ).toThrow(/door wallIndex 2/i);
+  it("filters out doors with invalid wall references instead of throwing", () => {
+    const result = normalizeGeminiFloorplanData({
+      levels: [
+        {
+          name: "Ground Floor",
+          index: 0,
+          elevation: 0,
+          walls: [{ startX: 0, startZ: 0, endX: 4, endZ: 0 }],
+          doors: [{ wallIndex: 2, position: 0.5 }],
+          windows: [],
+          rooms: [],
+          items: [],
+        },
+      ],
+    });
+    // Invalid door silently dropped instead of throwing
+    expect(result.levels[0].doors.length).toBe(0);
+    expect(result.levels[0].walls.length).toBe(1);
   });
 });
 

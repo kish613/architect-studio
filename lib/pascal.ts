@@ -132,41 +132,80 @@ export interface GeminiFloorplanData {
 }
 
 export function normalizeGeminiFloorplanData(raw: unknown): GeminiFloorplanData {
-  const multiLevel = geminiFloorplanLevelsSchema.safeParse(raw);
-  const normalized = multiLevel.success
-    ? multiLevel.data
-    : {
-        levels: [
-          {
-            name: "Ground Floor",
-            index: 0,
-            elevation: 0,
-            ...geminiFloorplanSingleLevelSchema.parse(raw),
-          },
-        ],
+  // Unwrap common Gemini response wrappers
+  let unwrapped = raw;
+  if (unwrapped && typeof unwrapped === "object" && !Array.isArray(unwrapped)) {
+    const obj = unwrapped as Record<string, unknown>;
+    // Unwrap { floorPlan: ... }, { floor_plan: ... }, { data: ... }, { result: ... }
+    for (const key of ["floorPlan", "floor_plan", "floorplan", "data", "result", "response"]) {
+      if (obj[key] && typeof obj[key] === "object") {
+        unwrapped = obj[key];
+        break;
+      }
+    }
+  }
+  // Handle array-at-root: [{ walls: [...] }] → { levels: [...] }
+  if (Array.isArray(unwrapped)) {
+    unwrapped = { levels: unwrapped };
+  }
+
+  const multiLevel = geminiFloorplanLevelsSchema.safeParse(unwrapped);
+  const singleLevel = !multiLevel.success ? geminiFloorplanSingleLevelSchema.safeParse(unwrapped) : null;
+
+  let normalized: GeminiFloorplanData;
+  if (multiLevel.success) {
+    normalized = multiLevel.data;
+  } else if (singleLevel?.success) {
+    normalized = {
+      levels: [
+        {
+          name: "Ground Floor",
+          index: 0,
+          elevation: 0,
+          ...singleLevel.data,
+        },
+      ],
+    };
+  } else {
+    // Last resort: try original raw in case unwrapping went wrong
+    const fallback = geminiFloorplanSingleLevelSchema.safeParse(raw);
+    if (fallback.success) {
+      normalized = {
+        levels: [{ name: "Ground Floor", index: 0, elevation: 0, ...fallback.data }],
       };
+    } else {
+      throw new Error(
+        `Gemini floorplan output could not be parsed. Expected { levels: [...] } or { walls: [...] }. Got keys: ${
+          raw && typeof raw === "object" ? Object.keys(raw as object).join(", ") : typeof raw
+        }`
+      );
+    }
+  }
 
   const wallCount = normalized.levels.reduce((total, level) => total + level.walls.length, 0);
   if (wallCount === 0) {
-    throw new Error("Gemini floorplan output did not contain any walls");
+    throw new Error(
+      `Gemini floorplan output contained no walls. Parsed ${normalized.levels.length} level(s) but all had empty wall arrays. This usually means Gemini returned an unexpected JSON structure.`
+    );
   }
 
+  // Filter out doors/windows with invalid wallIndex (instead of throwing)
   for (const level of normalized.levels) {
-    for (const door of level.doors) {
+    level.doors = level.doors.filter((door) => {
       if (!level.walls[door.wallIndex]) {
-        throw new Error(
-          `Gemini floorplan output referenced door wallIndex ${door.wallIndex} on level "${level.name}" without a matching wall`
-        );
+        console.warn(`[pascal] Dropping door with invalid wallIndex ${door.wallIndex} on level "${level.name}"`);
+        return false;
       }
-    }
+      return true;
+    });
 
-    for (const window of level.windows) {
-      if (!level.walls[window.wallIndex]) {
-        throw new Error(
-          `Gemini floorplan output referenced window wallIndex ${window.wallIndex} on level "${level.name}" without a matching wall`
-        );
+    level.windows = level.windows.filter((win) => {
+      if (!level.walls[win.wallIndex]) {
+        console.warn(`[pascal] Dropping window with invalid wallIndex ${win.wallIndex} on level "${level.name}"`);
+        return false;
       }
-    }
+      return true;
+    });
   }
 
   return normalized;

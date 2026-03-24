@@ -14,6 +14,7 @@ import {
 } from "../shared/pascal-scene.js";
 import { ensurePascalScene } from "../shared/pascal-load.js";
 import { matchCatalogItem } from "../shared/furniture-catalog.js";
+import { autoFurnishZone, computeZoneBBox } from "./pascal-autofurnish.js";
 
 const defaultTransform = {
   position: { x: 0, y: 0, z: 0 },
@@ -263,7 +264,14 @@ Rules:
 - Y is always 0.
 - Include every visible wall, door, and window.
 - Use default values when uncertain.
-- Include every visible room or space, including small utility spaces.`;
+- Include every visible room or space, including small utility spaces.
+- Door "position" must be between 0.05 and 0.95 (never at wall endpoints).
+- Door "wallIndex" must be a valid index into the "walls" array for this level.
+- Window "wallIndex" must be a valid index into the "walls" array for this level.
+- All coordinates must be positive numbers.
+- For furniture items, use these exact names when the item is detected: Sofa, Armchair, Coffee Table, TV Stand, Bookshelf, Double Bed, Single Bed, Nightstand, Wardrobe, Dresser, Dining Table, Dining Chair, Refrigerator, Stove, Kitchen Sink, Toilet, Bathtub, Shower, Bathroom Vanity, Desk, Office Chair, Office Desk, Floor Lamp, Table Lamp, Plant, Rug, Mirror, Coat Rack
+- Room "zoneType" should accurately reflect the room's purpose: use "bedroom" for sleeping areas, "kitchen" for cooking areas, "bathroom" for wet rooms, "living" for living/lounge areas, "office" for work spaces, "hallway" for corridors and entries, "garage" for vehicle storage.
+- Every room must have "points" defining its floor polygon boundary (at least 3 points forming a closed shape).`;
 
   const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent";
   const requestBody = {
@@ -424,7 +432,81 @@ export function postProcessGeminiData(data: GeminiFloorplanData): GeminiFloorpla
       })
       .filter((w): w is GeminiWindow => w !== null);
 
-    return { ...level, walls: snappedWalls, doors, windows };
+    // Geometry-snap orphaned doors to nearest surviving wall
+    const orphanedDoors = level.doors.filter((d) => snappedOldToNew.get(d.wallIndex) === undefined);
+    const snappedDoors = [...doors];
+
+    for (const orphan of orphanedDoors) {
+      const origWall = level.walls[orphan.wallIndex];
+      if (!origWall) continue;
+      const t = orphan.position ?? 0.5;
+      const worldX = origWall.startX + (origWall.endX - origWall.startX) * t;
+      const worldZ = origWall.startZ + (origWall.endZ - origWall.startZ) * t;
+
+      let bestWallIdx = -1;
+      let bestDist = 1.0;
+      let bestT = 0.5;
+      for (let i = 0; i < snappedWalls.length; i++) {
+        const w = snappedWalls[i];
+        const dx = w.endX - w.startX;
+        const dz = w.endZ - w.startZ;
+        const len = Math.sqrt(dx * dx + dz * dz);
+        if (len < 0.05) continue;
+        const projT = Math.max(0.05, Math.min(0.95,
+          ((worldX - w.startX) * dx + (worldZ - w.startZ) * dz) / (len * len)
+        ));
+        const projX = w.startX + dx * projT;
+        const projZ = w.startZ + dz * projT;
+        const dist = Math.sqrt((worldX - projX) ** 2 + (worldZ - projZ) ** 2);
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestWallIdx = i;
+          bestT = projT;
+        }
+      }
+      if (bestWallIdx >= 0) {
+        snappedDoors.push({ ...orphan, wallIndex: bestWallIdx, position: bestT });
+      }
+    }
+
+    // Geometry-snap orphaned windows to nearest surviving wall
+    const orphanedWindows = level.windows.filter((w) => snappedOldToNew.get(w.wallIndex) === undefined);
+    const snappedWindows = [...windows];
+
+    for (const orphan of orphanedWindows) {
+      const origWall = level.walls[orphan.wallIndex];
+      if (!origWall) continue;
+      const t = orphan.position ?? 0.5;
+      const worldX = origWall.startX + (origWall.endX - origWall.startX) * t;
+      const worldZ = origWall.startZ + (origWall.endZ - origWall.startZ) * t;
+
+      let bestWallIdx = -1;
+      let bestDist = 1.0;
+      let bestT = 0.5;
+      for (let i = 0; i < snappedWalls.length; i++) {
+        const w = snappedWalls[i];
+        const dx = w.endX - w.startX;
+        const dz = w.endZ - w.startZ;
+        const len = Math.sqrt(dx * dx + dz * dz);
+        if (len < 0.05) continue;
+        const projT = Math.max(0.05, Math.min(0.95,
+          ((worldX - w.startX) * dx + (worldZ - w.startZ) * dz) / (len * len)
+        ));
+        const projX = w.startX + dx * projT;
+        const projZ = w.startZ + dz * projT;
+        const dist = Math.sqrt((worldX - projX) ** 2 + (worldZ - projZ) ** 2);
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestWallIdx = i;
+          bestT = projT;
+        }
+      }
+      if (bestWallIdx >= 0) {
+        snappedWindows.push({ ...orphan, wallIndex: bestWallIdx, position: bestT });
+      }
+    }
+
+    return { ...level, walls: snappedWalls, doors: snappedDoors, windows: snappedWindows };
   });
 
   // Step 3: Center all geometry around the origin
@@ -640,6 +722,46 @@ export function buildSceneFromGemini(geminiData: GeminiFloorplanData): SceneData
       nodes[item.id] = item;
       level.childIds.push(item.id);
     }
+
+    // Auto-furnish: for zones with no matched catalog items, add furniture
+    const matchedItemCount = levelData.items.filter((i) => matchCatalogItem(i.name) !== null).length;
+    if (matchedItemCount < levelData.rooms.length) {
+      for (const roomData of levelData.rooms) {
+        if (roomData.points.length < 3) continue;
+        const bbox = computeZoneBBox(roomData.points.map((p) => ({ x: p.x, z: p.z })));
+        const furnishItems = autoFurnishZone(roomData.zoneType ?? "room", bbox);
+        for (const fi of furnishItems) {
+          const alreadyPlaced = Object.values(nodes).some(
+            (n) => n.type === "item" && (n as ItemNode).catalogId === fi.catalogId
+          );
+          if (alreadyPlaced) continue;
+
+          const item: ItemNode = {
+            ...createBaseNode("item", fi.name),
+            type: "item",
+            parentId: level.id,
+            itemType: "furniture",
+            catalogId: fi.catalogId,
+            modelUrl: fi.modelUrl,
+            dimensions: fi.dimensions,
+            material: "wood",
+            finishId: fi.materialSlots?.[0]?.finishId ?? "item-oak",
+            finishVariantId: fi.materialSlots?.[0]?.finishVariantId ?? "natural",
+            materialSlots: fi.materialSlots ?? [],
+            assetQualityTier: (fi.qualityTier as "placeholder" | "draft" | "production") ?? "placeholder",
+            assetStyleTier: (fi.styleTier as "realistic" | "stylized") ?? "realistic",
+            bimRef: fi.bimRef,
+            transform: {
+              position: { x: fi.position.x, y: 0, z: fi.position.z },
+              rotation: { x: 0, y: 0, z: 0 },
+              scale: { x: 1, y: 1, z: 1 },
+            },
+          };
+          nodes[item.id] = item;
+          level.childIds.push(item.id);
+        }
+      }
+    }
   }
 
   return validateSceneData({
@@ -651,14 +773,53 @@ export function buildSceneFromGemini(geminiData: GeminiFloorplanData): SceneData
 
 export function validateSceneData(sceneData: SceneData): SceneData {
   const parsed = ensurePascalScene(sceneData).sceneData;
+  const nodesToRemove: string[] = [];
 
+  // 1. Remove orphaned doors/windows (instead of throwing)
   for (const node of Object.values(parsed.nodes)) {
     if (node.type === "door" || node.type === "window") {
       const wallNode = parsed.nodes[node.wallId];
       if (!wallNode || wallNode.type !== "wall") {
-        throw new Error(`Scene node "${node.id}" references missing wall "${node.wallId}"`);
+        console.warn(`[pascal] Removing orphaned ${node.type} "${node.id}"`);
+        nodesToRemove.push(node.id);
       }
     }
+  }
+
+  // 2. Remove items outside scene bounds (±50m)
+  for (const node of Object.values(parsed.nodes)) {
+    if (node.type === "item") {
+      const pos = node.transform.position;
+      if (Math.abs(pos.x) > 50 || Math.abs(pos.z) > 50) {
+        nodesToRemove.push(node.id);
+      }
+    }
+  }
+
+  // 3. Remove duplicate items (same catalogId within 0.5m)
+  const items = Object.values(parsed.nodes).filter((n): n is ItemNode => n.type === "item");
+  for (let i = 0; i < items.length; i++) {
+    if (nodesToRemove.includes(items[i].id)) continue;
+    for (let j = i + 1; j < items.length; j++) {
+      if (nodesToRemove.includes(items[j].id)) continue;
+      if (items[i].catalogId && items[i].catalogId === items[j].catalogId) {
+        const dx = items[i].transform.position.x - items[j].transform.position.x;
+        const dz = items[i].transform.position.z - items[j].transform.position.z;
+        if (Math.sqrt(dx * dx + dz * dz) < 0.5) {
+          nodesToRemove.push(items[j].id);
+        }
+      }
+    }
+  }
+
+  // Apply removals
+  for (const id of nodesToRemove) {
+    const node = parsed.nodes[id];
+    if (node?.parentId) {
+      const parent = parsed.nodes[node.parentId];
+      if (parent) parent.childIds = parent.childIds.filter((cid) => cid !== id);
+    }
+    delete parsed.nodes[id];
   }
 
   return parsed;

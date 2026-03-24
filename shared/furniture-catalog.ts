@@ -99,7 +99,7 @@ const FURNITURE_CATALOG_SEED: CatalogItemSeed[] = [
     modelUrl: `${ASSET_BASE}/sofa-01.glb`,
     thumbnailUrl: null,
     dimensions: { x: 2.2, y: 0.85, z: 0.9 },
-    keywords: ["sofa", "couch", "settee", "loveseat"],
+    keywords: ["sofa", "couch", "settee", "loveseat", "seating"],
   },
   {
     id: "armchair-01",
@@ -108,7 +108,7 @@ const FURNITURE_CATALOG_SEED: CatalogItemSeed[] = [
     modelUrl: `${ASSET_BASE}/armchair-01.glb`,
     thumbnailUrl: null,
     dimensions: { x: 0.9, y: 0.85, z: 0.9 },
-    keywords: ["armchair", "arm chair", "accent chair", "lounge chair"],
+    keywords: ["armchair", "arm chair", "accent chair", "lounge chair", "easy chair"],
   },
   {
     id: "coffee-table-01",
@@ -117,7 +117,7 @@ const FURNITURE_CATALOG_SEED: CatalogItemSeed[] = [
     modelUrl: `${ASSET_BASE}/coffee-table-01.glb`,
     thumbnailUrl: null,
     dimensions: { x: 1.2, y: 0.45, z: 0.6 },
-    keywords: ["coffee table", "center table", "cocktail table"],
+    keywords: ["coffee table", "center table", "cocktail table", "low table"],
   },
   {
     id: "tv-stand-01",
@@ -135,7 +135,7 @@ const FURNITURE_CATALOG_SEED: CatalogItemSeed[] = [
     modelUrl: `${ASSET_BASE}/bookshelf-01.glb`,
     thumbnailUrl: null,
     dimensions: { x: 0.8, y: 1.8, z: 0.35 },
-    keywords: ["bookshelf", "bookcase", "shelf", "shelving"],
+    keywords: ["bookshelf", "bookcase", "shelf", "shelving", "book case", "shelves"],
   },
 
   // ── Bedroom ─────────────────────────────────────────────
@@ -155,7 +155,7 @@ const FURNITURE_CATALOG_SEED: CatalogItemSeed[] = [
     modelUrl: `${ASSET_BASE}/bed-single-01.glb`,
     thumbnailUrl: null,
     dimensions: { x: 0.9, y: 0.5, z: 2.0 },
-    keywords: ["single bed", "twin bed"],
+    keywords: ["single bed", "twin bed", "cot"],
   },
   {
     id: "nightstand-01",
@@ -164,7 +164,7 @@ const FURNITURE_CATALOG_SEED: CatalogItemSeed[] = [
     modelUrl: `${ASSET_BASE}/nightstand-01.glb`,
     thumbnailUrl: null,
     dimensions: { x: 0.5, y: 0.55, z: 0.4 },
-    keywords: ["nightstand", "night stand", "bedside table", "night table"],
+    keywords: ["nightstand", "night stand", "bedside table", "night table", "side table"],
   },
   {
     id: "wardrobe-01",
@@ -182,7 +182,7 @@ const FURNITURE_CATALOG_SEED: CatalogItemSeed[] = [
     modelUrl: `${ASSET_BASE}/desk-01.glb`,
     thumbnailUrl: null,
     dimensions: { x: 1.2, y: 0.75, z: 0.6 },
-    keywords: ["desk", "writing desk", "study desk"],
+    keywords: ["desk", "writing desk", "study desk", "workstation", "work desk"],
   },
 
   // ── Kitchen ─────────────────────────────────────────────
@@ -193,7 +193,7 @@ const FURNITURE_CATALOG_SEED: CatalogItemSeed[] = [
     modelUrl: `${ASSET_BASE}/fridge-01.glb`,
     thumbnailUrl: null,
     dimensions: { x: 0.7, y: 1.8, z: 0.7 },
-    keywords: ["fridge", "refrigerator", "freezer"],
+    keywords: ["fridge", "refrigerator", "freezer", "icebox"],
   },
   {
     id: "oven-01",
@@ -202,7 +202,7 @@ const FURNITURE_CATALOG_SEED: CatalogItemSeed[] = [
     modelUrl: `${ASSET_BASE}/oven-01.glb`,
     thumbnailUrl: null,
     dimensions: { x: 0.6, y: 0.85, z: 0.6 },
-    keywords: ["oven", "stove", "range", "cooktop"],
+    keywords: ["oven", "stove", "range", "cooktop", "cooker"],
   },
   {
     id: "dining-table-01",
@@ -211,7 +211,7 @@ const FURNITURE_CATALOG_SEED: CatalogItemSeed[] = [
     modelUrl: `${ASSET_BASE}/dining-table-01.glb`,
     thumbnailUrl: null,
     dimensions: { x: 1.6, y: 0.75, z: 0.9 },
-    keywords: ["dining table", "kitchen table", "table"],
+    keywords: ["dining table", "kitchen table", "table", "eating table"],
   },
   {
     id: "dining-chair-01",
@@ -229,7 +229,7 @@ const FURNITURE_CATALOG_SEED: CatalogItemSeed[] = [
     modelUrl: `${ASSET_BASE}/sink-kitchen-01.glb`,
     thumbnailUrl: null,
     dimensions: { x: 0.8, y: 0.2, z: 0.5 },
-    keywords: ["kitchen sink", "sink"],
+    keywords: ["kitchen sink", "sink", "basin"],
   },
 
   // ── Bathroom ────────────────────────────────────────────
@@ -240,7 +240,7 @@ const FURNITURE_CATALOG_SEED: CatalogItemSeed[] = [
     modelUrl: `${ASSET_BASE}/toilet-01.glb`,
     thumbnailUrl: null,
     dimensions: { x: 0.4, y: 0.4, z: 0.65 },
-    keywords: ["toilet", "wc", "water closet", "commode"],
+    keywords: ["toilet", "wc", "water closet", "commode", "lavatory"],
   },
   {
     id: "bathtub-01",
@@ -258,7 +258,7 @@ const FURNITURE_CATALOG_SEED: CatalogItemSeed[] = [
     modelUrl: `${ASSET_BASE}/shower-01.glb`,
     thumbnailUrl: null,
     dimensions: { x: 0.9, y: 2.1, z: 0.9 },
-    keywords: ["shower", "shower stall", "shower cabin"],
+    keywords: ["shower", "shower stall", "shower cabin", "shower enclosure"],
   },
   {
     id: "vanity-01",
@@ -267,7 +267,7 @@ const FURNITURE_CATALOG_SEED: CatalogItemSeed[] = [
     modelUrl: `${ASSET_BASE}/vanity-01.glb`,
     thumbnailUrl: null,
     dimensions: { x: 0.8, y: 0.85, z: 0.5 },
-    keywords: ["bathroom vanity", "vanity", "bathroom sink", "washbasin", "basin"],
+    keywords: ["bathroom vanity", "vanity", "bathroom sink", "washbasin", "basin", "wash basin", "basin cabinet"],
   },
 
   // ── Office ──────────────────────────────────────────────
@@ -278,7 +278,7 @@ const FURNITURE_CATALOG_SEED: CatalogItemSeed[] = [
     modelUrl: `${ASSET_BASE}/office-desk-01.glb`,
     thumbnailUrl: null,
     dimensions: { x: 1.5, y: 0.75, z: 0.7 },
-    keywords: ["office desk", "work desk", "computer desk"],
+    keywords: ["office desk", "work desk", "computer desk", "writing desk", "study desk", "workstation"],
   },
   {
     id: "office-chair-01",
@@ -499,7 +499,7 @@ const FURNITURE_CATALOG_SEED: CatalogItemSeed[] = [
     modelUrl: `${ASSET_BASE}/floor-lamp-01.glb`,
     thumbnailUrl: null,
     dimensions: { x: 0.35, y: 1.6, z: 0.35 },
-    keywords: ["floor lamp", "standing lamp", "lamp"],
+    keywords: ["floor lamp", "standing lamp", "lamp", "tall lamp"],
   },
   {
     id: "table-lamp-01",

@@ -4,7 +4,7 @@ export type RendererType = "pascal" | "r3f";
 export function getPreferredRenderer(): RendererType {
   const stored = localStorage.getItem(RENDERER_KEY);
   if (stored === "pascal" || stored === "r3f") return stored;
-  return "pascal";
+  return "r3f";
 }
 
 export function setPreferredRenderer(renderer: RendererType): void {

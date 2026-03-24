@@ -302,10 +302,28 @@ function GrayBoxFallback({ node }: { node: ItemNode }) {
   );
 }
 
+// Track URLs that have already 404'd so we don't retry them every render
+const _failedModelUrls = new Set<string>();
+
 function ItemMesh({ node }: { node: ItemNode }) {
-  if (node.modelUrl) {
+  // Only attempt GLB load if we have a URL that hasn't already failed
+  // and looks like a real remote/CDN URL (not a placeholder local path
+  // pointing to files that don't exist in the public directory)
+  const modelUrl = node.modelUrl;
+  const shouldLoadModel =
+    modelUrl &&
+    !_failedModelUrls.has(modelUrl) &&
+    // Skip local /assets/ paths — there are no GLB files bundled in public/
+    !modelUrl.startsWith("/assets/");
+
+  if (shouldLoadModel) {
     return (
-      <ItemModelErrorBoundary fallback={<GrayBoxFallback node={node} />} catalogId={node.catalogId} modelUrl={node.modelUrl}>
+      <ItemModelErrorBoundary
+        fallback={<FallbackItemMesh node={node} />}
+        catalogId={node.catalogId}
+        modelUrl={modelUrl}
+        onError={() => _failedModelUrls.add(modelUrl)}
+      >
         <Suspense fallback={<FallbackItemMesh node={node} />}>
           <ItemModelMesh node={node} />
         </Suspense>
@@ -315,7 +333,7 @@ function ItemMesh({ node }: { node: ItemNode }) {
   return <FallbackItemMesh node={node} />;
 }
 
-class ItemModelErrorBoundary extends Component<{ fallback: ReactNode; children: ReactNode; catalogId?: string; modelUrl?: string }, { hasError: boolean }> {
+class ItemModelErrorBoundary extends Component<{ fallback: ReactNode; children: ReactNode; catalogId?: string; modelUrl?: string; onError?: () => void }, { hasError: boolean }> {
   state = { hasError: false };
 
   static getDerivedStateFromError() {
@@ -328,6 +346,7 @@ class ItemModelErrorBoundary extends Component<{ fallback: ReactNode; children: 
       modelUrl: this.props.modelUrl,
       error: error.message,
     });
+    this.props.onError?.();
   }
 
   render() {

@@ -3,7 +3,7 @@ import { PascalCanvas } from "./PascalCanvas";
 import { R3FCanvas } from "./R3FCanvas";
 import { PascalRenderBoundary } from "@/components/pascal/PascalRenderBoundary";
 import { ViewerToolbar } from "./ViewerToolbar";
-import { getPreferredRenderer, setPreferredRenderer, type RendererType } from "./RendererHealthCheck";
+import { type RendererType } from "./RendererHealthCheck";
 
 interface FloorplanCanvasProps {
   className?: string;
@@ -11,22 +11,22 @@ interface FloorplanCanvasProps {
 }
 
 export function FloorplanCanvas({ className = "", showToolbar = false }: FloorplanCanvasProps) {
-  const [renderer, setRenderer] = useState<RendererType>(getPreferredRenderer);
+  // Always START with Pascal — don't read from localStorage.
+  // If Pascal fails, fall back to R3F for THIS SESSION only.
+  // Next page load will try Pascal fresh (no sticky localStorage).
+  const [renderer, setRenderer] = useState<RendererType>("pascal");
 
   const switchToR3F = useCallback(() => {
-    setPreferredRenderer("r3f");
     setRenderer("r3f");
   }, []);
 
   const handlePascalFailed = useCallback(() => {
-    console.warn("[FloorplanCanvas] Pascal failed, switching to R3F immediately");
-    setPreferredRenderer("r3f");
+    console.warn("[FloorplanCanvas] Pascal failed this session, switching to R3F");
     setRenderer("r3f");
   }, []);
 
   const toggleRenderer = useCallback(() => {
     const next = renderer === "pascal" ? "r3f" : "pascal";
-    setPreferredRenderer(next);
     setRenderer(next);
   }, [renderer]);
 

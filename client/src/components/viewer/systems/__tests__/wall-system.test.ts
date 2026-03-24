@@ -8,7 +8,11 @@ import {
 } from "../wall-system";
 
 function makeWall(start: { x: number; z: number }, end: { x: number; z: number }) {
+  const id = `00000000-0000-4000-8000-${String(
+    Math.abs(start.x * 10_000 + start.z * 1_000 + end.x * 100 + end.z * 10)
+  ).padStart(12, "0")}`;
   return createNode("wall", {
+    id,
     start: { x: start.x, y: 0, z: start.z },
     end: { x: end.x, y: 0, z: end.z },
   });

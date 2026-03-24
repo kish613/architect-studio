@@ -1,4 +1,38 @@
 import { vi } from "vitest";
+
+vi.mock("@pascal-app/viewer", () => ({
+  useViewer: Object.assign(() => ({}), {
+    getState: () => ({
+      setSelection: vi.fn(),
+      setCameraMode: vi.fn(),
+      setLevelMode: vi.fn(),
+      setShowScans: vi.fn(),
+      setShowGuides: vi.fn(),
+      setShowGrid: vi.fn(),
+      setWallMode: vi.fn(),
+      setHoveredId: vi.fn(),
+      setTheme: vi.fn(),
+    }),
+    subscribe: vi.fn(() => vi.fn()),
+    setState: vi.fn(),
+  }),
+}));
+
+vi.mock("@pascal-app/core", () => ({
+  useScene: Object.assign(() => ({}), {
+    getState: () => ({
+      nodes: {},
+      updateNodes: vi.fn(),
+      updateNode: vi.fn(),
+      createNode: vi.fn(),
+      deleteNode: vi.fn(),
+      setScene: vi.fn(),
+    }),
+    subscribe: vi.fn(() => vi.fn()),
+    setState: vi.fn(),
+  }),
+}));
+
 import { useScene } from "@/stores/use-scene";
 import { useViewer } from "@/stores/use-viewer";
 import { createEmptyScene, createNode } from "@/lib/pascal/schemas";

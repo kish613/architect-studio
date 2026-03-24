@@ -22,6 +22,13 @@ import { useViewer as pascalUseViewer } from "@pascal-app/viewer";
 // Re-export Pascal's useScene and sceneRegistry directly so consumers can use it
 export { useScene as pascalUseScene, sceneRegistry as pascalSceneRegistry } from "@pascal-app/core";
 
+// ---------- Pascal scene ready signal ----------
+let _pascalSceneReady = false;
+
+export function isPascalSceneReady(): boolean {
+  return _pascalSceneReady;
+}
+
 // ---------- ID mapping ----------
 
 // We maintain a bidirectional map between our UUIDs and Pascal-prefixed IDs
@@ -414,6 +421,8 @@ export function syncNodeUpdateToPascal(
  * then load it into Pascal's useScene store via `setScene`.
  */
 export function loadSceneIntoPascal(sceneData: OurSceneData): void {
+  _pascalSceneReady = false;
+
   // Clear previous ID mappings
   clearIdMappings();
 
@@ -459,8 +468,15 @@ export function loadSceneIntoPascal(sceneData: OurSceneData): void {
 
   // Auto-set active building and level so Pascal's Viewer knows what to render
   const buildingNode = Object.values(pascalNodes).find(n => n.type === "building");
-  const levelNode = Object.values(pascalNodes).find(n => n.type === "level");
   if (buildingNode) {
+    // Find a level that is a child of this building (not just any level in the scene)
+    const buildingChildren: string[] = (buildingNode as any).children ?? [];
+    const levelNode = buildingChildren.length > 0
+      ? Object.values(pascalNodes).find(
+          n => n.type === "level" && buildingChildren.includes(n.id),
+        )
+      : Object.values(pascalNodes).find(n => n.type === "level");
+
     pascalUseViewer.getState().setSelection({
       buildingId: buildingNode.id as any,
       levelId: levelNode?.id as any ?? null,
@@ -468,4 +484,6 @@ export function loadSceneIntoPascal(sceneData: OurSceneData): void {
       selectedIds: [],
     });
   }
+
+  _pascalSceneReady = true;
 }

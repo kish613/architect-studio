@@ -9,6 +9,8 @@ import {
   Layers,
   SeparatorHorizontal,
   Square,
+  Sparkles,
+  Box,
 } from "lucide-react";
 
 function ToolbarButton({
@@ -41,7 +43,13 @@ function ToolbarDivider() {
   return <div className="w-px h-6 bg-white/10" />;
 }
 
-export function ViewerToolbar() {
+export function ViewerToolbar({
+  onToggleRenderer,
+  activeRenderer,
+}: {
+  onToggleRenderer?: () => void;
+  activeRenderer?: "pascal" | "r3f";
+} = {}) {
   const theme = useViewer((s) => s.theme);
   const toggleTheme = useViewer((s) => s.toggleTheme);
   const cameraMode = useViewer((s) => s.cameraMode);
@@ -112,6 +120,17 @@ export function ViewerToolbar() {
           active={levelMode === "solo"}
           onClick={() => setLevelMode("solo")}
         />
+
+        {onToggleRenderer && (
+          <>
+            <ToolbarDivider />
+            <ToolbarButton
+              icon={activeRenderer === "pascal" ? Sparkles : Box}
+              label={activeRenderer === "pascal" ? "Pascal" : "Standard"}
+              onClick={onToggleRenderer}
+            />
+          </>
+        )}
       </div>
     </div>
   );

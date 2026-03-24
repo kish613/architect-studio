@@ -1,3 +1,38 @@
+import { vi } from "vitest";
+
+vi.mock("@pascal-app/viewer", () => ({
+  useViewer: Object.assign(() => ({}), {
+    getState: () => ({
+      setSelection: vi.fn(),
+      setCameraMode: vi.fn(),
+      setLevelMode: vi.fn(),
+      setShowScans: vi.fn(),
+      setShowGuides: vi.fn(),
+      setShowGrid: vi.fn(),
+      setWallMode: vi.fn(),
+      setHoveredId: vi.fn(),
+      setTheme: vi.fn(),
+    }),
+    subscribe: vi.fn(() => vi.fn()),
+    setState: vi.fn(),
+  }),
+}));
+
+vi.mock("@pascal-app/core", () => ({
+  useScene: Object.assign(() => ({}), {
+    getState: () => ({
+      nodes: {},
+      updateNodes: vi.fn(),
+      updateNode: vi.fn(),
+      createNode: vi.fn(),
+      deleteNode: vi.fn(),
+      setScene: vi.fn(),
+    }),
+    subscribe: vi.fn(() => vi.fn()),
+    setState: vi.fn(),
+  }),
+}));
+
 import { useViewer } from "@/stores/use-viewer";
 import type { CameraMode, LevelMode } from "@/stores/use-viewer";
 
@@ -10,6 +45,8 @@ beforeEach(() => {
     activeLevelId: null,
     activeZoneId: null,
     cameraMode: "perspective",
+    cameraPreset: null,
+    isCameraNavigating: false,
     levelMode: "stacked",
     soloLevelId: null,
     explodedSpacing: 3,
@@ -74,6 +111,11 @@ describe("useViewer – camera", () => {
     expect(state().cameraMode).toBe("orthographic");
   });
 
+  it("setCameraPreset stores the active preset", () => {
+    state().setCameraPreset("top");
+    expect(state().cameraPreset).toBe("top");
+  });
+
   it("toggleCameraMode flips perspective to orthographic", () => {
     expect(state().cameraMode).toBe("perspective");
     state().toggleCameraMode();
@@ -84,6 +126,14 @@ describe("useViewer – camera", () => {
     state().toggleCameraMode();
     state().toggleCameraMode();
     expect(state().cameraMode).toBe("perspective");
+  });
+
+  it("tracks whether the camera is actively navigating", () => {
+    expect(state().isCameraNavigating).toBe(false);
+    state().setCameraNavigating(true);
+    expect(state().isCameraNavigating).toBe(true);
+    state().setCameraNavigating(false);
+    expect(state().isCameraNavigating).toBe(false);
   });
 });
 

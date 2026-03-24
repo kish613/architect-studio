@@ -6,6 +6,7 @@ import { useScene } from "@/stores/use-scene";
 import { useViewer } from "@/stores/use-viewer";
 import { createNode } from "@/lib/pascal/schemas";
 import { createCatalogPlacementNode } from "@/lib/pascal/item-placement";
+import { shouldHandlePrimaryCanvasAction } from "@/lib/viewer/interaction";
 
 function NativeLine({ points, color }: { points: [number, number, number][]; color: string }) {
   const lineObj = useMemo(() => {
@@ -38,6 +39,7 @@ export function DrawingInteraction() {
   const addNode = useScene((s) => s.addNode);
   const activeLevelId = useViewer((s) => s.activeLevelId);
   const select = useViewer((s) => s.select);
+  const isCameraNavigating = useViewer((s) => s.isCameraNavigating);
 
   const { camera, gl } = useThree();
 
@@ -68,12 +70,13 @@ export function DrawingInteraction() {
     const canvas = gl.domElement;
 
     const onPointerMove = (e: PointerEvent) => {
+      if (isCameraNavigating) return;
       const pt = getGroundPoint(e.clientX, e.clientY);
       if (pt) setPreviewPoint(pt);
     };
 
     const onClick = (e: MouseEvent) => {
-      if (e.button !== 0) return; // left click only
+      if (!shouldHandlePrimaryCanvasAction({ button: e.button, isCameraNavigating })) return;
       const pt = getGroundPoint(e.clientX, e.clientY);
       if (!pt) return;
 
@@ -130,11 +133,12 @@ export function DrawingInteraction() {
     activeLevelId,
     setPreviewPoint,
     phase,
-    placingCatalogItem,
-    isItemPlacement,
-    select,
-    cancelAction,
-  ]);
+      placingCatalogItem,
+      isItemPlacement,
+      select,
+      cancelAction,
+      isCameraNavigating,
+    ]);
 
   if (!isWallTool && !isItemPlacement) return null;
 

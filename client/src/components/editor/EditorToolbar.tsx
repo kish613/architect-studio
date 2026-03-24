@@ -5,7 +5,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import {
   MousePointer2, Minus, DoorOpen, Square, Layers,
   Triangle, Home, Box, Ruler, ScanLine, Pencil,
-  Move, Eraser, AppWindow,
+  Eraser, AppWindow,
 } from "lucide-react";
 
 const TOOLS: Array<{ tool: EditorTool; icon: React.ComponentType<{ className?: string }>; label: string }> = [
@@ -21,7 +21,6 @@ const TOOLS: Array<{ tool: EditorTool; icon: React.ComponentType<{ className?: s
   { tool: "guide", icon: Pencil, label: "Draw Guide" },
   { tool: "scan", icon: ScanLine, label: "Place Scan" },
   { tool: "measure", icon: Ruler, label: "Measure" },
-  { tool: "pan", icon: Move, label: "Pan" },
   { tool: "eraser", icon: Eraser, label: "Eraser" },
 ];
 

@@ -1,10 +1,12 @@
-import { Suspense, useRef, useState, useEffect } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, useGLTF, Environment, Center, ContactShadows, Html, useProgress } from "@react-three/drei";
 import { Box, Download, ExternalLink, AlertCircle, Smartphone, Image, Cuboid, ZoomIn, ZoomOut, Expand } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isMobileDevice } from "@/lib/utils";
 import * as THREE from "three";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
+import { applyModelViewerControlAction, getViewerInteractionConfig, type ModelViewerControlAction } from "@/lib/viewer/interaction";
 
 function Loader() {
   const { progress } = useProgress();
@@ -42,25 +44,25 @@ function Model({ url, onError }: ModelProps) {
   );
 }
 
-function CameraController() {
-  const { camera } = useThree();
+function CanvasSurfaceBehavior({ cursor }: { cursor: string }) {
+  const { gl } = useThree();
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const onContextMenu = (event: MouseEvent) => {
+      event.preventDefault();
+    };
+
+    canvas.addEventListener("contextmenu", onContextMenu);
+    return () => canvas.removeEventListener("contextmenu", onContextMenu);
+  }, [gl]);
 
   useEffect(() => {
-    const handleZoom = (e: any) => {
-      const action = e.detail;
-      if (action === 'in') {
-        camera.translateZ(-1.5);
-      } else if (action === 'out') {
-        camera.translateZ(1.5);
-      } else if (action === 'reset') {
-        camera.position.set(5, 5, 5);
-        camera.lookAt(0, 0, 0);
-        camera.updateProjectionMatrix();
-      }
+    const canvas = gl.domElement;
+    canvas.style.cursor = cursor;
+    return () => {
+      canvas.style.cursor = "";
     };
-    window.addEventListener('3d-zoom', handleZoom);
-    return () => window.removeEventListener('3d-zoom', handleZoom);
-  }, [camera]);
+  }, [cursor, gl]);
 
   return null;
 }
@@ -214,9 +216,17 @@ function getProxiedUrl(url: string): string {
 
 export function Model3DViewer({ modelUrl, isometricUrl, className = "" }: Model3DViewerProps) {
   const [hasError, setHasError] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   // Initialize mobile state immediately to prevent WebGL canvas from mounting on mobile
   const [isMobile] = useState(() => isMobileDevice());
   const proxiedUrl = getProxiedUrl(modelUrl);
+  const controlsRef = useRef<OrbitControlsImpl>(null);
+  const interaction = useMemo(() => getViewerInteractionConfig("model"), []);
+
+  const handleControlAction = useCallback((action: ModelViewerControlAction) => {
+    if (!controlsRef.current) return;
+    applyModelViewerControlAction(controlsRef.current, action);
+  }, []);
 
   // Show mobile-friendly view on mobile devices
   if (isMobile) {
@@ -245,14 +255,23 @@ export function Model3DViewer({ modelUrl, isometricUrl, className = "" }: Model3
         </Suspense>
 
         <ContactShadows position={[0, -1.5, 0]} opacity={0.5} blur={2} />
+        <CanvasSurfaceBehavior
+          cursor={isNavigating ? interaction.navigationCursor : interaction.idleCursor}
+        />
         <OrbitControls
+          ref={controlsRef}
           enablePan={true}
           enableZoom={true}
-          enableRotate={true}
+          enableRotate={interaction.enableRotate}
+          enableDamping={interaction.enableDamping}
+          dampingFactor={interaction.dampingFactor}
+          mouseButtons={interaction.mouseButtons}
+          touches={interaction.touches}
           minDistance={1}
           maxDistance={30}
+          onStart={() => setIsNavigating(true)}
+          onEnd={() => setIsNavigating(false)}
         />
-        <CameraController />
       </Canvas>
 
       {/* Controls overlay */}
@@ -262,7 +281,7 @@ export function Model3DViewer({ modelUrl, isometricUrl, className = "" }: Model3
             variant="ghost"
             size="icon"
             className="h-8 w-8 text-white hover:bg-white/20"
-            onClick={() => window.dispatchEvent(new CustomEvent('3d-zoom', { detail: 'in' }))}
+            onClick={() => handleControlAction("in")}
           >
             <ZoomIn className="w-4 h-4" />
           </Button>
@@ -270,7 +289,7 @@ export function Model3DViewer({ modelUrl, isometricUrl, className = "" }: Model3
             variant="ghost"
             size="icon"
             className="h-8 w-8 text-white hover:bg-white/20"
-            onClick={() => window.dispatchEvent(new CustomEvent('3d-zoom', { detail: 'out' }))}
+            onClick={() => handleControlAction("out")}
           >
             <ZoomOut className="w-4 h-4" />
           </Button>
@@ -278,7 +297,7 @@ export function Model3DViewer({ modelUrl, isometricUrl, className = "" }: Model3
             variant="ghost"
             size="icon"
             className="h-8 w-8 text-white hover:bg-white/20"
-            onClick={() => window.dispatchEvent(new CustomEvent('3d-zoom', { detail: 'reset' }))}
+            onClick={() => handleControlAction("reset")}
           >
             <Expand className="w-4 h-4" />
           </Button>
@@ -294,7 +313,7 @@ export function Model3DViewer({ modelUrl, isometricUrl, className = "" }: Model3
 
       {/* Help text */}
       <div className="absolute top-4 left-4 text-xs text-white/60 backdrop-blur-md bg-black/30 px-3 py-2 rounded-lg">
-        <p>Drag to rotate • Scroll to zoom • Right-click to pan</p>
+        <p>{interaction.helpText}</p>
       </div>
     </div>
   );

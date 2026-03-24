@@ -36,6 +36,8 @@ const mocks = vi.hoisted(() => {
     selectedIds: [],
     clearSelection: vi.fn(),
     resetViewState: vi.fn(),
+    setActiveBuilding: vi.fn(),
+    setActiveLevel: vi.fn(),
   };
 
   const editorStore = {

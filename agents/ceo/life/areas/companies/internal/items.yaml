@@ -3,8 +3,8 @@
   status: active
   created_at: 2026-03-17
   updated_at: 2026-03-17
-  last_accessed: 2026-03-18
-  access_count: 7
+  last_accessed: 2026-03-19
+  access_count: 11
   confidence: high
   tags:
     - workspace
@@ -15,8 +15,8 @@
   status: active
   created_at: 2026-03-17
   updated_at: 2026-03-17
-  last_accessed: 2026-03-18
-  access_count: 7
+  last_accessed: 2026-03-19
+  access_count: 11
   confidence: high
   tags:
     - approvals
@@ -27,8 +27,8 @@
   status: active
   created_at: 2026-03-17
   updated_at: 2026-03-17
-  last_accessed: 2026-03-18
-  access_count: 6
+  last_accessed: 2026-03-19
+  access_count: 10
   confidence: high
   tags:
     - strategy
@@ -39,8 +39,8 @@
   status: active
   created_at: 2026-03-17
   updated_at: 2026-03-17
-  last_accessed: 2026-03-18
-  access_count: 5
+  last_accessed: 2026-03-19
+  access_count: 9
   confidence: high
   tags:
     - approvals

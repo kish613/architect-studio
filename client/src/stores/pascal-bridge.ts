@@ -520,5 +520,14 @@ export function loadSceneIntoPascal(sceneData: OurSceneData): void {
     });
   }
 
-  _pascalSceneReady = true;
+  // Give Pascal's store one frame to process the scene data before
+  // signaling readiness — prevents the Viewer from mounting before
+  // the internal dirty-node reconciliation finishes.
+  if (typeof requestAnimationFrame === "function") {
+    requestAnimationFrame(() => {
+      _pascalSceneReady = true;
+    });
+  } else {
+    _pascalSceneReady = true;
+  }
 }

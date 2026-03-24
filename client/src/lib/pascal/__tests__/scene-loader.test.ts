@@ -119,7 +119,12 @@ describe("loadPascalScene", () => {
       rootNodeIds: ["11111111-1111-4111-8111-111111111111"],
     });
 
-    expect(result.status).toBe("error");
-    expect(result.diagnostics.some((diagnostic) => diagnostic.code === "missing-wall-reference")).toBe(true);
+    // Scene should now recover by removing the orphan door instead of failing
+    expect(result.status).toBe("recovered");
+    expect(result.diagnostics.some((diagnostic) => diagnostic.code === "orphan-wall-ref-removed")).toBe(true);
+    // The door should have been removed from the scene
+    expect(result.sceneData).not.toBeNull();
+    const nodeTypes = Object.values(result.sceneData!.nodes).map((n) => n.type);
+    expect(nodeTypes).not.toContain("door");
   });
 });

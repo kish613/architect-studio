@@ -109,19 +109,16 @@ export function loadPascalScene(input: string | unknown): PascalSceneLoadResult 
 
   try {
     const sceneData = sceneDataSchema.parse(normalized);
-    const referenceDiagnostics = validateSceneReferences(sceneData);
-    if (referenceDiagnostics.length > 0) {
-      diagnostics.push(...referenceDiagnostics);
-      return {
-        status: "error",
-        sceneData: null,
-        diagnostics,
-      };
+    // Repair bad wall references by removing orphan doors/windows
+    // instead of rejecting the entire scene (which causes blank screens)
+    const { repaired, diagnostics: refDiags } = repairSceneReferences(sceneData);
+    if (refDiags.length > 0) {
+      diagnostics.push(...refDiags);
     }
 
     return {
       status: diagnostics.length > 0 ? "recovered" : "ok",
-      sceneData,
+      sceneData: repaired,
       diagnostics,
     };
   } catch (error) {
@@ -545,8 +542,18 @@ function rebuildHierarchy(nodes: MutableNodeMap, diagnostics: PascalSceneDiagnos
   return normalizedNodes;
 }
 
-function validateSceneReferences(sceneData: SceneData): PascalSceneDiagnostic[] {
+/**
+ * Repair (not reject) bad wall references.
+ * Doors/windows referencing non-existent walls are removed from the scene
+ * and their parent's childIds are cleaned up. This prevents blank screens
+ * from a single bad reference killing the entire render pipeline.
+ */
+function repairSceneReferences(sceneData: SceneData): {
+  repaired: SceneData;
+  diagnostics: PascalSceneDiagnostic[];
+} {
   const diagnostics: PascalSceneDiagnostic[] = [];
+  const nodesToRemove = new Set<string>();
 
   for (const node of Object.values(sceneData.nodes)) {
     if (node.type !== "door" && node.type !== "window") {
@@ -555,16 +562,42 @@ function validateSceneReferences(sceneData: SceneData): PascalSceneDiagnostic[] 
 
     const wallNode = sceneData.nodes[node.wallId];
     if (!wallNode || wallNode.type !== "wall") {
+      nodesToRemove.add(node.id);
       diagnostics.push({
         stage: "validate",
-        code: "missing-wall-reference",
-        message: `Pascal node "${node.name}" references missing wall "${node.wallId}".`,
+        code: "orphan-wall-ref-removed",
+        message: `Pascal ${node.type} "${node.name}" referenced missing wall "${node.wallId}" — removed from scene.`,
         nodeId: node.id,
       });
     }
   }
 
-  return diagnostics;
+  if (nodesToRemove.size === 0) {
+    return { repaired: sceneData, diagnostics };
+  }
+
+  // Remove orphan nodes and clean up parent childIds
+  const repairedNodes = { ...sceneData.nodes };
+  for (const id of nodesToRemove) {
+    const node = repairedNodes[id];
+    if (node?.parentId && repairedNodes[node.parentId]) {
+      const parent = repairedNodes[node.parentId];
+      repairedNodes[node.parentId] = {
+        ...parent,
+        childIds: parent.childIds.filter((cid) => cid !== id),
+      } as typeof parent;
+    }
+    delete repairedNodes[id];
+  }
+
+  return {
+    repaired: {
+      ...sceneData,
+      nodes: repairedNodes,
+      rootNodeIds: sceneData.rootNodeIds.filter((id) => !nodesToRemove.has(id)),
+    },
+    diagnostics,
+  };
 }
 
 function parseNodeType(value: unknown): NodeType | null {

@@ -297,17 +297,31 @@ export function Viewer() {
       return null;
     }
 
-    return loadPascalScene(model.pascalData);
+    const result = loadPascalScene(model.pascalData);
+    // Always log diagnostics so we can debug rendering issues
+    if (result.diagnostics.length > 0) {
+      console.warn("[Viewer] Pascal scene load diagnostics:", result.diagnostics);
+    }
+    console.log("[Viewer] Pascal load result:", {
+      status: result.status,
+      nodeCount: result.sceneData ? Object.keys(result.sceneData.nodes).length : 0,
+      diagnosticCount: result.diagnostics.length,
+    });
+    return result;
   }, [model?.pascalData]);
   const hasRenderablePascal = pascalLoadResult !== null && pascalLoadResult.status !== "error";
 
   // Load Pascal geometry into scene store when available
   useEffect(() => {
     if (!hasPascal || !pascalLoadResult || pascalLoadResult.status === "error") {
+      if (pascalLoadResult?.status === "error") {
+        console.error("[Viewer] Pascal scene failed to load:", pascalLoadResult.diagnostics);
+      }
       resetPascalWorkspace();
       return;
     }
 
+    console.log("[Viewer] Loading Pascal scene with", Object.keys(pascalLoadResult.sceneData.nodes).length, "nodes");
     loadScene(pascalLoadResult.sceneData);
   }, [hasPascal, loadScene, pascalLoadResult, resetPascalWorkspace]);
 

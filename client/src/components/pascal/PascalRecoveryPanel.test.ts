@@ -12,8 +12,8 @@ describe("PascalRecoveryPanel", () => {
         diagnostics: [
           {
             stage: "validate",
-            code: "missing-wall-reference",
-            message: 'Door "Kitchen Door" references a wall that no longer exists.',
+            code: "orphan-wall-ref-removed",
+            message: 'Door "Kitchen Door" referenced missing wall — removed from scene.',
           },
         ],
         primaryAction: { label: "Open Original View", onClick: vi.fn() },
@@ -23,8 +23,8 @@ describe("PascalRecoveryPanel", () => {
 
     expect(markup).toContain("Pascal scene could not be validated");
     expect(markup).toContain("The stored scene payload is malformed.");
-    expect(markup).toContain("missing-wall-reference");
-    expect(markup).toContain("Door &quot;Kitchen Door&quot; references a wall that no longer exists.");
+    expect(markup).toContain("orphan-wall-ref-removed");
+    expect(markup).toContain("Door &quot;Kitchen Door&quot; referenced missing wall — removed from scene.");
     expect(markup).toContain("Open Original View");
     expect(markup).toContain("Back to Projects");
   });

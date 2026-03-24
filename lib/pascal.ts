@@ -394,7 +394,14 @@ General rules:
 
   const body = await response.json();
   const jsonText = extractGeminiFloorplanText(body);
+  console.log(`[parseFloorplanWithGemini] Raw Gemini JSON length: ${jsonText.length} chars`);
   const raw = parseGeminiFloorplanJson(jsonText);
+
+  // Log window counts per level for debugging
+  for (const level of raw.levels) {
+    console.log(`[parseFloorplanWithGemini] Level "${level.name}": ${level.walls.length} walls, ${level.doors.length} doors, ${level.windows.length} windows, ${level.rooms.length} rooms, ${level.items.length} items`);
+  }
+
   return postProcessGeminiData(raw);
 }
 

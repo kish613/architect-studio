@@ -82,8 +82,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
     const mimeType = imageResponse.headers.get("content-type") || "image/png";
+
+    console.log(`[generate-pascal] Model ${modelId}: Starting Gemini parse, image ${Math.round(imageBuffer.length / 1024)}KB, mime=${mimeType}`);
     const geminiData = await parseFloorplanWithGemini(imageBuffer, mimeType);
+    const geminiSummary = summarizeGeminiFloorplanData(geminiData);
+    console.log(`[generate-pascal] Model ${modelId}: Gemini returned ${geminiSummary.wallCount} walls, ${geminiSummary.doorCount} doors, ${geminiSummary.windowCount} windows, ${geminiSummary.roomCount} rooms, ${geminiSummary.itemCount} items`);
+
     const sceneData = buildSceneFromGemini(geminiData);
+    const sceneSummary = summarizeSceneData(sceneData);
+    console.log(`[generate-pascal] Model ${modelId}: Scene built with ${sceneSummary.nodeCount} nodes (${sceneSummary.wallCount}W ${sceneSummary.doorCount}D ${sceneSummary.windowCount}Win ${sceneSummary.zoneCount}Z ${sceneSummary.itemCount}I)`);
 
     const deducted = await deductCredit(user.id);
     if (!deducted) {

@@ -42,7 +42,7 @@ export function getWindowMaterials(isSelected: boolean): {
     }),
     glass: new THREE.MeshPhysicalMaterial({
       color: isSelected ? "#78B4FF" : "#cce8f4",
-      transmission: 0.85,
+      transmission: 0.7,
       roughness: 0.05,
       metalness: 0,
       ior: 1.5,
@@ -50,8 +50,8 @@ export function getWindowMaterials(isSelected: boolean): {
       transparent: true,
       opacity: 0.5,
       envMapIntensity: 1.0,
-      emissive: "#e0f0ff",
-      emissiveIntensity: 0.08,
+      emissive: "#88ccff",
+      emissiveIntensity: 0.05,
     }),
   };
 }

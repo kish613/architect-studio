@@ -7,7 +7,7 @@ export type CameraMode = "perspective" | "orthographic";
 export type LevelMode = "stacked" | "exploded" | "solo";
 export type WallMode = "up" | "cutaway" | "down";
 type VisibilityKey =
-  | "showWalls" | "showCeilings" | "showSlabs" | "showRoofs"
+  | "showWalls" | "showWindows" | "showCeilings" | "showSlabs" | "showRoofs"
   | "showItems" | "showZones" | "showGuides" | "showScans"
   | "showGrid" | "showDimensions";
 
@@ -26,6 +26,7 @@ interface ViewerState {
   soloLevelId: string | null;
   explodedSpacing: number;
   showWalls: boolean;
+  showWindows: boolean;
   showCeilings: boolean;
   showSlabs: boolean;
   showRoofs: boolean;
@@ -116,6 +117,7 @@ function syncVisibilityToPascal(key: VisibilityKey, value: boolean): void {
   // For node-type visibility, batch-update `visible` on matching nodes in Pascal's scene store
   const typeMap: Record<string, string> = {
     showWalls: "wall",
+    showWindows: "window",
     showSlabs: "slab",
     showCeilings: "ceiling",
     showRoofs: "roof",
@@ -159,6 +161,7 @@ export const useViewer = create<ViewerState>((set, get) => ({
   soloLevelId: null,
   explodedSpacing: 3,
   showWalls: true,
+  showWindows: true,
   showCeilings: true,
   showSlabs: true,
   showRoofs: true,
@@ -272,6 +275,7 @@ export const useViewer = create<ViewerState>((set, get) => ({
       soloLevelId: null,
       explodedSpacing: 3,
       showWalls: true,
+      showWindows: true,
       showCeilings: true,
       showSlabs: true,
       showRoofs: true,

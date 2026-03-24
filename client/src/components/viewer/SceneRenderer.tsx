@@ -48,7 +48,10 @@ function DoorMesh({ node, walls }: { node: DoorNode; walls: Record<string, WallN
   const selectedIds = useViewer((s) => s.selectedIds);
   const isSelected = selectedIds.includes(node.id);
   const wall = walls[node.wallId];
-  if (!wall) return null;
+  if (!wall) {
+    console.warn('[DoorMesh] Wall not found for door', node.id, 'wallId:', node.wallId);
+    return null;
+  }
   const position = getDoorPositionOnWall(node, wall);
   const { frame, panel } = useMemo(() => createDoorGeometries(node), [node]);
   const materials = useMemo(() => getDoorMaterials(isSelected), [isSelected]);
@@ -80,7 +83,10 @@ function WindowMesh({ node, walls }: { node: WindowNode; walls: Record<string, W
   const selectedIds = useViewer((s) => s.selectedIds);
   const isSelected = selectedIds.includes(node.id);
   const wall = walls[node.wallId];
-  if (!wall) return null;
+  if (!wall) {
+    console.warn('[WindowMesh] Wall not found for window', node.id, 'wallId:', node.wallId);
+    return null;
+  }
   const position = getWindowPositionOnWall(node, wall);
   const { frame, glass } = useMemo(() => createWindowGeometries(node), [node]);
   const materials = useMemo(() => getWindowMaterials(isSelected), [isSelected]);
@@ -102,7 +108,7 @@ function WindowMesh({ node, walls }: { node: WindowNode; walls: Record<string, W
       }}
       userData={{ nodeId: node.id }}
     >
-      <mesh geometry={frame} material={materials.frame} />
+      <mesh geometry={frame} material={materials.frame} castShadow />
       <mesh geometry={glass} material={materials.glass} />
     </group>
   );
@@ -208,8 +214,19 @@ function ItemModelMesh({ node }: { node: ItemNode }) {
             const col = (cloned as THREE.MeshStandardMaterial).color;
             if (col && col.r > 0.9 && col.g < 0.1 && col.b > 0.9) {
               return new THREE.MeshStandardMaterial({
-                color: new THREE.Color("#b78d63"),
+                color: new THREE.Color("#888888"),
                 roughness: 0.58,
+                metalness: 0.02,
+              });
+            }
+          }
+          // Replace materials with missing/broken textures
+          if ('map' in cloned) {
+            const std = cloned as THREE.MeshStandardMaterial;
+            if (std.map && (!std.map.image || std.map.image.width === 0)) {
+              return new THREE.MeshStandardMaterial({
+                color: new THREE.Color("#888888"),
+                roughness: 0.6,
                 metalness: 0.02,
               });
             }
@@ -259,10 +276,36 @@ function ItemModelMesh({ node }: { node: ItemNode }) {
   );
 }
 
+function GrayBoxFallback({ node }: { node: ItemNode }) {
+  const d = node.dimensions ?? { x: 1, y: 1, z: 1 };
+  const { position, rotationY } = getItemTransform(node);
+  const geometry = useMemo(() => new THREE.BoxGeometry(d.x, d.y, d.z), [d.x, d.y, d.z]);
+  const material = useMemo(() => new THREE.MeshStandardMaterial({ color: "#888888", roughness: 0.6, metalness: 0.02 }), []);
+
+  useEffect(() => { return () => { geometry.dispose(); }; }, [geometry]);
+  useEffect(() => { return () => { material.dispose(); }; }, [material]);
+
+  return (
+    <mesh
+      geometry={geometry}
+      material={material}
+      position={position}
+      rotation={[0, rotationY, 0]}
+      castShadow
+      receiveShadow
+      ref={(mesh) => {
+        if (mesh) sceneRegistry.register(node.id, mesh);
+        else sceneRegistry.unregister(node.id);
+      }}
+      userData={{ nodeId: node.id }}
+    />
+  );
+}
+
 function ItemMesh({ node }: { node: ItemNode }) {
   if (node.modelUrl) {
     return (
-      <ItemModelErrorBoundary fallback={<FallbackItemMesh node={node} />}>
+      <ItemModelErrorBoundary fallback={<GrayBoxFallback node={node} />} catalogId={node.catalogId} modelUrl={node.modelUrl}>
         <Suspense fallback={<FallbackItemMesh node={node} />}>
           <ItemModelMesh node={node} />
         </Suspense>
@@ -272,11 +315,19 @@ function ItemMesh({ node }: { node: ItemNode }) {
   return <FallbackItemMesh node={node} />;
 }
 
-class ItemModelErrorBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { hasError: boolean }> {
+class ItemModelErrorBoundary extends Component<{ fallback: ReactNode; children: ReactNode; catalogId?: string; modelUrl?: string }, { hasError: boolean }> {
   state = { hasError: false };
 
   static getDerivedStateFromError() {
     return { hasError: true };
+  }
+
+  componentDidCatch(error: Error) {
+    console.warn('[ItemModelErrorBoundary] Failed to load GLB model', {
+      catalogId: this.props.catalogId,
+      modelUrl: this.props.modelUrl,
+      error: error.message,
+    });
   }
 
   render() {
@@ -304,6 +355,7 @@ export function SceneRenderer() {
 
   const nodes = useScene((s) => s.nodes);
   const showWalls = useViewer((s) => s.showWalls);
+  const showWindows = useViewer((s) => s.showWindows);
   const showSlabs = useViewer((s) => s.showSlabs);
   const showRoofs = useViewer((s) => s.showRoofs);
   const showItems = useViewer((s) => s.showItems);
@@ -361,7 +413,7 @@ export function SceneRenderer() {
           <DoorMesh node={d} walls={wallMap} />
         </group>
       ))}
-      {showWalls && windows.map((w) => (
+      {showWindows && windows.map((w) => (
         <group key={w.id} position={getOffset(w.id)}>
           <WindowMesh node={w} walls={wallMap} />
         </group>

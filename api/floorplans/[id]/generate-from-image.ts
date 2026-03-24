@@ -415,6 +415,12 @@ Rules:
 - Default wall height: 2.7, default wall thickness: 0.15.
 - Default door width: 0.9, door height: 2.1.
 - Default window width: 1.2, window height: 1.2, sill height: 0.9.
+- Window "position" must be between 0.1 and 0.9 (never at wall endpoints).
+- Every exterior wall MUST have at least one window unless it is a garage, utility, or bathroom wall.
+- Bathrooms should have smaller, higher windows (width: 0.6, height: 0.6, sillHeight: 1.5).
+- Bedrooms and living rooms should have larger windows (width: 1.5, height: 1.4).
+- Kitchens should have at least one window above the countertop (sillHeight: 1.0).
+- windowType should be "casement" for most rooms, "fixed" for large living room windows, "sash" for bedrooms.
 - Include ALL visible walls, doors, and windows.
 - If a value cannot be determined, use the default.
 

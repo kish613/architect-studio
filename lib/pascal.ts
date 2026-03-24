@@ -307,6 +307,13 @@ Rules:
 - Door "position" must be between 0.05 and 0.95 (never at wall endpoints).
 - Door "wallIndex" must be a valid index into the "walls" array for this level.
 - Window "wallIndex" must be a valid index into the "walls" array for this level.
+- Default window width: 1.2, window height: 1.2, sill height: 0.9.
+- Window "position" must be between 0.1 and 0.9 (never at wall endpoints).
+- Every exterior wall MUST have at least one window unless it is a garage, utility, or bathroom wall.
+- Bathrooms should have smaller, higher windows (width: 0.6, height: 0.6, sillHeight: 1.5).
+- Bedrooms and living rooms should have larger windows (width: 1.5, height: 1.4).
+- Kitchens should have at least one window above the countertop (sillHeight: 1.0).
+- windowType should be "casement" for most rooms, "fixed" for large living room windows, "sash" for bedrooms.
 - All coordinates must be positive numbers.
 - For furniture items, use these exact names when the item is detected: Sofa, Armchair, Coffee Table, TV Stand, Bookshelf, Double Bed, Single Bed, Nightstand, Wardrobe, Dresser, Dining Table, Dining Chair, Refrigerator, Stove, Kitchen Sink, Toilet, Bathtub, Shower, Bathroom Vanity, Desk, Office Chair, Office Desk, Floor Lamp, Table Lamp, Plant, Rug, Mirror, Coat Rack
 - Room "zoneType" should accurately reflect the room's purpose: use "bedroom" for sleeping areas, "kitchen" for cooking areas, "bathroom" for wet rooms, "living" for living/lounge areas, "office" for work spaces, "hallway" for corridors and entries, "garage" for vehicle storage.

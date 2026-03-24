@@ -9,6 +9,7 @@ import {
   Layers,
   SeparatorHorizontal,
   Square,
+  AppWindow,
   Sparkles,
   Box,
 } from "lucide-react";
@@ -59,6 +60,7 @@ export function ViewerToolbar({
   const wallMode = useViewer((s) => s.wallMode);
   const setWallMode = useViewer((s) => s.setWallMode);
   const showZones = useViewer((s) => s.showZones);
+  const showWindows = useViewer((s) => s.showWindows);
   const toggleVisibility = useViewer((s) => s.toggleVisibility);
 
   return (
@@ -97,6 +99,14 @@ export function ViewerToolbar({
             const idx = modes.indexOf(wallMode);
             setWallMode(modes[(idx + 1) % modes.length]);
           }}
+        />
+
+        {/* Window visibility */}
+        <ToolbarButton
+          icon={AppWindow}
+          label="Toggle windows"
+          active={showWindows}
+          onClick={() => toggleVisibility("showWindows")}
         />
 
         <ToolbarDivider />

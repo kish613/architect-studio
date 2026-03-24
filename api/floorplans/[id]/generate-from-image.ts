@@ -415,12 +415,50 @@ Rules:
 - Default wall height: 2.7, default wall thickness: 0.15.
 - Default door width: 0.9, door height: 2.1.
 - Default window width: 1.2, window height: 1.2, sill height: 0.9.
-- Window "position" must be between 0.1 and 0.9 (never at wall endpoints).
-- Every exterior wall MUST have at least one window unless it is a garage, utility, or bathroom wall.
-- Bathrooms should have smaller, higher windows (width: 0.6, height: 0.6, sillHeight: 1.5).
-- Bedrooms and living rooms should have larger windows (width: 1.5, height: 1.4).
-- Kitchens should have at least one window above the countertop (sillHeight: 1.0).
-- windowType should be "casement" for most rooms, "fixed" for large living room windows, "sash" for bedrooms.
+
+CRITICAL WINDOW GENERATION RULES — Windows are essential for realism. Even if windows are NOT visible on the floor plan, you MUST intelligently add them based on room type and building conventions:
+
+Living rooms / Lounges:
+- At least 2 large windows (width: 1.8, height: 1.6, sillHeight: 0.7)
+- windowType: "fixed" for primary window, "casement" for secondary
+- Place on the longest exterior wall(s)
+
+Bedrooms:
+- At least 1 window per bedroom (width: 1.4, height: 1.4, sillHeight: 0.8)
+- windowType: "sash" or "casement"
+- Place on exterior wall, centered or offset from bed position
+
+Kitchens:
+- At least 1 window above countertop area (width: 1.2, height: 1.0, sillHeight: 1.0)
+- windowType: "casement"
+- Place on the wall most likely to face outside
+
+Bathrooms / WCs:
+- 1 small privacy window (width: 0.6, height: 0.6, sillHeight: 1.5)
+- windowType: "casement"
+- Only on exterior walls; skip if bathroom is interior
+
+Hallways / Entries:
+- 1 narrow window near the front door (width: 0.5, height: 1.8, sillHeight: 0.3) OR sidelight
+- windowType: "fixed"
+- Skip if hallway has no exterior wall
+
+Home offices / Studies:
+- 1 medium window (width: 1.3, height: 1.3, sillHeight: 0.8)
+- windowType: "casement"
+
+Garages:
+- 0-1 small high window (width: 0.8, height: 0.5, sillHeight: 2.0)
+- windowType: "fixed"
+
+General rules:
+- NEVER place windows on interior walls (walls shared between rooms)
+- Window "position" must be between 0.1 and 0.9
+- Identify which walls are exterior (boundary of the building) vs interior
+- A room can have windows on MULTIPLE exterior walls
+- If a room has no exterior wall, skip windows for that room
+- Total windows for a typical 3-bedroom house: 8-14 windows
+
 - Include ALL visible walls, doors, and windows.
 - If a value cannot be determined, use the default.
 
@@ -439,7 +477,7 @@ Furniture / items:
 - "dimensions" is width (x), height (y), and depth (z) in meters. Use reasonable estimates if exact sizes are not clear.
 - If no furniture is visible, return an empty items array.`;
 
-  const modelName = "gemini-3-flash-preview";
+  const modelName = "gemini-3.1-pro-preview";
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
 
   console.log("=== GEMINI FLOOR PLAN PARSE START ===");

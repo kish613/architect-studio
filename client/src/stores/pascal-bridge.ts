@@ -165,8 +165,10 @@ export function convertOurNodeToPascal(
         .map((cid) => allNodes[cid])
         .filter(Boolean)
         .map((child) => toPascalId(child.id, child.type));
-      // Walls only accept item children; doors/windows attach via their own wallId field
-      const children = mappedChildIds.filter((id) => id.startsWith("item_"));
+      // Walls accept item, door, and window children so Pascal can render openings
+      const children = mappedChildIds.filter((id) =>
+        id.startsWith("item_") || id.startsWith("door_") || id.startsWith("window_")
+      );
       return {
         ...base,
         type: "wall",

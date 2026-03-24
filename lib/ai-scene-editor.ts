@@ -218,7 +218,7 @@ export function buildGeminiEditRequest(prompt: string, context: SceneContext) {
 // ─── Gemini API Caller ───────────────────────────────────────
 
 const GEMINI_ENDPOINT =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent";
 
 export async function callGeminiForEdits(
   prompt: string,

@@ -693,3 +693,16 @@ export async function generateFloorplanFromImage(
   if (!response.ok) await handleApiError(response, "Failed to generate floorplan from image");
   return response.json();
 }
+
+export async function aiEditScene(
+  floorplanId: number,
+  prompt: string
+): Promise<{ actions: Array<{ tool: string; args: Record<string, any> }>; explanation: string }> {
+  const response = await fetch(`/api/floorplans/${floorplanId}/ai-edit`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt }),
+  });
+  if (!response.ok) await handleApiError(response, "AI edit failed");
+  return response.json();
+}

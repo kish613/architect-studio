@@ -49,6 +49,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method === "GET") {
     try {
+      // Light list — include new BIM-first asset URLs so the projects list
+      // can badge rows with "BIM ready", "IFC available", etc. without
+      // fetching every canonical JSON blob.
       const designs = await db
         .select({
           id: floorplanDesigns.id,
@@ -56,6 +59,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           projectId: floorplanDesigns.projectId,
           userId: floorplanDesigns.userId,
           thumbnailUrl: floorplanDesigns.thumbnailUrl,
+          sourceFileUrl: floorplanDesigns.sourceFileUrl,
+          ifcUrl: floorplanDesigns.ifcUrl,
+          fragmentsUrl: floorplanDesigns.fragmentsUrl,
+          glbUrl: floorplanDesigns.glbUrl,
           createdAt: floorplanDesigns.createdAt,
           updatedAt: floorplanDesigns.updatedAt,
         })

@@ -592,18 +592,65 @@ export async function selectExtensionOption(
 }
 
 // ==========================================
-// Floorplan Editor API Functions
+// Floorplan / BIM API Functions
 // ==========================================
 
+/**
+ * Floorplan design row.
+ *
+ * The new source of truth is `canonicalJson` — a canonical BIM JSON model.
+ * `sceneData` remains for legacy Pascal editor compatibility and is
+ * derived server-side from the canonical BIM by the pipeline.
+ *
+ * Derived asset URLs (ifcUrl, fragmentsUrl, glbUrl) are populated by the
+ * pipeline after generation and read by the BIM / presentation viewers.
+ */
 export interface FloorplanDesign {
   id: number;
   projectId: number | null;
   userId: string;
   name: string;
-  sceneData: string; // JSON string of SceneData
+
+  // New BIM-first fields (optional while migration is in flight).
+  canonicalJson?: string | null;
+  sourceFileUrl?: string | null;
+  ifcUrl?: string | null;
+  fragmentsUrl?: string | null;
+  glbUrl?: string | null;
+  diagnosticsJson?: string | null;
+
+  // Legacy Pascal scene — still returned for backward compatibility with
+  // the existing editor; derived from canonicalJson server-side.
+  sceneData: string;
+
   thumbnailUrl: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * Response shape from the BIM-first generate-from-image endpoint.
+ * Callers that understand canonical BIM should prefer `canonicalJson`.
+ * Callers that still live on the Pascal editor can keep using `sceneData`.
+ */
+export interface GenerateFloorplanResponse {
+  floorplan: FloorplanDesign | null;
+  canonicalJson: string;
+  sceneData: string;
+  sourceFileUrl: string | null;
+  ifcUrl: string | null;
+  fragmentsUrl: string | null;
+  glbUrl: string | null;
+  diagnostics: Array<{ stage: string; code: string; message: string }>;
+  summary: {
+    levels: number;
+    walls: number;
+    doors: number;
+    windows: number;
+    rooms: number;
+    furniture: number;
+    fixtures: number;
+  };
 }
 
 async function handleApiError(response: Response, fallback: string): Promise<never> {
@@ -680,17 +727,34 @@ export async function uploadFloorplanAsset(
   return response.json();
 }
 
+/**
+ * Generate a BIM model from an uploaded image or PDF.
+ *
+ * The endpoint accepts either an image (PNG/JPG) or a PDF. Because the
+ * legacy endpoint read the raw request body as the image payload, we keep
+ * that contract: send the file as the request body directly with the
+ * correct Content-Type header. The server pipeline sniffs PDFs from the
+ * magic bytes if the header is wrong.
+ *
+ * Returns the full BIM-first generation response including `canonicalJson`
+ * (new source of truth) and `sceneData` (legacy Pascal bridge).
+ */
 export async function generateFloorplanFromImage(
   floorplanId: number,
-  imageFile: File
-): Promise<{ sceneData: string }> {
-  const formData = new FormData();
-  formData.append("image", imageFile);
-  const response = await fetch(`/api/floorplans/${floorplanId}/generate-from-image`, {
-    method: "POST",
-    body: formData,
-  });
-  if (!response.ok) await handleApiError(response, "Failed to generate floorplan from image");
+  file: File
+): Promise<GenerateFloorplanResponse> {
+  const contentType = file.type || "application/octet-stream";
+  const response = await fetch(
+    `/api/floorplans/${floorplanId}/generate-from-image`,
+    {
+      method: "POST",
+      headers: { "Content-Type": contentType },
+      body: file,
+    }
+  );
+  if (!response.ok) {
+    await handleApiError(response, "Failed to generate floorplan from image");
+  }
   return response.json();
 }
 

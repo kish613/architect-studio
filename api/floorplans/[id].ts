@@ -30,15 +30,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method === "PUT") {
     try {
-      const { sceneData, thumbnail, name } = req.body as {
+      const { sceneData, canonicalJson, thumbnail, name } = req.body as {
         sceneData?: string;
+        canonicalJson?: string;
         thumbnail?: string;
         name?: string;
       };
 
       const updates: Record<string, unknown> = { updatedAt: new Date() };
       if (sceneData !== undefined) {
+        // Legacy Pascal compatibility path — we still accept sceneData so
+        // the existing editor can keep saving. The BIM-first path uses the
+        // canonicalJson field directly and re-derives sceneData server-side.
         updates.sceneData = JSON.stringify(ensurePascalScene(sceneData).sceneData);
+      }
+      if (canonicalJson !== undefined) {
+        updates.canonicalJson = canonicalJson;
       }
       if (name !== undefined) updates.name = name;
 

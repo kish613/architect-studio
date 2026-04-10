@@ -214,14 +214,45 @@ export const insertPlanningAnalysisSchema = createInsertSchema(planningAnalyses)
 export type InsertPlanningAnalysis = z.infer<typeof insertPlanningAnalysisSchema>;
 export type PlanningAnalysis = typeof planningAnalyses.$inferSelect;
 
-// 3D Floorplan Editor designs
+/**
+ * 3D Floorplan Editor / BIM designs.
+ *
+ * The new source of truth is `canonicalJson` (canonical BIM JSON model).
+ * `sceneData` is retained only as a legacy compatibility bridge for the
+ * existing Pascal editor — it is derived from the canonical BIM model by
+ * the `toPascal` adapter and MUST NOT be relied on as the primary store.
+ *
+ * Derived asset URLs (IFC, GLB, Fragments) are populated by the pipeline
+ * after generation. They are viewer-facing artefacts — the canonical JSON
+ * is what we regenerate from.
+ */
 export const floorplanDesigns = pgTable("floorplan_designs", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").references(() => projects.id, { onDelete: "cascade" }),
   userId: varchar("user_id").notNull(),
   name: text("name").notNull().default("Untitled Floorplan"),
+
+  // NEW: canonical BIM JSON — source of truth (nullable to stay backward-compat).
+  canonicalJson: text("canonical_json"),
+
+  // Legacy Pascal sceneData. Kept for existing editor compatibility; derived
+  // from `canonicalJson` via the toPascal adapter. Do NOT treat as primary.
   sceneData: text("scene_data").notNull().default('{"schemaVersion":1,"nodes":{},"rootNodeIds":[]}'),
+
+  // Source file the canonical BIM was extracted from (image or PDF).
+  sourceFileUrl: text("source_file_url"),
+
+  // Derived viewer assets.
+  ifcUrl: text("ifc_url"),
+  fragmentsUrl: text("fragments_url"),
+  glbUrl: text("glb_url"),
+
   thumbnailUrl: text("thumbnail_url"),
+
+  // Free-form diagnostics from the last pipeline run (scale confidence,
+  // extractor warnings, etc). JSON encoded as text.
+  diagnosticsJson: text("diagnostics_json"),
+
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

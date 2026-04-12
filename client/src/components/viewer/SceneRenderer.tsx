@@ -223,7 +223,8 @@ function ItemModelMesh({ node }: { node: ItemNode }) {
           // Replace materials with missing/broken textures
           if ('map' in cloned) {
             const std = cloned as THREE.MeshStandardMaterial;
-            if (std.map && (!std.map.image || std.map.image.width === 0)) {
+            const texImg = std.map?.image as { width?: number } | undefined;
+            if (std.map && (!texImg || !texImg.width || texImg.width === 0)) {
               return new THREE.MeshStandardMaterial({
                 color: new THREE.Color("#888888"),
                 roughness: 0.6,

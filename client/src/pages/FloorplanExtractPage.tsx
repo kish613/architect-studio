@@ -11,7 +11,7 @@
  * diagnostics the pipeline emitted.
  */
 
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { Link, useLocation, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { PageTransition } from "@/components/ui/page-transition";
@@ -21,7 +21,9 @@ import { ArrowLeft, FileText, Loader2 } from "lucide-react";
 import { fetchFloorplan } from "@/lib/api";
 import { loadCanonicalBim } from "@/lib/bim";
 import { BimModeSwitcher } from "@/components/bim/BimModeSwitcher";
-import { BimPlanCanvas } from "@/components/bim/BimPlanCanvas";
+import { BimR3FCanvas } from "@/components/bim-viewer/BimR3FCanvas";
+import { useBimScene } from "@/stores/use-bim-scene";
+import { useViewer } from "@/stores/use-viewer";
 
 export function FloorplanExtractPage() {
   const params = useParams<{ id: string }>();
@@ -38,6 +40,20 @@ export function FloorplanExtractPage() {
     if (!data?.canonicalJson) return null;
     return loadCanonicalBim(data.canonicalJson);
   }, [data?.canonicalJson]);
+
+  const loadFromCanonicalJson = useBimScene((s) => s.loadFromCanonicalJson);
+  const resetBim = useBimScene((s) => s.reset);
+  const setActiveLevel = useViewer((s) => s.setActiveLevel);
+
+  useEffect(() => {
+    if (data?.canonicalJson) {
+      loadFromCanonicalJson(data.canonicalJson, data.id);
+      const first = useBimScene.getState().bim.levels[0];
+      if (first) setActiveLevel(first.id);
+    } else {
+      resetBim();
+    }
+  }, [data?.canonicalJson, data?.id, loadFromCanonicalJson, resetBim, setActiveLevel]);
 
   const diagnostics = useMemo(() => {
     if (!data?.diagnosticsJson) return null;
@@ -152,13 +168,13 @@ export function FloorplanExtractPage() {
                 Canonical BIM (extracted)
               </h2>
             </div>
-            <div className="flex-1 p-3">
+                       <div className="min-h-[320px] flex-1 p-0">
               {bimResult && bimResult.bim ? (
-                <BimPlanCanvas bim={bimResult.bim} style="extract" />
+                <BimR3FCanvas mode="extract" className="min-h-[320px] rounded-md" />
               ) : (
-                <p className="text-xs text-white/40">
+                <p className="p-3 text-xs text-white/40">
                   No canonical BIM on this record yet. Run the AI generator
-                  from the legacy editor to produce one.
+                  from the editor to produce one.
                 </p>
               )}
             </div>

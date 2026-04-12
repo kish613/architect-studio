@@ -1,10 +1,14 @@
 import { useEffect, useRef } from "react";
-import { useScene } from "@/stores/use-scene";
+import { useBimScene } from "@/stores/use-bim-scene";
 import { saveFloorplan } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
-export function useAutoSave(options?: { disabled?: boolean }) {
-  const { floorplanId, hasUnsavedChanges, getSceneData, setSaving, markSaved } = useScene();
+export function useBimAutoSave(options?: { disabled?: boolean }) {
+  const floorplanId = useBimScene((s) => s.floorplanId);
+  const hasUnsavedChanges = useBimScene((s) => s.hasUnsavedChanges);
+  const getCanonicalJson = useBimScene((s) => s.getCanonicalJson);
+  const setSaving = useBimScene((s) => s.setSaving);
+  const markSaved = useBimScene((s) => s.markSaved);
   const { toast } = useToast();
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -17,16 +21,14 @@ export function useAutoSave(options?: { disabled?: boolean }) {
     timerRef.current = setTimeout(async () => {
       try {
         setSaving(true);
-        const sceneData = getSceneData();
-        await saveFloorplan(floorplanId, {
-          sceneData: JSON.stringify(sceneData),
-        });
+        const canonicalJson = getCanonicalJson();
+        await saveFloorplan(floorplanId, { canonicalJson });
         markSaved();
       } catch {
         setSaving(false);
         toast({
           title: "Save failed",
-          description: "Changes could not be saved. Will retry on next edit.",
+          description: "BIM changes could not be saved. Will retry on next edit.",
           variant: "destructive",
         });
       }
@@ -35,13 +37,5 @@ export function useAutoSave(options?: { disabled?: boolean }) {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [
-    floorplanId,
-    hasUnsavedChanges,
-    options?.disabled,
-    getSceneData,
-    markSaved,
-    setSaving,
-    toast,
-  ]);
+  }, [floorplanId, hasUnsavedChanges, getCanonicalJson, markSaved, setSaving, toast, options?.disabled]);
 }

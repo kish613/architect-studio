@@ -3,6 +3,7 @@ import { FloorplanCanvas } from "@/components/viewer/FloorplanCanvas";
 import { useScene } from "@/stores/use-scene";
 import { createEmptyScene, createNode } from "@/lib/pascal/schemas";
 import type { SceneData, WallNode, DoorNode, WindowNode, ItemNode, SlabNode } from "@/lib/pascal/schemas";
+import { CURRENT_SCENE_SCHEMA_VERSION } from "@/lib/pascal/schemas";
 
 function buildTestScene(): SceneData {
   const scene = createEmptyScene();
@@ -37,6 +38,7 @@ function buildTestScene(): SceneData {
   const level = { ...nodes[levelId], childIds: [w1.id, w2.id, w3.id, w4.id, door.id, win.id, slab.id, table.id] };
 
   return {
+    schemaVersion: CURRENT_SCENE_SCHEMA_VERSION,
     nodes: {
       ...nodes,
       [levelId]: level as any,

@@ -5,6 +5,8 @@ import { requireAuth } from "../lib/auth.js";
 import { db } from "../lib/db.js";
 import { floorplanDesigns } from "../../shared/schema.js";
 import { ensurePascalScene } from "../../shared/pascal-load.js";
+import { ensureCanonicalBim } from "../../shared/bim/load.js";
+import { canonicalBimToPascalScene } from "../../lib/floorplan-pipeline/to-pascal.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { id } = req.query;
@@ -38,14 +40,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       };
 
       const updates: Record<string, unknown> = { updatedAt: new Date() };
-      if (sceneData !== undefined) {
-        // Legacy Pascal compatibility path — we still accept sceneData so
-        // the existing editor can keep saving. The BIM-first path uses the
-        // canonicalJson field directly and re-derives sceneData server-side.
-        updates.sceneData = JSON.stringify(ensurePascalScene(sceneData).sceneData);
-      }
       if (canonicalJson !== undefined) {
-        updates.canonicalJson = canonicalJson;
+        try {
+          const bim = ensureCanonicalBim(
+            typeof canonicalJson === "string" ? canonicalJson : JSON.stringify(canonicalJson),
+          );
+          updates.canonicalJson = JSON.stringify(bim);
+          const pascalScene = canonicalBimToPascalScene(bim);
+          updates.sceneData = JSON.stringify(pascalScene);
+        } catch (err) {
+          return res.status(400).json({
+            error: err instanceof Error ? err.message : "Invalid canonical BIM JSON",
+          });
+        }
+      }
+      if (sceneData !== undefined) {
+        // Legacy Pascal path — only applied when client did not send canonicalJson
+        // in this same request (BIM saves always send canonicalJson + derived scene).
+        if (canonicalJson === undefined) {
+          updates.sceneData = JSON.stringify(ensurePascalScene(sceneData).sceneData);
+        }
       }
       if (name !== undefined) updates.name = name;
 

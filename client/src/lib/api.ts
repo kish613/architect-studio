@@ -691,7 +691,12 @@ export async function fetchFloorplan(id: number): Promise<FloorplanDesign> {
 
 export async function saveFloorplan(
   id: number,
-  data: { sceneData: string; thumbnail?: string; name?: string }
+  data: {
+    sceneData?: string;
+    canonicalJson?: string;
+    thumbnail?: string;
+    name?: string;
+  }
 ): Promise<FloorplanDesign> {
   const response = await fetch(`/api/floorplans/${id}`, {
     method: "PUT",

@@ -1,15 +1,8 @@
 /**
- * BIM / technical mode.
- *
- * Renders the canonical BIM with layer toggles, per-level selection, and
- * an object metadata panel. The 3D surface is intentionally a placeholder
- * (we reuse the 2D BIM plan canvas in "technical" style) so the route
- * structure and data flow are correct even before the heavier 3D viewer
- * is wired in. When we integrate a full Fragments/BIM viewer it drops
- * into the same central `main` slot without touching the layout.
+ * BIM / technical mode — full 3D canonical BIM viewer with layer toggles.
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { PageTransition } from "@/components/ui/page-transition";
@@ -18,10 +11,12 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Layers3, Loader2 } from "lucide-react";
 
 import { fetchFloorplan } from "@/lib/api";
-import { loadCanonicalBim } from "@/lib/bim";
 import { BimModeSwitcher } from "@/components/bim/BimModeSwitcher";
-import { BimPlanCanvas } from "@/components/bim/BimPlanCanvas";
+import { BimR3FCanvas } from "@/components/bim-viewer/BimR3FCanvas";
 import { BimObjectPanel } from "@/components/bim/BimObjectPanel";
+import { useBimScene } from "@/stores/use-bim-scene";
+import { useViewer } from "@/stores/use-viewer";
+import { useBimAutoSave } from "@/hooks/use-bim-auto-save";
 
 type Layer = "walls" | "rooms" | "openings" | "furniture";
 
@@ -43,21 +38,38 @@ export function FloorplanBimPage() {
     enabled: !!id,
   });
 
-  const bim = useMemo(() => {
-    if (!data?.canonicalJson) return null;
-    const result = loadCanonicalBim(data.canonicalJson);
-    return result.bim;
-  }, [data?.canonicalJson]);
+  const bim = useBimScene((s) => s.bim);
+  const loadFromCanonicalJson = useBimScene((s) => s.loadFromCanonicalJson);
+  const resetBim = useBimScene((s) => s.reset);
+  const setFloorplanId = useBimScene((s) => s.setFloorplanId);
+  const setActiveLevel = useViewer((s) => s.setActiveLevel);
+
+  useBimAutoSave();
+
+  useEffect(() => {
+    if (data?.canonicalJson) {
+      loadFromCanonicalJson(data.canonicalJson, data.id);
+      setFloorplanId(data.id);
+      const first = useBimScene.getState().bim.levels[0];
+      if (first) setActiveLevel(first.id);
+    } else {
+      resetBim();
+      setFloorplanId(null);
+    }
+  }, [
+    data?.canonicalJson,
+    data?.id,
+    loadFromCanonicalJson,
+    resetBim,
+    setActiveLevel,
+    setFloorplanId,
+  ]);
 
   const [activeLevelId, setActiveLevelId] = useState<string | null>(null);
   const [layers, setLayers] = useState<Record<Layer, boolean>>(DEFAULT_LAYERS);
 
-  const activeLevel = useMemo(() => {
-    if (!bim) return null;
-    return (
-      bim.levels.find((l) => l.id === activeLevelId) ?? bim.levels[0] ?? null
-    );
-  }, [bim, activeLevelId]);
+  const activeLevel =
+    bim.levels.find((l) => l.id === activeLevelId) ?? bim.levels[0] ?? null;
 
   if (isLoading) {
     return (
@@ -73,11 +85,7 @@ export function FloorplanBimPage() {
       <div className="flex h-screen items-center justify-center bg-[#0A0A0A] text-white/60">
         <div className="text-center">
           <p>Could not load this BIM model.</p>
-          <Button
-            variant="outline"
-            className="mt-3"
-            onClick={() => navigate("/projects")}
-          >
+          <Button variant="outline" className="mt-3" onClick={() => navigate("/projects")}>
             Back to projects
           </Button>
         </div>
@@ -90,18 +98,14 @@ export function FloorplanBimPage() {
       <div className="flex h-screen flex-col bg-[#0A0A0A] text-white">
         <header className="flex items-center justify-between border-b border-white/10 px-4 py-3">
           <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate("/projects")}
-            >
+            <Button variant="ghost" size="sm" onClick={() => navigate("/projects")}>
               <ArrowLeft className="mr-1 h-4 w-4" /> Projects
             </Button>
             <div>
               <h1 className="text-sm font-semibold">{data.name}</h1>
-              <p className="text-[11px] text-white/50 flex items-center gap-1.5">
+              <p className="flex items-center gap-1.5 text-[11px] text-white/50">
                 <Layers3 className="h-3 w-3" />
-                BIM technical viewer
+                BIM technical viewer (3D)
               </p>
             </div>
           </div>
@@ -109,19 +113,20 @@ export function FloorplanBimPage() {
         </header>
 
         <main className="grid flex-1 grid-cols-12 gap-4 p-4">
-          {/* Left: level / layer controls */}
           <aside className="col-span-3 flex flex-col rounded-lg border border-white/10 bg-[#0C0C0F]">
             <div className="border-b border-white/10 px-3 py-2">
-              <h2 className="text-xs uppercase tracking-wider text-white/50">
-                Levels
-              </h2>
+              <h2 className="text-xs uppercase tracking-wider text-white/50">Levels</h2>
             </div>
             <div className="space-y-1 p-3">
-              {bim?.levels.length ? (
+              {bim.levels.length ? (
                 bim.levels.map((lvl) => (
                   <button
                     key={lvl.id}
-                    onClick={() => setActiveLevelId(lvl.id)}
+                    type="button"
+                    onClick={() => {
+                      setActiveLevelId(lvl.id);
+                      setActiveLevel(lvl.id);
+                    }}
                     className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs transition-colors ${
                       (activeLevel?.id ?? null) === lvl.id
                         ? "bg-primary/20 text-white"
@@ -129,9 +134,7 @@ export function FloorplanBimPage() {
                     }`}
                   >
                     <span>{lvl.name ?? `Level ${lvl.index}`}</span>
-                    <span className="text-[10px] text-white/40">
-                      elev {lvl.elevation.toFixed(1)} m
-                    </span>
+                    <span className="text-[10px] text-white/40">elev {lvl.elevation.toFixed(1)} m</span>
                   </button>
                 ))
               ) : (
@@ -140,9 +143,7 @@ export function FloorplanBimPage() {
             </div>
 
             <div className="border-t border-white/10 px-3 py-2">
-              <h2 className="text-xs uppercase tracking-wider text-white/50">
-                Layers
-              </h2>
+              <h2 className="text-xs uppercase tracking-wider text-white/50">Layers</h2>
             </div>
             <div className="space-y-1 p-3">
               {(Object.keys(layers) as Layer[]).map((layer) => (
@@ -197,34 +198,43 @@ export function FloorplanBimPage() {
             </div>
           </aside>
 
-          {/* Centre: viewer */}
           <section className="col-span-6 flex flex-col rounded-lg border border-white/10 bg-[#0C0C0F]">
-            <div className="border-b border-white/10 px-3 py-2 flex items-center justify-between">
+            <div className="flex items-center justify-between border-b border-white/10 px-3 py-2">
               <h2 className="text-xs uppercase tracking-wider text-white/50">
-                Plan — {activeLevel?.name ?? "all levels"}
+                3D — {activeLevel?.name ?? "all levels"}
               </h2>
-              <span className="text-[11px] text-white/40">
-                Clipping / measurement tools coming with the 3D viewer
-              </span>
+              <span className="text-[11px] text-white/40">Orbit · scroll zoom · shift-drag pan</span>
             </div>
-            <div className="flex-1 p-3">
-              {bim ? (
-                <BimPlanCanvas
-                  bim={filterBimByLayers(bim, layers)}
-                  style="technical"
-                  levelId={activeLevel?.id ?? null}
+            <div className="min-h-0 flex-1 p-0">
+              {data.canonicalJson ? (
+                <BimR3FCanvas
+                  mode="bim"
+                  className="h-full min-h-[400px] rounded-b-md"
+                  sceneProps={{
+                    layers: {
+                      walls: layers.walls,
+                      rooms: layers.rooms,
+                      openings: layers.openings,
+                      furniture: layers.furniture,
+                      slabs: true,
+                      ceilings: true,
+                      roofs: true,
+                      stairs: true,
+                      columns: true,
+                    },
+                    activeLevelId: activeLevel?.id ?? null,
+                  }}
                 />
               ) : (
-                <div className="flex h-full items-center justify-center text-xs text-white/40">
+                <div className="flex h-full min-h-[320px] items-center justify-center text-xs text-white/40">
                   No canonical BIM loaded yet.
                 </div>
               )}
             </div>
           </section>
 
-          {/* Right: metadata */}
           <div className="col-span-3">
-            {bim ? (
+            {data.canonicalJson && bim.levels.length > 0 ? (
               <BimObjectPanel bim={bim} />
             ) : (
               <div className="flex h-full items-center justify-center rounded-lg border border-white/10 bg-[#0C0C0F] p-4 text-xs text-white/40">
@@ -236,24 +246,4 @@ export function FloorplanBimPage() {
       </div>
     </PageTransition>
   );
-}
-
-/**
- * Shallow filter that applies layer toggles to a canonical BIM for display.
- * This does NOT mutate the stored BIM — the canonical model is still the
- * source of truth. It only slims down arrays before they hit the renderer.
- */
-function filterBimByLayers(
-  bim: NonNullable<ReturnType<typeof loadCanonicalBim>["bim"]>,
-  layers: Record<Layer, boolean>
-) {
-  return {
-    ...bim,
-    walls: layers.walls ? bim.walls : [],
-    rooms: layers.rooms ? bim.rooms : [],
-    doors: layers.openings ? bim.doors : [],
-    windows: layers.openings ? bim.windows : [],
-    furniture: layers.furniture ? bim.furniture : [],
-    fixtures: layers.furniture ? bim.fixtures : [],
-  };
 }

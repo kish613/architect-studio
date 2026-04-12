@@ -183,7 +183,7 @@ function buildMaterialSummary(): string {
 }
 
 function buildCatalogSummary(): string {
-  const ids = FURNITURE_CATALOG.map((c) => `${c.id} (${c.label})`).join(", ");
+  const ids = FURNITURE_CATALOG.map((c) => `${c.id} (${c.name})`).join(", ");
   return `Available furniture: ${ids}`;
 }
 

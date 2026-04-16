@@ -1,8 +1,9 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import * as THREE from "three";
 import { useBimScene } from "@/stores/use-bim-scene";
 import { useViewer } from "@/stores/use-viewer";
 import { sceneRegistry } from "@/lib/pascal/scene-registry";
+import { onTextureReady } from "@/lib/bim/texture-service";
 import type { CanonicalBim, Wall } from "@shared/bim/canonical-schema";
 import { getLevelElevationM } from "./bim-level-utils";
 import { createBimWallGeometry, getBimWallLength, getBimWallMaterial, getBimWallTransform } from "./systems/bim-wall-system";
@@ -206,6 +207,16 @@ export function BimSceneRenderer({ layers: layersProp, activeLevelId: activeLeve
 
   const activeLevelId = activeLevelIdProp !== undefined ? activeLevelIdProp : storeLevelId;
   const layers = { ...DEFAULT_LAYERS, ...layersProp };
+
+  // Texture progressive loading: increment counter when any texture finishes
+  // loading, which triggers React re-render and picks up the new textures.
+  const [, setTextureGen] = useState(0);
+  useEffect(() => {
+    const unsub = onTextureReady(() => {
+      setTextureGen((g) => g + 1);
+    });
+    return unsub;
+  }, []);
 
   const walls = useMemo(
     () => filterByLevel(bim.walls, activeLevelId, soloLevelId),

@@ -13,6 +13,7 @@ import {
   Sparkles,
   Box,
 } from "lucide-react";
+import { EnvironmentPresetPicker } from "./EnvironmentPresetPicker";
 
 function ToolbarButton({
   icon: Icon,
@@ -141,6 +142,9 @@ export function ViewerToolbar({
             />
           </>
         )}
+
+        <ToolbarDivider />
+        <EnvironmentPresetPicker />
       </div>
     </div>
   );

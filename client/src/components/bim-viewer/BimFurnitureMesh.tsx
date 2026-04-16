@@ -1,10 +1,11 @@
-import { Component, Suspense, useEffect, useMemo, type ReactNode } from "react";
+import { Component, Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
 import * as THREE from "three";
 import { useGLTF } from "@react-three/drei";
 import type { Fixture, Furniture } from "@shared/bim/canonical-schema";
 import { FURNITURE_CATALOG } from "@/lib/pascal/furniture-catalog";
 import { sceneRegistry } from "@/lib/pascal/scene-registry";
 import { normalizeImportedModel } from "@/lib/pascal/model-normalization";
+import { getPolyHavenGltfUrl } from "@/lib/bim/polyhaven-service";
 import {
   createBimAssetFallbackGeometry,
   getBimAssetFallbackMaterial,
@@ -16,22 +17,141 @@ export type { BimPlacedAsset };
 
 const _failedModelUrls = new Set<string>();
 
+// ─────────────────────────────────────────────────────────────
+// Poly Haven model ID detection
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Check whether an asset was placed from the Poly Haven catalog.
+ * Convention: catalogId is prefixed with "ph:" for Poly Haven assets.
+ */
+function isPolyHavenAsset(asset: BimPlacedAsset): boolean {
+  return (
+    asset.asset.catalogId.startsWith("ph:") ||
+    asset.asset.provenance === "polyhaven"
+  );
+}
+
+/** Extract the raw Poly Haven ID from our prefixed catalogId. */
+function extractPolyHavenId(asset: BimPlacedAsset): string {
+  const catalogId = asset.asset.catalogId;
+  return catalogId.startsWith("ph:") ? catalogId.slice(3) : catalogId;
+}
+
+// ─────────────────────────────────────────────────────────────
+// URL resolution
+// ─────────────────────────────────────────────────────────────
+
 function resolveModelUrl(asset: BimPlacedAsset): string | null {
+  // Prefer explicit glbUrl (works for both local and pre-cached Poly Haven)
   if (asset.asset.glbUrl && asset.asset.glbUrl.length > 0) {
     return asset.asset.glbUrl;
   }
+  // Fall back to the local catalog
   const cat = FURNITURE_CATALOG.find((c) => c.id === asset.asset.catalogId);
   return cat?.modelUrl ?? null;
 }
 
-function BimAssetModelInner({
+// ─────────────────────────────────────────────────────────────
+// Poly Haven async model loader
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Wrapper that resolves the Poly Haven .gltf CDN URL asynchronously,
+ * then hands it directly to useGLTF. We MUST NOT cache the .gltf file
+ * as a blob — it references external .bin and texture files via relative
+ * paths, which only resolve correctly against the original CDN URL.
+ * drei's useGLTF has its own in-session cache.
+ */
+function PolyHavenModelLoader({
   asset,
   levelElevation,
+  isSelected,
 }: {
   asset: BimPlacedAsset;
   levelElevation: number;
+  isSelected: boolean;
 }) {
-  const url = resolveModelUrl(asset)!;
+  const phId = extractPolyHavenId(asset);
+  const [gltfUrl, setGltfUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function resolve() {
+      const url = await getPolyHavenGltfUrl(phId, "1k");
+      if (cancelled) return;
+      if (url) {
+        setGltfUrl(url);
+      } else {
+        setFailed(true);
+      }
+      setLoading(false);
+    }
+
+    resolve();
+    return () => {
+      cancelled = true;
+    };
+  }, [phId]);
+
+  if (loading || failed || !gltfUrl || _failedModelUrls.has(gltfUrl)) {
+    return (
+      <BimAssetFallbackMesh
+        asset={asset}
+        levelElevation={levelElevation}
+        isSelected={isSelected}
+      />
+    );
+  }
+
+  return (
+    <BimModelErrorBoundary
+      fallback={
+        <BimAssetFallbackMesh
+          asset={asset}
+          levelElevation={levelElevation}
+          isSelected={isSelected}
+        />
+      }
+      modelUrl={gltfUrl}
+      onError={() => _failedModelUrls.add(gltfUrl)}
+    >
+      <Suspense
+        fallback={
+          <BimAssetFallbackMesh
+            asset={asset}
+            levelElevation={levelElevation}
+            isSelected={isSelected}
+          />
+        }
+      >
+        <BimAssetModelInner
+          asset={asset}
+          levelElevation={levelElevation}
+          urlOverride={gltfUrl}
+        />
+      </Suspense>
+    </BimModelErrorBoundary>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Inner model renderer
+// ─────────────────────────────────────────────────────────────
+
+function BimAssetModelInner({
+  asset,
+  levelElevation,
+  urlOverride,
+}: {
+  asset: BimPlacedAsset;
+  levelElevation: number;
+  urlOverride?: string;
+}) {
+  const url = urlOverride ?? resolveModelUrl(asset)!;
   const { scene } = useGLTF(url);
   const d = asset.asset.dimensions;
   const { position, rotationY } = getBimAssetWorldTransform(asset, levelElevation);
@@ -101,6 +221,10 @@ function BimAssetModelInner({
   );
 }
 
+// ─────────────────────────────────────────────────────────────
+// Error boundary
+// ─────────────────────────────────────────────────────────────
+
 class BimModelErrorBoundary extends Component<
   { fallback: ReactNode; children: ReactNode; modelUrl: string; onError?: () => void },
   { hasError: boolean }
@@ -121,6 +245,10 @@ class BimModelErrorBoundary extends Component<
     return this.props.children;
   }
 }
+
+// ─────────────────────────────────────────────────────────────
+// Fallback mesh
+// ─────────────────────────────────────────────────────────────
 
 function BimAssetFallbackMesh({
   asset,
@@ -158,6 +286,10 @@ function BimAssetFallbackMesh({
   );
 }
 
+// ─────────────────────────────────────────────────────────────
+// Main export
+// ─────────────────────────────────────────────────────────────
+
 export function BimFurnitureMesh({
   asset,
   levelElevation,
@@ -167,6 +299,18 @@ export function BimFurnitureMesh({
   levelElevation: number;
   isSelected: boolean;
 }) {
+  // Poly Haven assets are resolved asynchronously
+  if (isPolyHavenAsset(asset)) {
+    return (
+      <PolyHavenModelLoader
+        asset={asset}
+        levelElevation={levelElevation}
+        isSelected={isSelected}
+      />
+    );
+  }
+
+  // Local models — existing synchronous path
   const modelUrl = resolveModelUrl(asset);
   const shouldLoad =
     modelUrl &&

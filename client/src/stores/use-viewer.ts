@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { useViewer as pascalUseViewer } from "@pascal-app/viewer";
 import type { AnyNodeId } from "@pascal-app/core";
 import { getPascalIdFromOur, getOurIdFromPascal, pascalUseScene } from "@/stores/pascal-bridge";
+import type { PerformanceBudget } from "@/lib/bim/performance-budget";
 
 export type CameraMode = "perspective" | "orthographic";
 export type LevelMode = "stacked" | "exploded" | "solo";
@@ -38,6 +39,20 @@ interface ViewerState {
   showDimensions: boolean;
   wallMode: WallMode;
   theme: "dark" | "light";
+  environmentPreset: string;
+
+  // Performance budget (detected on mount)
+  performanceBudget: PerformanceBudget | null;
+
+  // Presentation mode controls
+  dofEnabled: boolean;
+  dofFocusDistance: number;
+  autoRotateSpeed: number;
+
+  setPerformanceBudget: (budget: PerformanceBudget) => void;
+  setDofEnabled: (enabled: boolean) => void;
+  setDofFocusDistance: (distance: number) => void;
+  setAutoRotateSpeed: (speed: number) => void;
 
   select: (nodeIds: string[]) => void;
   addToSelection: (nodeId: string) => void;
@@ -57,6 +72,7 @@ interface ViewerState {
   setWallMode: (mode: WallMode) => void;
   setTheme: (theme: "dark" | "light") => void;
   toggleTheme: () => void;
+  setEnvironmentPreset: (id: string) => void;
   toggleVisibility: (key: VisibilityKey) => void;
   setVisibility: (key: VisibilityKey, visible: boolean) => void;
   resetViewState: () => void;
@@ -173,6 +189,17 @@ export const useViewer = create<ViewerState>((set, get) => ({
   showDimensions: true,
   wallMode: "up",
   theme: "light",
+  environmentPreset: "daylight",
+
+  performanceBudget: null,
+  dofEnabled: true,
+  dofFocusDistance: 0.02,
+  autoRotateSpeed: 0,
+
+  setPerformanceBudget: (budget) => set({ performanceBudget: budget }),
+  setDofEnabled: (enabled) => set({ dofEnabled: enabled }),
+  setDofFocusDistance: (distance) => set({ dofFocusDistance: distance }),
+  setAutoRotateSpeed: (speed) => set({ autoRotateSpeed: speed }),
 
   select: (nodeIds) => {
     set({ selectedIds: nodeIds });
@@ -251,6 +278,7 @@ export const useViewer = create<ViewerState>((set, get) => ({
     set({ theme: next });
     pascalUseViewer.getState().setTheme(next);
   },
+  setEnvironmentPreset: (id) => set({ environmentPreset: id }),
   toggleVisibility: (key) =>
     set((s) => {
       const newVal = !s[key];
@@ -287,6 +315,11 @@ export const useViewer = create<ViewerState>((set, get) => ({
       showDimensions: true,
       wallMode: "up",
       theme: "light",
+      environmentPreset: "daylight",
+      // Keep performanceBudget — it's a hardware property, not user state
+      dofEnabled: true,
+      dofFocusDistance: 0.02,
+      autoRotateSpeed: 0,
     }),
 }));
 

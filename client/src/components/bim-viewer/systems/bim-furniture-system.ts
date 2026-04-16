@@ -28,15 +28,17 @@ export function getBimAssetFallbackMaterial(
   asset: BimPlacedAsset,
   isSelected: boolean,
 ): THREE.MeshPhysicalMaterial {
-  if (isSelected) {
-    return new THREE.MeshPhysicalMaterial({ color: "#4A90FF", roughness: 0.5, metalness: 0.1 });
-  }
   const isFixture = asset.kind === "fixture";
-  return new THREE.MeshPhysicalMaterial({
+  const material = new THREE.MeshPhysicalMaterial({
     color: isFixture ? "#c0c7d4" : "#b78d63",
     roughness: 0.58,
     metalness: 0.02,
     clearcoat: 0.12,
     envMapIntensity: 0.85,
   });
+  if (isSelected) {
+    material.emissive = new THREE.Color("#4A90FF");
+    material.emissiveIntensity = 0.3;
+  }
+  return material;
 }

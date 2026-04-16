@@ -12,6 +12,7 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import { fetchFloorplan } from "@/lib/api";
 import { BimModeSwitcher } from "@/components/bim/BimModeSwitcher";
 import { BimR3FCanvas } from "@/components/bim-viewer/BimR3FCanvas";
+import { EnvironmentPresetPicker } from "@/components/viewer/EnvironmentPresetPicker";
 import { useBimScene } from "@/stores/use-bim-scene";
 
 export function FloorplanPresentPage() {
@@ -92,6 +93,9 @@ export function FloorplanPresentPage() {
                 {lvl.name ?? `Level ${lvl.index}`}
               </button>
             ))}
+          </div>
+          <div className="flex justify-center">
+            <EnvironmentPresetPicker />
           </div>
           <div className="min-h-0 flex-1 rounded-xl border border-white/10 bg-[#111114] p-2">
             {data.canonicalJson ? (

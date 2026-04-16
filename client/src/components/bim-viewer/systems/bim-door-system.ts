@@ -1,5 +1,11 @@
 import * as THREE from "three";
 import type { Door, Wall } from "@shared/bim/canonical-schema";
+import { resolveTextureId } from "@/lib/bim/texture-presets";
+import {
+  getTextureSetSync,
+  prefetchTextureSet,
+  applyPbrTextures,
+} from "@/lib/bim/texture-service";
 
 export interface BimDoorGeometries {
   frame: THREE.BufferGeometry;
@@ -31,20 +37,74 @@ export function getBimDoorMaterials(isSelected: boolean): {
   frame: THREE.MeshPhysicalMaterial;
   panel: THREE.MeshPhysicalMaterial;
 } {
+  // Try to load wood textures for frame (Wood049) and panel (Wood066)
+  const frameTextureId = resolveTextureId("door_frame");
+  const panelTextureId = resolveTextureId("door_panel");
+
+  const frameTextures = frameTextureId
+    ? getTextureSetSync(frameTextureId)
+    : null;
+  const panelTextures = panelTextureId
+    ? getTextureSetSync(panelTextureId)
+    : null;
+
+  // Prefetch if not cached
+  if (frameTextureId && !frameTextures) {
+    prefetchTextureSet(frameTextureId);
+  }
+  if (panelTextureId && !panelTextures) {
+    prefetchTextureSet(panelTextureId);
+  }
+
+  // Frame: dark stained wood
+  const frameProps: THREE.MeshPhysicalMaterialParameters = {
+    color: "#6B4226",
+    roughness: 0.7,
+    metalness: 0,
+    envMapIntensity: 0.35,
+  };
+
+  if (frameTextures?.albedo) {
+    const pbrProps = applyPbrTextures(frameTextures, { x: 1, y: 1 });
+    Object.assign(frameProps, pbrProps);
+    // Tint toward the base color but let texture show
+    frameProps.color = new THREE.Color("#6B4226").lerp(
+      new THREE.Color("#ffffff"),
+      0.4,
+    );
+  }
+
+  if (isSelected) {
+    frameProps.emissive = new THREE.Color("#4A90FF");
+    frameProps.emissiveIntensity = 0.3;
+  }
+
+  // Panel: lighter warm wood with clearcoat (varnished look)
+  const panelProps: THREE.MeshPhysicalMaterialParameters = {
+    color: "#A0722A",
+    roughness: 0.5,
+    metalness: 0,
+    clearcoat: 0.3,
+    clearcoatRoughness: 0.4,
+    envMapIntensity: 0.5,
+  };
+
+  if (panelTextures?.albedo) {
+    const pbrProps = applyPbrTextures(panelTextures, { x: 1, y: 1 });
+    Object.assign(panelProps, pbrProps);
+    panelProps.color = new THREE.Color("#A0722A").lerp(
+      new THREE.Color("#ffffff"),
+      0.4,
+    );
+  }
+
+  if (isSelected) {
+    panelProps.emissive = new THREE.Color("#4A90FF");
+    panelProps.emissiveIntensity = 0.3;
+  }
+
   return {
-    frame: new THREE.MeshPhysicalMaterial({
-      color: isSelected ? "#4A90FF" : "#5C3D1A",
-      roughness: 0.75,
-      metalness: 0,
-      envMapIntensity: 0.3,
-    }),
-    panel: new THREE.MeshPhysicalMaterial({
-      color: isSelected ? "#78B4FF" : "#8B6914",
-      roughness: 0.55,
-      metalness: 0,
-      clearcoat: 0.3,
-      clearcoatRoughness: 0.4,
-      envMapIntensity: 0.4,
-    }),
+    frame: new THREE.MeshPhysicalMaterial(frameProps),
+    panel: new THREE.MeshPhysicalMaterial(panelProps),
   };
 }

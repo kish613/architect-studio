@@ -88,6 +88,15 @@ export interface BimSceneState {
 
   deleteById: (id: string) => void;
 
+  /** Set the materialId on any element (wall, door, slab, etc.) by its id. */
+  setElementMaterial: (elementId: string, materialId: string) => void;
+
+  /** Set materialId on all elements of a given kind (e.g. "wall", "slab"). */
+  setAllMaterialsByKind: (
+    kind: "wall" | "door" | "window" | "slab" | "ceiling" | "roof" | "stair" | "column",
+    materialId: string,
+  ) => void;
+
   addLevel: (opts?: { name?: string }) => string;
 
   setSaving: (saving: boolean) => void;
@@ -264,6 +273,15 @@ export const useBimScene = create<BimSceneState>()(
       }) => {
         const id = newId();
         const { catalogItem, position, levelId, rotationY = 0 } = opts;
+
+        // Determine provenance string for the BIM schema.
+        // Poly Haven items carry provenance.source === "polyhaven" on the
+        // adapted CatalogItem; local items default to empty.
+        const provenanceStr =
+          catalogItem.provenance?.source === "polyhaven"
+            ? "polyhaven"
+            : undefined;
+
         const item: Furniture = {
           id,
           kind: "furniture",
@@ -274,9 +292,10 @@ export const useBimScene = create<BimSceneState>()(
           tags: [],
           asset: {
             catalogId: catalogItem.id,
-            glbUrl: catalogItem.modelUrl,
+            glbUrl: catalogItem.modelUrl || undefined,
             dimensions: catalogItem.dimensions ?? { x: 1, y: 1, z: 1 },
             keywords: catalogItem.keywords ?? [],
+            provenance: provenanceStr,
             materialSlots: [],
           },
         };
@@ -351,6 +370,51 @@ export const useBimScene = create<BimSceneState>()(
             },
             hasUnsavedChanges: true,
           };
+        });
+      },
+
+      setElementMaterial: (elementId: string, materialId: string) => {
+        set((s: BimSceneState) => {
+          const bim = s.bim;
+          const patchMat = <T extends { id: string; materialId?: string }>(arr: T[]): T[] =>
+            arr.map((el) => (el.id === elementId ? { ...el, materialId } : el));
+          return {
+            bim: {
+              ...bim,
+              walls: patchMat(bim.walls),
+              doors: patchMat(bim.doors),
+              windows: patchMat(bim.windows),
+              slabs: patchMat(bim.slabs),
+              ceilings: patchMat(bim.ceilings),
+              roofs: patchMat(bim.roofs),
+              stairs: patchMat(bim.stairs),
+              columns: patchMat(bim.columns),
+            },
+            hasUnsavedChanges: true,
+          };
+        });
+      },
+
+      setAllMaterialsByKind: (
+        kind: "wall" | "door" | "window" | "slab" | "ceiling" | "roof" | "stair" | "column",
+        materialId: string,
+      ) => {
+        set((s: BimSceneState) => {
+          const bim = s.bim;
+          const patchAll = <T extends { materialId?: string }>(arr: T[]): T[] =>
+            arr.map((el) => ({ ...el, materialId }));
+          const next = { ...bim };
+          switch (kind) {
+            case "wall":    next.walls = patchAll(bim.walls); break;
+            case "door":    next.doors = patchAll(bim.doors); break;
+            case "window":  next.windows = patchAll(bim.windows); break;
+            case "slab":    next.slabs = patchAll(bim.slabs); break;
+            case "ceiling": next.ceilings = patchAll(bim.ceilings); break;
+            case "roof":    next.roofs = patchAll(bim.roofs); break;
+            case "stair":   next.stairs = patchAll(bim.stairs); break;
+            case "column":  next.columns = patchAll(bim.columns); break;
+          }
+          return { bim: next, hasUnsavedChanges: true };
         });
       },
 

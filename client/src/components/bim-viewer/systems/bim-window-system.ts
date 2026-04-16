@@ -31,25 +31,39 @@ export function getBimWindowMaterials(isSelected: boolean): {
   frame: THREE.MeshPhysicalMaterial;
   glass: THREE.MeshPhysicalMaterial;
 } {
+  // Frame: aluminium-look with emissive selection tint
+  const frameProps: THREE.MeshPhysicalMaterialParameters = {
+    color: "#c0c0c0",
+    roughness: 0.4,
+    metalness: 0.3,
+    envMapIntensity: 0.8,
+  };
+
+  if (isSelected) {
+    frameProps.emissive = new THREE.Color("#4A90FF");
+    frameProps.emissiveIntensity = 0.3;
+  }
+
+  // Glass: physically-based with transmission (no fake blue tint)
+  const glassProps: THREE.MeshPhysicalMaterialParameters = {
+    color: "#ffffff",
+    transmission: 0.95,
+    roughness: 0.02,
+    metalness: 0,
+    ior: 1.52,
+    thickness: 0.006,
+    transparent: true,
+    opacity: 1, // Let transmission handle transparency
+    envMapIntensity: 1.2,
+  };
+
+  if (isSelected) {
+    glassProps.emissive = new THREE.Color("#4A90FF");
+    glassProps.emissiveIntensity = 0.25;
+  }
+
   return {
-    frame: new THREE.MeshPhysicalMaterial({
-      color: isSelected ? "#4A90FF" : "#c0c0c0",
-      roughness: 0.4,
-      metalness: 0.3,
-      envMapIntensity: 0.8,
-    }),
-    glass: new THREE.MeshPhysicalMaterial({
-      color: isSelected ? "#78B4FF" : "#cce8f4",
-      transmission: 0.7,
-      roughness: 0.05,
-      metalness: 0,
-      ior: 1.5,
-      thickness: 0.05,
-      transparent: true,
-      opacity: 0.5,
-      envMapIntensity: 1.0,
-      emissive: "#88ccff",
-      emissiveIntensity: 0.05,
-    }),
+    frame: new THREE.MeshPhysicalMaterial(frameProps),
+    glass: new THREE.MeshPhysicalMaterial(glassProps),
   };
 }

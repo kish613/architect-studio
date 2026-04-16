@@ -15,12 +15,22 @@ const CAMERA_PRESETS: Record<string, { position: [number, number, number]; targe
   isometric: { position: [15, 15, 15], target: [0, 0, 0] },
 };
 
-export function CameraController() {
+/** Ease-in-out cubic: smooth acceleration and deceleration */
+function easeInOutCubic(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+const TRANSITION_DURATION = 0.8; // seconds
+
+export function CameraController({ mode }: { mode?: string }) {
   const { cameraMode, cameraPreset, setCameraNavigating } = useViewer();
   const { camera } = useThree();
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const targetPos = useRef(new THREE.Vector3(15, 12, 15));
   const targetLookAt = useRef(new THREE.Vector3(0, 0, 0));
+  const startPos = useRef(new THREE.Vector3(15, 12, 15));
+  const startLookAt = useRef(new THREE.Vector3(0, 0, 0));
+  const animStartTime = useRef(0);
   const isAnimating = useRef(false);
   const interaction = useMemo(
     () => getViewerInteractionConfig("editor", { cameraMode, cameraPreset }),
@@ -32,8 +42,15 @@ export function CameraController() {
     const preset = CAMERA_PRESETS[presetKey];
     if (!preset) return;
 
+    // Capture current camera state as animation start point
+    startPos.current.copy(camera.position);
+    if (controlsRef.current) {
+      startLookAt.current.copy(controlsRef.current.target);
+    }
+
     targetPos.current.set(...preset.position);
     targetLookAt.current.set(...preset.target);
+    animStartTime.current = performance.now();
     isAnimating.current = true;
   }, [cameraMode, cameraPreset, camera]);
 
@@ -42,13 +59,17 @@ export function CameraController() {
   useFrame(() => {
     if (!isAnimating.current) return;
 
-    camera.position.lerp(targetPos.current, 0.08);
+    const elapsed = (performance.now() - animStartTime.current) / 1000;
+    const rawT = Math.min(elapsed / TRANSITION_DURATION, 1);
+    const t = easeInOutCubic(rawT);
+
+    camera.position.lerpVectors(startPos.current, targetPos.current, t);
     if (controlsRef.current) {
-      controlsRef.current.target.lerp(targetLookAt.current, 0.08);
+      controlsRef.current.target.lerpVectors(startLookAt.current, targetLookAt.current, t);
       controlsRef.current.update();
     }
 
-    if (camera.position.distanceTo(targetPos.current) < 0.05) {
+    if (rawT >= 1) {
       camera.position.copy(targetPos.current);
       if (controlsRef.current) {
         controlsRef.current.target.copy(targetLookAt.current);
@@ -57,6 +78,9 @@ export function CameraController() {
       isAnimating.current = false;
     }
   });
+
+  const autoRotateSpeed = useViewer((s) => s.autoRotateSpeed);
+  const isPresent = mode === "present";
 
   return (
     <OrbitControls
@@ -71,6 +95,8 @@ export function CameraController() {
       minDistance={2}
       maxDistance={60}
       maxPolarAngle={interaction.maxPolarAngle}
+      autoRotate={isPresent || autoRotateSpeed > 0}
+      autoRotateSpeed={isPresent ? 0.3 : autoRotateSpeed}
       onStart={() => setCameraNavigating(true)}
       onEnd={() => setCameraNavigating(false)}
     />

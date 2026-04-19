@@ -71,9 +71,12 @@ export function Viewer() {
 
   // New workspace-specific state
   const [layout, setLayout] = useState<WorkspaceLayout>(() => {
-    if (typeof localStorage === "undefined") return "studio";
-    const v = localStorage.getItem("viewer:layout");
-    return v === "precision" ? "precision" : "studio";
+    try {
+      const v = localStorage?.getItem?.("viewer:layout");
+      return v === "precision" ? "precision" : "studio";
+    } catch {
+      return "studio";
+    }
   });
   const persistLayout = (l: WorkspaceLayout) => {
     setLayout(l);

@@ -1,0 +1,32 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100" aria-label="Architect Studio mark">
+  <defs>
+    <pattern id="markGrid" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"></path>
+    </pattern>
+  </defs>
+  
+  <rect x="0" y="0" width="100" height="100" rx="4" fill="none" stroke="#003087" stroke-width="3"></rect>
+  
+  <path d="M10,10 H45 V40 H30 V25 H10 V10 Z" fill="#003087"></path>
+  <path d="M10,50 H45 V90 H10 V50 Z" fill="#003087"></path>
+  <path d="M55,10 H90 V90 H55 V60 H65 V40 H55 V10 Z" fill="#00AEEF" opacity=".9"></path>
+  <rect x="52" y="52" width="6" height="6" fill="#003087"></rect>
+  <rect x="52" y="32" width="6" height="6" fill="#003087"></rect>
+  <rect x="18" y="15" width="8" height="8" fill="white" opacity=".3"></rect>
+  <rect x="25" y="60" width="10" height="5" fill="white" opacity=".3"></rect>
+  
+  <rect x="0" y="0" width="100" height="100" rx="4" fill="url(#markGrid)" opacity=".3"></rect>
+  
+  <g stroke="#003087" stroke-width="1.5" fill="none" stroke-linecap="square" stroke-linejoin="miter">
+    <g stroke-width="1.5">
+      <line x1="60" y1="15" x2="85" y2="15"></line>
+      <line x1="60" y1="20" x2="85" y2="20"></line>
+      <line x1="60" y1="25" x2="85" y2="25"></line>
+      <line x1="60" y1="30" x2="85" y2="30"></line>
+    </g>
+    <line x1="10" y1="70" x2="45" y2="70" stroke-width="1"></line>
+    <path d="M45,40 Q55,40 55,30" stroke-width="1.5" stroke-dasharray="2,2"></path>
+    <line x1="90" y1="50" x2="90" y2="80" stroke="#00AEEF" stroke-width="4"></line>
+  </g>
+</svg>

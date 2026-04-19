@@ -1,0 +1,158 @@
+/* Architect Studio — App kit styles */
+@import url('../../colors_and_type.css');
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--ink-0);
+  background-image: var(--pattern-blueprint-dark);
+  background-size: var(--pattern-blueprint-dark-size);
+  color: var(--fg-1);
+  font-family: var(--font-ui);
+  min-height: 100vh;
+}
+
+/* ---------- App shell (sidebar + main) ---------- */
+.app-shell { display: grid; grid-template-columns: 72px 1fr; min-height: 100vh; }
+.app-sidebar {
+  position: sticky; top: 0; height: 100vh;
+  background: var(--ink-2); border-right: 1px solid var(--line-2);
+  display: flex; flex-direction: column; align-items: center;
+  padding: 20px 0; gap: 16px;
+}
+.app-sidebar-logo { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: rgba(249,115,22,.08); border: 1px solid rgba(249,115,22,.15); }
+.app-sidebar-nav { display: flex; flex-direction: column; gap: 4px; flex: 1; align-items: center; }
+.app-sidebar-bottom { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.app-rail-btn {
+  width: 52px; min-height: 60px; padding: 8px 4px; border: 0; background: transparent;
+  border-radius: 12px; color: var(--fg-3); cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  font-family: var(--font-ui); font-size: 9px; font-weight: 500; letter-spacing: .03em;
+  transition: all .15s; text-align: center;
+}
+.app-rail-btn i { width: 20px; height: 20px; }
+.app-rail-btn:hover { background: rgba(255,255,255,.04); color: var(--fg-1); }
+.app-rail-btn.active { background: rgba(249,115,22,.12); color: var(--primary); }
+.app-rail-btn.active i { color: var(--primary); }
+.app-user .app-avatar { width: 32px; height: 32px; border-radius: 9999px; background: rgba(249,115,22,.2); display: flex; align-items: center; justify-content: center; color: var(--primary); }
+.app-user i { width: 16px; height: 16px; }
+
+.app-main { padding: 32px 40px; max-width: 1400px; }
+
+/* ---------- Shared primitives ---------- */
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 10px; font-family: var(--font-ui); font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s; border: 1px solid transparent; }
+.btn i { width: 14px; height: 14px; }
+.btn-primary { background: var(--primary); color: #fff; border-color: var(--brand-600); box-shadow: var(--shadow-brand); }
+.btn-primary:hover { background: var(--brand-600); }
+.btn-ghost { background: transparent; color: var(--fg-2); border-color: var(--line-2); }
+.btn-ghost:hover { background: rgba(255,255,255,.04); color: var(--fg-1); }
+.btn-ghost-sm { background: transparent; color: var(--fg-2); border-color: var(--line-2); padding: 7px 12px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; cursor: pointer; font-family: var(--font-ui); }
+.btn-ghost-sm i { width: 13px; height: 13px; }
+.btn-ghost-sm:hover { background: rgba(255,255,255,.04); color: var(--fg-1); }
+
+.eyebrow { font-family: var(--font-ui); font-size: 11px; color: var(--fg-3); text-transform: uppercase; letter-spacing: .1em; font-weight: 600; }
+.dark-glass { background: rgba(255,255,255,.03); backdrop-filter: blur(20px); border: 1px solid var(--line-2); }
+
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 9999px; background: rgba(255,255,255,.04); border: 1px solid var(--line-2); font-size: 11px; color: var(--fg-2); font-family: var(--font-mono); }
+.chip i { width: 12px; height: 12px; color: var(--bp-cyan); }
+.chip-beta { display: inline-block; padding: 3px 8px; border-radius: 9999px; background: rgba(249,115,22,.15); color: var(--primary); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
+
+/* ---------- Screen header ---------- */
+.app-screen { padding-bottom: 48px; }
+.app-screen-head { display: flex; align-items: flex-end; justify-content: space-between; padding-bottom: 24px; margin-bottom: 24px; border-bottom: 1px solid var(--line-2); }
+
+/* ---------- Projects grid ---------- */
+.app-project-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.app-project-card { background: var(--ink-3); border: 1px solid var(--line-2); border-radius: 16px; overflow: hidden; cursor: pointer; transition: all .2s; }
+.app-project-card:hover { transform: translateY(-2px); border-color: var(--line-3); box-shadow: var(--shadow-md); }
+.app-project-thumb { aspect-ratio: 16/10; position: relative; }
+.app-project-badge { position: absolute; top: 10px; left: 10px; display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 9999px; background: rgba(0,0,0,.55); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,.15); font-size: 11px; font-weight: 500; color: #fff; }
+.app-project-badge i { width: 11px; height: 11px; color: var(--bp-cyan); }
+.app-project-body { padding: 14px 16px; }
+.app-project-title { font-family: var(--font-display); font-size: 15px; font-weight: 600; color: var(--fg-1); }
+.app-project-meta { display: flex; gap: 14px; margin-top: 6px; font-size: 12px; color: var(--fg-3); }
+.app-project-meta i { width: 12px; height: 12px; vertical-align: -2px; margin-right: 4px; }
+
+/* ---------- Upload ---------- */
+.app-upload-box {
+  margin-top: 32px; padding: 56px 32px; border-radius: 24px;
+  background: rgba(255,255,255,.02); border: 2px dashed var(--line-3);
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  cursor: pointer; transition: all .2s;
+}
+.app-upload-box:hover { border-color: var(--primary); background: rgba(249,115,22,.03); }
+.app-upload-formats { margin-top: 20px; display: flex; gap: 8px; }
+.app-upload-formats span { font-family: var(--font-mono); font-size: 10px; padding: 3px 8px; border-radius: 6px; background: rgba(255,255,255,.04); color: var(--fg-3); border: 1px solid var(--line-2); }
+.app-upload-tips { margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.app-tip { display: flex; gap: 12px; padding: 14px; background: var(--ink-3); border: 1px solid var(--line-2); border-radius: 14px; }
+.app-tip i { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; }
+.app-tip strong { font-size: 13px; color: var(--fg-1); display: block; margin-bottom: 2px; }
+.app-tip p { margin: 0; font-size: 12px; color: var(--fg-3); line-height: 1.5; }
+.app-spinner i { width: 40px; height: 40px; color: var(--primary); animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- BIM editor ---------- */
+.app-bim { display: grid; grid-template-columns: 56px 1fr 300px; gap: 16px; height: calc(100vh - 64px); }
+.app-bim-rail { background: var(--ink-2); border: 1px solid var(--line-2); border-radius: 14px; padding: 8px 6px; display: flex; flex-direction: column; gap: 4px; align-items: center; }
+.app-tool-btn { width: 42px; height: 42px; border-radius: 10px; border: 0; background: transparent; color: var(--fg-3); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all .15s; }
+.app-tool-btn i { width: 18px; height: 18px; }
+.app-tool-btn:hover { background: rgba(255,255,255,.04); color: var(--fg-1); }
+.app-tool-btn.active { background: var(--primary); color: #fff; }
+.app-bim-rail-divider { width: 28px; height: 1px; background: var(--line-2); margin: 6px 0; }
+
+.app-bim-canvas { background: var(--ink-2); border: 1px solid var(--line-2); border-radius: 14px; display: flex; flex-direction: column; overflow: hidden; }
+.app-bim-canvas-head { padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line-2); }
+.app-bim-breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fg-3); }
+.app-bim-breadcrumb i { width: 14px; height: 14px; }
+.app-bim-canvas-actions { display: flex; gap: 10px; align-items: center; }
+.app-zoom { display: inline-flex; align-items: center; background: var(--ink-3); border: 1px solid var(--line-2); border-radius: 8px; overflow: hidden; font-family: var(--font-mono); font-size: 12px; }
+.app-zoom button { background: transparent; border: 0; color: var(--fg-2); width: 28px; height: 28px; cursor: pointer; }
+.app-zoom button:hover { background: rgba(255,255,255,.04); }
+.app-zoom span { padding: 0 10px; color: var(--fg-2); }
+.app-bim-canvas-body { flex: 1; background: #0b0f13; position: relative; }
+
+.app-bim-inspector { background: var(--ink-2); border: 1px solid var(--line-2); border-radius: 14px; padding: 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+.app-inspector-sec { padding-bottom: 16px; border-bottom: 1px solid var(--line-2); }
+.app-inspector-sec:last-child { border-bottom: 0; padding-bottom: 0; }
+.app-row { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; font-size: 12px; }
+.app-row label { color: var(--fg-3); }
+.app-row input { background: var(--ink-3); border: 1px solid var(--line-2); border-radius: 6px; padding: 6px 10px; color: var(--fg-1); font-family: var(--font-mono); font-size: 12px; width: 120px; text-align: right; }
+.app-material-row { display: flex; gap: 8px; margin-top: 10px; }
+.app-mat-swatch { width: 32px; height: 32px; border-radius: 8px; border: 2px solid transparent; cursor: pointer; }
+.app-mat-swatch:hover { border-color: var(--primary); }
+.app-select { margin-top: 10px; width: 100%; background: var(--ink-3); border: 1px solid var(--line-2); border-radius: 8px; padding: 8px 10px; color: var(--fg-1); font-family: var(--font-ui); font-size: 12px; }
+.app-chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+
+/* ---------- Viewer 3D ---------- */
+.app-viewer { display: flex; flex-direction: column; gap: 12px; height: calc(100vh - 64px); }
+.app-viewer-topbar { background: var(--ink-2); border: 1px solid var(--line-2); border-radius: 14px; padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; }
+.app-viewer-segments { display: inline-flex; background: var(--ink-3); border: 1px solid var(--line-2); border-radius: 10px; padding: 3px; gap: 2px; }
+.app-seg-btn { background: transparent; border: 0; color: var(--fg-3); padding: 6px 12px; border-radius: 7px; font-size: 12px; font-family: var(--font-ui); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.app-seg-btn i { width: 13px; height: 13px; }
+.app-seg-btn:hover { color: var(--fg-1); }
+.app-seg-btn.active { background: var(--ink-5); color: var(--fg-1); }
+.app-viewer-stage { flex: 1; background: radial-gradient(ellipse at center, #1a1f2a 0%, #0a0c11 100%); border: 1px solid var(--line-2); border-radius: 14px; position: relative; overflow: hidden; }
+.app-viewer-camera { position: absolute; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 4px; background: rgba(17,17,17,.85); backdrop-filter: blur(12px); border: 1px solid var(--line-2); border-radius: 10px; padding: 6px; }
+.app-viewer-camera button { width: 34px; height: 34px; background: transparent; border: 0; border-radius: 7px; color: var(--fg-2); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.app-viewer-camera button i { width: 15px; height: 15px; }
+.app-viewer-camera button:hover { background: rgba(255,255,255,.06); color: var(--fg-1); }
+.app-viewer-layers { position: absolute; left: 16px; top: 16px; background: rgba(17,17,17,.85); backdrop-filter: blur(12px); border: 1px solid var(--line-2); border-radius: 12px; padding: 14px 16px; min-width: 180px; }
+.app-layer-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--fg-2); padding: 4px 0; cursor: pointer; }
+.app-layer-row input { accent-color: var(--primary); }
+
+/* ---------- Planning ---------- */
+.app-icon-chip { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.app-icon-chip i { width: 20px; height: 20px; }
+.app-planning-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.app-planning-card { background: var(--ink-3); border: 1px solid var(--line-2); border-radius: 16px; overflow: hidden; }
+.app-planning-map { aspect-ratio: 16/7; position: relative; }
+.app-planning-pin { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 36px; height: 36px; border-radius: 9999px; background: #fff; color: var(--primary); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,.4); }
+.app-status { position: absolute; top: 10px; right: 10px; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 600; }
+.app-status.approved { background: rgba(16,185,129,.15); color: var(--success); border: 1px solid rgba(16,185,129,.3); }
+.app-status.pending { background: rgba(245,158,11,.15); color: var(--warning); border: 1px solid rgba(245,158,11,.3); }
+
+/* ---------- Kit tab switcher ---------- */
+.kit-tabs { position: sticky; top: 0; z-index: 10; background: rgba(10,10,10,.8); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line-2); padding: 12px 40px 12px 80px; display: flex; gap: 4px; }
+.kit-tab { background: transparent; border: 0; color: var(--fg-3); padding: 8px 14px; border-radius: 8px; font-size: 13px; font-family: var(--font-ui); font-weight: 500; cursor: pointer; }
+.kit-tab:hover { background: rgba(255,255,255,.04); color: var(--fg-1); }
+.kit-tab.active { background: rgba(249,115,22,.12); color: var(--primary); }

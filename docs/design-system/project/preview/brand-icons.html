@@ -1,0 +1,11 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="_card.css"><link rel="stylesheet" href="../colors_and_type.css"></head><body>
+<div class="label-row"><span class="eyebrow">Iconography · Lucide</span><span class="eyebrow" style="font-family:var(--font-mono);letter-spacing:0">stroke 2 · 20px default</span></div>
+<div style="display:grid;grid-template-columns:repeat(8,1fr);gap:12px;padding:6px 0">
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+const names=['pen-square','play-circle','plus-circle','box','file-check','sparkles','search','map-pin','user-circle','log-out','ruler','layers','move','camera','grid-3x3','download','home','image','rotate-3d','eye'];
+document.scripts[0].insertAdjacentHTML('afterend', names.map(n=>`<div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--fg-2)"><i data-lucide="${n}" style="width:20px;height:20px"></i><span style="font-family:var(--font-mono);font-size:9px;color:var(--fg-3)">${n}</span></div>`).join(''));
+window.addEventListener('load',()=>lucide.createIcons());
+</script>
+</div>
+</body></html>

@@ -12,14 +12,14 @@ export const WORKSPACE_LAYERS: Array<{ id: LayerId; name: string; swatch: string
 ];
 
 export function countLayers(
-  nodes: Record<string, { kind?: string } | undefined | null> | undefined | null,
+  nodes: Record<string, { type?: string } | undefined | null> | undefined | null,
 ): Record<LayerId, number> {
   const result = Object.fromEntries(WORKSPACE_LAYERS.map(l => [l.id, 0])) as Record<LayerId, number>;
   if (!nodes) return result;
   for (const node of Object.values(nodes)) {
-    if (!node?.kind) continue;
+    if (!node?.type) continue;
     for (const layer of WORKSPACE_LAYERS) {
-      if (layer.kinds.includes(node.kind)) {
+      if (layer.kinds.includes(node.type)) {
         result[layer.id]++;
         break;
       }

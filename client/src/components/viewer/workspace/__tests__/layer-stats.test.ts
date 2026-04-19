@@ -4,8 +4,8 @@ import { countLayers, WORKSPACE_LAYERS } from "../layer-stats";
 describe("countLayers", () => {
   it("groups scene nodes by layer id", () => {
     const nodes = {
-      a: { kind: "wall" }, b: { kind: "wall" }, c: { kind: "door" },
-      d: { kind: "window" }, e: { kind: "item" }, f: { kind: "zone" },
+      a: { type: "wall" }, b: { type: "wall" }, c: { type: "door" },
+      d: { type: "window" }, e: { type: "item" }, f: { type: "zone" },
     } as const;
     const counts = countLayers(nodes as any);
     expect(counts.walls).toBe(2);
@@ -28,7 +28,7 @@ describe("countLayers", () => {
   });
 
   it("groups slab+roof under walls (structural)", () => {
-    const counts = countLayers({ a: { kind: "slab" }, b: { kind: "roof" } } as any);
+    const counts = countLayers({ a: { type: "slab" }, b: { type: "roof" } } as any);
     expect(counts.walls).toBe(2);
   });
 });

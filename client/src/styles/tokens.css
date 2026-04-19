@@ -1,10 +1,21 @@
-/* Imported from the saved design system. Only tokens not already in index.css. */
+/*
+ * Design-system token additions. Imported first from client/src/index.css.
+ * Contains only tokens NOT already defined in index.css's @theme inline block
+ * (so shadcn/tailwind tokens like --primary, --font-sans, --font-display,
+ * --font-poppins, --font-mono all live in index.css).
+ *
+ * Dark-canvas assumption: all --fg-* and --line-* tokens are designed for the
+ * #0A0A0A workspace canvas. Do not reach for these on light surfaces.
+ *
+ * Scale tokens (--r-*, --s-*, --fs-*, --dur-*) are prototype-scoped and feed
+ * the .workspace-root CSS only. For Tailwind utilities, use the standard
+ * rounded-*, p-*, text-* scales defined by @theme inline in index.css.
+ */
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
 
 :root {
   /* Fonts — alias role-based families */
   --font-ui: 'Poppins', 'Inter', sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
   --font-brand: 'Montserrat', 'Space Grotesk', sans-serif;
 
   /* Type scale */
@@ -31,7 +42,7 @@
   --fg-3: rgba(255,255,255,0.50);
   --fg-4: rgba(255,255,255,0.30);
 
-  /* Brand scale (primary already exists, add scale) */
+  /* Brand scale. --brand-500 is the same color as shadcn's --primary; prefer --primary for CTAs, --brand-* only when you need off-500 shades. */
   --brand-50:#FFF5EB; --brand-100:#FFE4CC; --brand-200:#FFC48F; --brand-300:#FFA352;
   --brand-400:#FB8530; --brand-500:#F97316; --brand-600:#EA580C; --brand-700:#C2410C;
   --brand-800:#9A3412; --brand-900:#7C2D12;

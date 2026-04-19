@@ -1,0 +1,49 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 150" class="as-logo" width="450" height="75" aria-label="Architect Studio">
+  <defs>
+    <linearGradient id="asIconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#003087"></stop>
+      <stop offset="100%" stop-color="#00AEEF"></stop>
+    </linearGradient>
+    <pattern id="asGrid" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#f0f0f0" stroke-width="1"></path>
+    </pattern>
+  </defs>
+  
+  <g transform="translate(50,25)">
+    <g stroke="#003087" stroke-width="2.5" fill="none" stroke-linecap="square" stroke-linejoin="miter">
+      <rect x="0" y="0" width="100" height="100" rx="4" stroke-width="3" class="stroke-animate"></rect>
+      <path d="M10,10 H45 V40 H30 V25 H10 V10 Z" class="stroke-animate" style="animation-delay:.2s"></path>
+      <rect x="18" y="15" width="8" height="8" stroke-width="1" class="stroke-animate-fast"></rect>
+      <path d="M10,50 H45 V90 H10 V50 Z" class="stroke-animate" style="animation-delay:.3s"></path>
+      <line x1="10" y1="70" x2="45" y2="70" stroke-width="1" class="stroke-animate-fast"></line>
+      <path d="M55,10 H90 V90 H55 V60 H65 V40 H55 V10 Z" class="stroke-animate" style="animation-delay:.4s"></path>
+      <g stroke-width="1.5" class="stroke-animate-fast">
+        <line x1="60" y1="15" x2="85" y2="15"></line>
+        <line x1="60" y1="20" x2="85" y2="20"></line>
+        <line x1="60" y1="25" x2="85" y2="25"></line>
+        <line x1="60" y1="30" x2="85" y2="30"></line>
+      </g>
+      <rect x="52" y="52" width="6" height="6" fill="none" class="stroke-animate-fast"></rect>
+      <rect x="52" y="32" width="6" height="6" fill="none" class="stroke-animate-fast"></rect>
+      <path d="M45,40 Q55,40 55,30" stroke-width="1.5" stroke-dasharray="2,2" class="stroke-animate-fast"></path>
+      <line x1="90" y1="50" x2="90" y2="80" stroke="#00AEEF" stroke-width="4" class="stroke-animate" style="animation-delay:.5s"></line>
+    </g>
+    <g fill-rule="evenodd" class="fill-animate">
+      <path d="M10,10 H45 V40 H30 V25 H10 V10 Z" fill="#003087"></path>
+      <path d="M10,50 H45 V90 H10 V50 Z" fill="#003087"></path>
+      <path d="M55,10 H90 V90 H55 V60 H65 V40 H55 V10 Z" fill="#00AEEF" opacity=".9"></path>
+      <rect x="52" y="52" width="6" height="6" fill="#003087"></rect>
+      <rect x="52" y="32" width="6" height="6" fill="#003087"></rect>
+      <rect x="18" y="15" width="8" height="8" fill="white" opacity=".3"></rect>
+      <rect x="25" y="60" width="10" height="5" fill="white" opacity=".3"></rect>
+      <rect x="0" y="0" width="100" height="100" rx="4" fill="url(#asGrid)" opacity=".3" style="pointer-events:none"></rect>
+    </g>
+    <g class="text-animate">
+      <text x="130" y="50" dominant-baseline="middle" font-family="Montserrat, sans-serif" font-size="65" letter-spacing="-1">
+        <tspan fill="#003087" font-weight="700">Architect</tspan>
+        <tspan dx="10" fill="#00AEEF" font-weight="400">Studio</tspan>
+      </text>
+    </g>
+  </g>
+</svg>

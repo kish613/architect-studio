@@ -1,0 +1,153 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="_card.css">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { width: 800px; padding: 0; background: var(--ink-1); }
+  .kit-card-wrap { padding: 20px; }
+  .kit-card-head { display: flex; align-items: center; justify-content: space-between; padding: 0 4px 14px; }
+  .kit-title { display: flex; align-items: center; gap: 10px; }
+  .kit-title h2 { font-family: var(--font-display); font-size: 18px; font-weight: 600; margin: 0; color: var(--fg-1); }
+  .kit-link { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 8px; background: rgba(249,115,22,.12); color: var(--primary); font-family: var(--font-ui); font-size: 11px; font-weight: 500; text-decoration: none; border: 1px solid rgba(249,115,22,.25); }
+  .kit-tags { display: flex; flex-wrap: wrap; gap: 6px; padding: 14px 4px 0; }
+  .kit-tag { font-family: var(--font-mono); font-size: 10px; padding: 3px 8px; border-radius: 6px; background: rgba(255,255,255,.04); color: var(--fg-3); border: 1px solid var(--line-2); }
+
+  /* Composed app shell thumb */
+  .ap-thumb { position: relative; aspect-ratio: 16/10; border-radius: 16px; overflow: hidden; border: 1px solid var(--line-2);
+    background: var(--ink-0);
+    background-image: linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+    background-size: 20px 20px;
+    display: grid; grid-template-columns: 46px 1fr; gap: 8px; padding: 8px;
+  }
+  /* Sidebar */
+  .ap-rail { background: var(--ink-2); border: 1px solid var(--line-2); border-radius: 10px; padding: 8px 4px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .ap-rail-logo { width: 28px; height: 28px; border-radius: 7px; background: rgba(249,115,22,.12); border: 1px solid rgba(249,115,22,.15); display: flex; align-items: center; justify-content: center; margin-bottom: 6px; }
+  .ap-rail-item { width: 34px; height: 34px; border-radius: 7px; display: flex; align-items: center; justify-content: center; color: var(--fg-3); }
+  .ap-rail-item.active { background: rgba(249,115,22,.12); color: var(--primary); }
+  .ap-rail-item svg { width: 14px; height: 14px; }
+
+  /* Main */
+  .ap-main { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .ap-head { display: flex; align-items: center; justify-content: space-between; padding: 4px 6px 6px; border-bottom: 1px solid var(--line-2); }
+  .ap-title { font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--fg-1); }
+  .ap-eyebrow { font-family: var(--font-ui); font-size: 8px; color: var(--fg-3); text-transform: uppercase; letter-spacing: .1em; font-weight: 600; }
+  .ap-newbtn { display: inline-flex; align-items: center; gap: 3px; padding: 4px 9px; border-radius: 6px; background: var(--primary); color: #fff; font-size: 10px; font-family: var(--font-ui); font-weight: 500; box-shadow: 0 3px 8px rgba(249,115,22,.25); }
+
+  /* Projects grid */
+  .ap-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; flex: 1; }
+  .ap-card { background: var(--ink-3); border: 1px solid var(--line-2); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
+  .ap-card-thumb { aspect-ratio: 16/10; position: relative; }
+  .ap-card-badge { position: absolute; top: 5px; left: 5px; padding: 2px 6px; border-radius: 9999px; background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.15); color: #fff; font-size: 8px; display: inline-flex; align-items: center; gap: 3px; }
+  .ap-card-badge svg { width: 8px; height: 8px; color: var(--bp-cyan); }
+  .ap-card-body { padding: 6px 8px; }
+  .ap-card-name { font-family: var(--font-display); font-size: 10px; font-weight: 600; color: var(--fg-1); }
+  .ap-card-meta { display: flex; gap: 8px; margin-top: 2px; font-size: 8px; color: var(--fg-3); }
+</style>
+</head>
+<body>
+<div class="kit-card-wrap">
+  <div class="kit-card-head">
+    <div class="kit-title">
+      <div style="width:32px;height:32px;border-radius:8px;background:rgba(0,174,239,.12);display:flex;align-items:center;justify-content:center">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00AEEF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8l-9-5-9 5v8l9 5 9-5z"/><path d="M3.3 7L12 12l8.7-5"/><path d="M12 22V12"/></svg>
+      </div>
+      <h2>UI Kit · App</h2>
+    </div>
+    <a class="kit-link" href="../ui_kits/app/index.html" target="_top">
+      Open <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M7 7h10v10"/></svg>
+    </a>
+  </div>
+
+  <div class="ap-thumb">
+    <div class="ap-rail">
+      <div class="ap-rail-logo">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+      </div>
+      <div class="ap-rail-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+      <div class="ap-rail-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+      <div class="ap-rail-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 6L3 18"/><path d="M7 6h0"/><path d="M17 18h0"/></svg></div>
+      <div class="ap-rail-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8l-9-5-9 5v8l9 5 9-5z"/></svg></div>
+      <div class="ap-rail-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+    </div>
+
+    <div class="ap-main">
+      <div class="ap-head">
+        <div>
+          <div class="ap-eyebrow">Workspace</div>
+          <div class="ap-title">Projects</div>
+        </div>
+        <div class="ap-newbtn">
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          New Project
+        </div>
+      </div>
+
+      <div class="ap-grid">
+        <div class="ap-card">
+          <div class="ap-card-thumb" style="background:linear-gradient(135deg,#1e3a8a,#0ea5e9)">
+            <div class="ap-card-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8l-9-5-9 5v8l9 5 9-5z"/></svg>
+              3 models
+            </div>
+          </div>
+          <div class="ap-card-body"><div class="ap-card-name">Oak Lane Extension</div><div class="ap-card-meta"><span>SW11</span><span>5 rooms</span></div></div>
+        </div>
+        <div class="ap-card">
+          <div class="ap-card-thumb" style="background:linear-gradient(135deg,#0f172a,#f97316)">
+            <div class="ap-card-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8l-9-5-9 5v8l9 5 9-5z"/></svg>
+              2 models
+            </div>
+          </div>
+          <div class="ap-card-body"><div class="ap-card-name">Victorian Terrace</div><div class="ap-card-meta"><span>E2</span><span>3 rooms</span></div></div>
+        </div>
+        <div class="ap-card">
+          <div class="ap-card-thumb" style="background:linear-gradient(135deg,#334155,#e2e8f0)">
+            <div class="ap-card-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8l-9-5-9 5v8l9 5 9-5z"/></svg>
+              5 models
+            </div>
+          </div>
+          <div class="ap-card-body"><div class="ap-card-name">Garden Studio</div><div class="ap-card-meta"><span>N16</span><span>1 room</span></div></div>
+        </div>
+        <div class="ap-card">
+          <div class="ap-card-thumb" style="background:linear-gradient(135deg,#1e293b,#fb923c)">
+            <div class="ap-card-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8l-9-5-9 5v8l9 5 9-5z"/></svg>
+              2 models
+            </div>
+          </div>
+          <div class="ap-card-body"><div class="ap-card-name">Loft Conversion</div><div class="ap-card-meta"><span>SE15</span><span>4 rooms</span></div></div>
+        </div>
+        <div class="ap-card">
+          <div class="ap-card-thumb" style="background:linear-gradient(135deg,#020617,#f59e0b)">
+            <div class="ap-card-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8l-9-5-9 5v8l9 5 9-5z"/></svg>
+              4 models
+            </div>
+          </div>
+          <div class="ap-card-body"><div class="ap-card-name">Mews House</div><div class="ap-card-meta"><span>W1</span><span>6 rooms</span></div></div>
+        </div>
+        <div class="ap-card">
+          <div class="ap-card-thumb" style="background:linear-gradient(135deg,#0c4a6e,#38bdf8)">
+            <div class="ap-card-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8l-9-5-9 5v8l9 5 9-5z"/></svg>
+              1 model
+            </div>
+          </div>
+          <div class="ap-card-body"><div class="ap-card-name">Barn Conversion</div><div class="ap-card-meta"><span>OX1</span><span>8 rooms</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="kit-tags">
+    <span class="kit-tag">Sidebar rail</span>
+    <span class="kit-tag">ProjectsGrid</span>
+    <span class="kit-tag">UploadDrop</span>
+    <span class="kit-tag">BimEditor (tool rail + canvas + inspector)</span>
+    <span class="kit-tag">Viewer3D</span>
+    <span class="kit-tag">PlanningAnalysis</span>
+  </div>
+</div>
+</body></html>

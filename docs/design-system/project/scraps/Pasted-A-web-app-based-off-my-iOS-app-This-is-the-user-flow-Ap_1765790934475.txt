@@ -1,0 +1,44 @@
+A web app based off my iOS app. This is the user flow. App flow
+
+Main User Flow
+
+Home Screen (Landing)
+﻿Header: "Architect Studio" branding with a cube icon
+﻿Hero Section: "Transform Your Designs into 3D Worlds"
+﻿Animated 3D Room Preview: A rotating isometric room illustration demonstrating the concept
+﻿Primary CTA: "Upload Floorplan" button with orange arrow and "Al Magic" label
+﻿Capabilities Cards: Two cards showcasing features:
+﻿"Photorealistic Renders" - realistic renders from any floorplan
+﻿"Multi-Level Support" - support for complex layouts
+﻿Design Gallery: Horizontal scroll of circular thumbnails showing recent generations (or placeholders if none exist)
+﻿My Projects Card: Quick access to saved designs
+Upload Flow
+When user taps "Upload Floorplan":
+﻿Navigates to Upload Screen
+﻿User can select/capture a floorplan image
+﻿The image is processed and prepared for 3D generation
+Projects Screen
+Accessed via "View Gallery" or "My Projects":
+﻿Lists all saved projects
+﻿Each project contains multiple 3D model generations
+﻿Users can browse their history of floorplan conversions
+Viewer Screen
+When user taps on a generation:
+﻿Opens detailed view of a specific 3D model
+﻿Displays the rendered output
+﻿Shows both original floorplan and generated 3D visualization
+﻿Parameters: modelId and projectId identify the specific generation
+Data Structure
+Projects contain:
+﻿Project ID and name
+﻿Multiple FloorplanModels, each with:
+﻿Thumbnail URL
+﻿Render URL (final 3D output)
+﻿Original image URL (source floorplan)
+State Management: Zustand store (floorplanStore) persists projects and models, filtering out mock/ placeholder images when displaying real generations.
+Key Interactions
+
+﻿Haptic feedback on all major button presses
+﻿Smooth animations on the home screen (rotating 3D model, pulsing grid)
+﻿Press animations (scale down) on interactive elements
+The first transformation is done with nano banana and the 3d render is done by meshy api. Change the storage mode to database and any other iOS specifics change for the webapp. The ui should be optimal for what this app does

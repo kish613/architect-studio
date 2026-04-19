@@ -1,0 +1,62 @@
+/* Card boilerplate — keeps every preview at 700px design width on a dark inky canvas */
+@import url('../colors_and_type.css');
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  width: 700px;
+  min-height: 150px;
+  background: var(--ink-1);
+  color: var(--fg-1);
+  font-family: var(--font-sans);
+  padding: 24px;
+  background-image: var(--pattern-dots-dark);
+  background-size: var(--pattern-dots-dark-size);
+}
+.row { display: flex; gap: 12px; align-items: stretch; flex-wrap: wrap; }
+.col { display: flex; flex-direction: column; gap: 12px; }
+.swatch {
+  flex: 1;
+  min-width: 80px;
+  aspect-ratio: 1.6;
+  border-radius: 10px;
+  border: 1px solid var(--line-1);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  position: relative;
+  overflow: hidden;
+}
+.swatch .hex {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: rgba(255,255,255,.85);
+  text-shadow: 0 1px 2px rgba(0,0,0,.4);
+}
+.swatch .name {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255,255,255,.6);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  text-shadow: 0 1px 2px rgba(0,0,0,.4);
+}
+.swatch.light .hex, .swatch.light .name { color: rgba(0,0,0,.75); text-shadow: none; }
+.swatch.light .name { color: rgba(0,0,0,.55); }
+
+.label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+.eyebrow {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  color: var(--fg-subtle);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  font-weight: 600;
+}

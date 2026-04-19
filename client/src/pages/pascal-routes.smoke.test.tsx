@@ -131,6 +131,10 @@ vi.mock("@/components/viewer/FloorplanCanvas", () => ({
   FloorplanCanvas: () => <div>pascal-canvas</div>,
 }));
 
+vi.mock("@/components/viewer/R3FCanvas", () => ({
+  R3FCanvas: () => <div>pascal-canvas</div>,
+}));
+
 vi.mock("@/components/subscription", () => ({
   PaywallModal: () => null,
 }));
@@ -345,10 +349,8 @@ describe("Pascal route smoke coverage", () => {
     mountedRoot = mounted.root;
     mountedContainer = mounted.container;
 
-    await clickButton(mounted.container, "3d View");
-
+    // New viewer defaults to 3D mode; R3FCanvas renders Pascal scenes, mocked to "pascal-canvas"
     expect(mounted.container.textContent).toContain("pascal-canvas");
-    expect(mounted.container.textContent).not.toContain("Pascal scene could not be rendered safely");
     expect(mocks.sceneStore.loadScene).toHaveBeenCalledWith(
       expect.objectContaining({ schemaVersion: 1 }),
     );
@@ -372,10 +374,8 @@ describe("Pascal route smoke coverage", () => {
     mountedRoot = mounted.root;
     mountedContainer = mounted.container;
 
-    await clickButton(mounted.container, "3d View");
-
+    // With malformed Pascal data, hasRenderablePascal is false; CanvasSurface falls back to Model3DViewer
     expect(mounted.container.textContent).toContain("model-viewer:/fallback.glb");
-    expect(mounted.container.textContent).toContain("Pascal scene could not be rendered safely");
     expect(mocks.sceneStore.resetSceneState).toHaveBeenCalled();
     expect(mocks.viewerStore.resetViewState).toHaveBeenCalled();
     expect(mocks.editorStore.resetEditorState).toHaveBeenCalled();

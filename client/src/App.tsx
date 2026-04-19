@@ -8,6 +8,7 @@ import { Home } from "@/pages/Home";
 import { Projects } from "@/pages/Projects";
 import { Upload } from "@/pages/Upload";
 import { Viewer } from "@/pages/Viewer";
+import { Viewer as NewViewer } from "@/pages/Viewer.new";
 import { Pricing } from "@/pages/Pricing";
 import Settings from "@/pages/Settings";
 import { Planning } from "@/pages/Planning";
@@ -24,6 +25,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/projects" component={Projects} />
+      <Route path="/projects/:id/v2" component={NewViewer} />
       <Route path="/projects/:id" component={Viewer} />
       <Route path="/upload" component={Upload} />
       <Route path="/pricing" component={Pricing} />
